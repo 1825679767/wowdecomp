@@ -1,4 +1,5 @@
 #include <cmath>
+#include "WXL/NativeProtocol.hpp"
 #include <cstdint>
 #include <cstring>
 #include <malloc.h>
@@ -1163,6 +1164,8 @@ int32_t FrameScript_Initialize(int32_t profile) {
 
     FrameScript_Execute(s_compatLua, "compat.lua", nullptr);
 
+    wxl::native::protocol::InitializeLua();
+
     return 1;
 }
 
@@ -1434,6 +1437,7 @@ void FrameScript_UnregisterScriptEvent(FrameScript_Object* object, FrameScript_E
 // VERIFY: 29317daf manual
 // OFFSET: 0x0081A9A0
 void FrameScript_Destroy() {
+    wxl::native::protocol::DestroyLua();
     lua_close(s_context);
     s_context = nullptr;
     luaM_freePool(s_mempool);

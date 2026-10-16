@@ -1,4 +1,5 @@
 #include "NetClient.h"
+#include "WXL/NativeProtocol.hpp"
 #include <cstdlib>
 #include <cstring>
 #include <new>
@@ -85,6 +86,11 @@ void NetClient::WCMessageReady(WowConnection* connection, uint32_t timeStamp, CD
 
     uint16_t msgId;
     msg->Get(msgId);
+
+    if (wxl::native::protocol::DropOversizedIncoming(msgId, size)) {
+        msg->m_read = msg->m_size;
+        return;
+    }
 
     switch (msgId) {
         case SMSG_CONNECT_TO:
@@ -275,6 +281,10 @@ int32_t NetClient::ProcessMessage(uint32_t timeReceived, CDataStore* msg, int32_
 
     uint16_t msgId;
     msg->Get(msgId);
+    if (wxl::native::protocol::Capture(this, msgId, msg)) {
+        msg->m_read = msg->m_size;
+        return 0;
+    }
     this->ValidateMessageId(msgId);
 
     if (msgId < NUM_MSG_TYPES && this->m_handlers[msgId]) {
@@ -392,6 +402,7 @@ int32_t NetClient::HandleData(uint32_t timeReceived, void* data, int32_t size) {
 // VERIFY: 72928567 auto
 // OFFSET: 0x00632510
 int32_t NetClient::HandleConnect() {
+    wxl::native::protocol::ResetSession(this);
     if (this->m_objMgr) {
         NetClient::PushObjMgr(this->m_objMgr);
     }
@@ -405,6 +416,7 @@ int32_t NetClient::HandleConnect() {
 // VERIFY: df419859 auto
 // OFFSET: 0x00632540
 int32_t NetClient::HandleDisconnect() {
+    wxl::native::protocol::ResetSession(this);
     if (this->m_objMgr) {
         NetClient::PushObjMgr(this->m_objMgr);
     }
@@ -664,6 +676,7 @@ void NetClient::HandleIdle() {
 // VERIFY: 4b27bdaa manual
 // OFFSET: 0x00631EA0
 void NetClient::Disconnect() {
+    wxl::native::protocol::ResetSession(this);
     if (this->m_redirectConnection) {
         this->m_redirectConnection->SetResponse(nullptr, false);
         this->m_redirectConnection->Disconnect();
@@ -717,6 +730,7 @@ void NetClient::Destroy() {
 // VERIFY: a5e5149c manual
 // OFFSET: [0x006331B0, 0x00633300]
 NetClient::~NetClient() {
+    wxl::native::protocol::ResetSession(this);
     this->Destroy();
 
     for (NETCLIENTNODE* node = s_clientList.Head(); node; node = s_clientList.Next(node)) {

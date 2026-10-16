@@ -48,6 +48,7 @@
 #include "WoW/Source/DB/Rec/ItemVisualsRec.h"
 #include "WoW/Source/DB/Rec/ParticleColorRec.h"
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
+#include "WXL/AppearanceCompat.hpp"
 
 // STATIC: 0x009F6A00
 static int32_t s_itemPriority[NUM_ITEM_SLOTS][NUM_COMPONENT_SECTIONS] = {
@@ -4209,6 +4210,7 @@ CCharacterComponent::CCharacterComponent() {
 // VERIFY: 4f3c1a66 manual
 // OFFSET: 0x004EFCA0
 CCharacterComponent::~CCharacterComponent() {
+    wxl::native::ReleaseAppearance(*this);
     if (this->m_request) {
         this->m_request->m_flags &= ~0x1;
         this->m_request = nullptr;
@@ -4283,6 +4285,10 @@ void CCharacterComponent::UpdateBaseTexture(EGxTexCommand command, uint32_t widt
 // VERIFY: 128e28ab auto
 // OFFSET: 0x004EFED0
 void CCharacterComponent::Prep() {
+    if (wxl::native::ApplyAppearance(*this)) {
+        this->m_link.Unlink();
+        return;
+    }
     if (this->m_data.m_flags & 0x1) {
         if (this->m_flags & 0x4) {
             this->GeosRenderPrep();
@@ -5106,6 +5112,10 @@ void CCharacterComponent::RenderPrepSections() {
 // VERIFY: e78118c6 manual
 // OFFSET: 0x004F1520
 bool CCharacterComponent::RenderPrep(int32_t wait) {
+    if (wxl::native::ApplyAppearance(*this)) {
+        this->m_link.Unlink();
+        return true;
+    }
     if (this->m_data.m_flags & 0x1) {
         if (this->m_flags & 0x4) {
             this->GeosRenderPrep();
@@ -5227,6 +5237,8 @@ int32_t CCharacterComponent::Update(const void* data, void* param) {
                 component->ProcessFinishedRequest();
                 component->m_link.Unlink();
             }
+        } else if (hasContext && wxl::native::ApplyAppearance(*component)) {
+            component->m_link.Unlink();
         } else if (component->VariationsLoaded(0) & component->ItemsLoaded(0)) {
             component->m_flags |= 0x8;
 

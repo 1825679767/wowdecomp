@@ -2670,10 +2670,10 @@ int32_t CM2Model::SetIndices() {
                 M2SkinSection* section = &skin->m_skinSections[sectionIndex];
 
                 if (copyIndices || singleBone) {
-                    memcpy(indices, &skin->m_indices[section->m_indexStart], section->m_indexCount * sizeof(uint16_t));
+                    memcpy(indices, &skin->m_indices[section->IndexStart()], section->m_indexCount * sizeof(uint16_t));
                 } else {
                     for (uint32_t j = 0; j < section->m_indexCount; j++) {
-                        indices[j] = vertexBase + skin->m_indices[j + section->m_indexStart] - section->m_vertexStart;
+                        indices[j] = vertexBase + skin->m_indices[j + section->IndexStart()] - section->m_vertexStart;
                     }
                 }
 
@@ -2889,7 +2889,7 @@ void CM2Model::RenderModelBatchesForProjectedTexture() {
 
             CGxBatch gxBatch;
             gxBatch.m_primType = GxPrim_Triangles;
-            gxBatch.m_start = section->m_indexStart;
+            gxBatch.m_start = section->IndexStart();
             gxBatch.m_count = section->m_indexCount;
             gxBatch.m_minIndex = 0;
             gxBatch.m_maxIndex = this->m_shared->m_skinData->m_vertices.m_count - 1;
@@ -2938,7 +2938,7 @@ void CM2Model::RenderBatchShadowMap(int32_t untextured, M2Batch* batch, const CM
 
     CGxBatch gxBatch;
     gxBatch.m_primType = GxPrim_Triangles;
-    gxBatch.m_start = section->m_indexStart;
+    gxBatch.m_start = section->IndexStart();
     gxBatch.m_count = 0;
     gxBatch.m_minIndex = 0;
     gxBatch.m_maxIndex = 0;
@@ -4124,6 +4124,10 @@ void CM2Model::OptimizeVisibleGeometry() {
     CM2Shared* shared = this->m_shared;
     uint32_t cacheFlags = shared->m_cache->m_flags;
     M2SkinProfile* skin = shared->m_skinData;
+    // The legacy optimizer merges section counts into a uint16. Large retail
+    // topology uses the ordinary complete geometry path until that optimizer
+    // has a wide section-count representation; never truncate or drop sections.
+    if (shared->m_wxlAssets && skin->m_indices.m_count > 65535u) return;
     M2Batch* prevBatch = nullptr;
     M2SkinSection* prevSection = nullptr;
     uint32_t batchCount = 0;
@@ -4243,11 +4247,11 @@ void CM2Model::OptimizeVisibleGeometry() {
             int32_t indexStart = indexStarts[batch->m_skinSectionIndex];
 
             if (indexStart < 0) {
-                indexStart = static_cast<uint16_t>(indexCount);
+                indexStart = static_cast<int32_t>(indexCount);
                 indexStarts[batch->m_skinSectionIndex] = indexCount;
             }
 
-            target->m_indexStart = indexStart;
+            target->SetIndexStart(uint32_t(indexStart));
 
             if (!keepVertices) {
                 target->m_vertexStart = 0;

@@ -1,0 +1,53 @@
+{
+  "sourceRoot": "C:\\Users\\blanc\\.codex\\worktrees\\x64-waystone\\WXL1.1",
+  "files": [
+    {
+      "path": "extensions/wxl-db2/src/decode/Wdc5.hpp",
+      "sourceSHA256": "c549774a3a80a3ad8a9b4e11723f215070d433fb871e6a28d56fc7a02772499c"
+    },
+    {
+      "path": "extensions/wxl-db2/src/decode/Wdc5.cpp",
+      "sourceSHA256": "fdc26c247c63cdd528d5dd370f575ee2b1b1337a9d2c7092a76db1551df54388"
+    },
+    {
+      "path": "extensions/wxl-db2/src/decode/Wdc5Table.cpp",
+      "sourceSHA256": "9070b5f0c9f4b9a21dba12af082157abd401141addcbfed715dfe6d7bf2f16c3"
+    },
+    {
+      "path": "extensions/wxl-db2/src/api/Db2.hpp",
+      "sourceSHA256": "900a7bf970ce2c90ffe3d605f1d45b62d458b1323db8e610c43379cbafb78567"
+    },
+    {
+      "path": "extensions/wxl-db2/src/api/Db2.cpp",
+      "sourceSHA256": "c01c53aa1a969729ada845cabf1637c56855ec39544c89da66348cbd2b674322"
+    },
+    {
+      "path": "extensions/wxl-db2/src/schemas/AppearanceStore.hpp",
+      "sourceSHA256": "ff18e1a7aede3fe1bbad7afcf217fd80a892e6161d1ce4901866e63bcbd463b3"
+    },
+    {
+      "path": "extensions/wxl-db2/src/schemas/AppearanceStore.cpp",
+      "sourceSHA256": "b6300bfe17bdaea9b2f45543802bf43633e7b3a45e5c3e42309fe36cec2e333b"
+    },
+    {
+      "path": "include/wxl/AppearanceApi.h",
+      "sourceSHA256": "45fd353a1118928e48ad2e8c7ef5a1279122d1b969834743d7392aaae2783e9c"
+    },
+    {
+      "path": "src/platform/waystone/CharacterAtlas.hpp",
+      "sourceSHA256": "572c19423f5b8cd3ada3230eba279088d92f5d751c1aa51d52ca244cdf705eae"
+    },
+    {
+      "path": "src/platform/waystone/CharacterAtlas.cpp",
+      "sourceSHA256": "8416f1ef1b3be9e4ac62808bcd39da8fe9e5f207cc238a14c0c0e8b23b65c648"
+    },
+    {
+      "path": "src/platform/waystone/AppearanceTexturePolicy.hpp",
+      "sourceSHA256": "93435eb4e2a29b16273eea29dbd249dd127ceb24d67938a7c095b6a5b2d7ac77"
+    }
+  ],
+  "adaptations": [
+    "Db2 mounted native ReadAsset; localization CSV overlays deferred",
+    "AppearanceStore logging uses native WXL log adapter"
+  ]
+}

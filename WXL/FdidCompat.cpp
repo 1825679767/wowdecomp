@@ -2,6 +2,8 @@
 // Copyright (C) 2026 WarcraftXL. GPLv3 or later.
 #include "FdidCompat.hpp"
 #include "NativeFeatures.hpp"
+#include "vendor/extensions/wxl-db2/src/api/Db2.hpp"
+#include <map>
 #include "vendor/extensions/wxl-db2/src/decode/DB2File.hpp"
 #include "common/Log.hpp"
 
@@ -91,6 +93,30 @@ namespace wxl::native
         }
     }
 
+    uint32_t ResolveMaterialTexture(uint32_t materialResourceId,uint32_t usage) noexcept {
+        if(!materialResourceId || !AssetsEnabled())return 0;
+        try {
+            using namespace wxl::runtime::db2;
+            struct Index {
+                std::map<std::pair<uint32_t,uint32_t>,uint32_t> rows;
+                Index(){
+                    static constexpr Field fields[]={{"ID"},{"UsageType"},{"MaterialResourcesID"}};
+                    static constexpr Definition def{"texturefiledata","DBFilesClient\\texturefiledata.db2",0xBD7C74C2u,fields};
+                    Table table;std::string error;
+                    if(!table.Load(def,&error)){WLOG_WARN("native material texture table: %s",error.c_str());return;}
+                    for(const auto& row:table.Rows()){
+                        const auto key=std::pair{table.Value(row,"MaterialResourcesID"),table.Value(row,"UsageType")};
+                        auto [it,inserted]=rows.emplace(key,row.id);
+                        // Ambiguous material/usage data must not silently select an unrelated sheet.
+                        if(!inserted && it->second!=row.id)it->second=0;
+                    }
+                }
+            };
+            static const Index* const index=new Index;
+            const auto it=index->rows.find({materialResourceId,usage});
+            return it==index->rows.end()?0:it->second;
+        }catch(...){return 0;}
+    }
     const char* ResolveTexture(uint32_t fileDataId) noexcept { return Resolve(fileDataId); }
     const char* ResolveModel(uint32_t fileDataId) noexcept { return Resolve(fileDataId); }
 }

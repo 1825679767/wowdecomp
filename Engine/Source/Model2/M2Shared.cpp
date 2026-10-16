@@ -358,7 +358,7 @@ int32_t CM2Shared::SetIndices() {
 
         for (uint32_t i = 0; i < this->m_skinData->m_skinSections.m_count; i++) {
             M2SkinSection* section = &this->m_skinSections[i];
-            uint32_t start = this->m_skinData->m_skinSections[i].m_indexStart;
+            uint32_t start = this->m_skinData->m_skinSections[i].IndexStart();
             uint16_t offset = sharedVertices ? 0 : static_cast<uint16_t>(-section->m_vertexStart);
 
             for (uint32_t instance = 0; instance < this->m_instances; instance++) {
@@ -370,7 +370,7 @@ int32_t CM2Shared::SetIndices() {
                 offset += sharedVertices ? static_cast<uint16_t>(this->m_skinData->m_vertices.m_count) : section->m_vertexCount;
             }
 
-            section->m_indexStart = static_cast<uint16_t>(indexStart);
+            section->SetIndexStart(indexStart);
             indexStart += this->m_instances * section->m_indexCount;
         }
 

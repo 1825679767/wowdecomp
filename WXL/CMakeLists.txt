@@ -3,7 +3,9 @@ option(WXL_ENABLE_ASSETS "Enable modern M2 and FDID data" ON)
 option(WXL_ENABLE_BLP "Enable modern BLP transcode" ON)
 option(WXL_ENABLE_MATERIALS "Enable custom mesh BlendAdd materials" ON)
 option(WXL_ENABLE_PARTICLES "Enable native Screen particle rendering" ON)
-foreach(feature NATIVE ASSETS BLP MATERIALS PARTICLES)
+option(WXL_ENABLE_APPEARANCES "Enable retail character appearance recipes" ON)
+option(WXL_ENABLE_PROTOCOL "Enable native custom opcodes" ON)
+foreach(feature NATIVE ASSETS BLP MATERIALS PARTICLES APPEARANCES PROTOCOL)
  if(WXL_ENABLE_${feature})
   add_compile_definitions(WXL_ENABLE_${feature}=1)
  else()
@@ -11,7 +13,12 @@ foreach(feature NATIVE ASSETS BLP MATERIALS PARTICLES)
  endif()
 endforeach()
 set(V "${CMAKE_CURRENT_SOURCE_DIR}/vendor")
-add_library(WxlNative STATIC NativeFeatures.cpp AssetCompat.cpp FdidCompat.cpp
+add_library(WxlNative STATIC NativeFeatures.cpp AssetCompat.cpp FdidCompat.cpp NativeProtocol.cpp AppearanceCompat.cpp
+ "${V}/src/platform/waystone/CharacterAtlas.cpp"
+ "${V}/extensions/wxl-db2/src/decode/Wdc5.cpp"
+ "${V}/extensions/wxl-db2/src/decode/Wdc5Table.cpp"
+ "${V}/extensions/wxl-db2/src/api/Db2.cpp"
+ "${V}/extensions/wxl-db2/src/schemas/AppearanceStore.cpp"
  "${V}/src/platform/waystone/M2Bytes.cpp"
  "${V}/src/platform/waystone/SkeletonIndex.cpp" "${V}/src/platform/waystone/SkeletonEmbed.cpp"
  "${V}/src/platform/waystone/SkinPartition.cpp" "${V}/src/platform/waystone/SkinRebuild.cpp"

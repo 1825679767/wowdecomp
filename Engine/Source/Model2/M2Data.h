@@ -299,7 +299,10 @@ class M2Batch {
 
 class M2SkinSection {
     public:
-    /* 0000 */ uint32_t m_skinSectionId;
+    /* 0000 */ uint16_t m_skinSectionId;
+    /* 0002 */ uint16_t m_indexStartHigh; // Retail SKIN index offset high word.
+    uint32_t IndexStart() const { return uint32_t(m_indexStart) | (uint32_t(m_indexStartHigh) << 16); }
+    void SetIndexStart(uint32_t value) { m_indexStart = uint16_t(value); m_indexStartHigh = uint16_t(value >> 16); }
     /* 0004 */ uint16_t m_vertexStart;
     /* 0006 */ uint16_t m_vertexCount;
     /* 0008 */ uint16_t m_indexStart;
