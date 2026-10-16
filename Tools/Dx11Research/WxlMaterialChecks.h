@@ -58,6 +58,11 @@ static void WxlMaterialChecks(CGxDeviceD3d11& d,CGxShader* uiVs,CGxShader* uiPs)
   const auto before=d.SubmittedDraws();d.Draw(&batch,0);Check(d.SubmittedDraws()==before+1,"WXL exact VS/PS paired signature and typed layout submit");
  };
  mesh(rigid,add,false);auto actual=Center(d);actual.a=255;Equal(actual,base.data[0],"current rigid AddAlpha RGB equation");
+ d.RsSet(GxRs_ColorWrite,0);d.RsSet(GxRs_DepthWrite,1);mesh(rigid,add,false);
+ Equal(Center(d),CImVector(0,0,0,0),"custom material depth pass preserves disabled color writes");
+ CiRect depthRegion(0,0,16,16);TSGrowableArray<float> customDepth;d.DeviceReadDepths(depthRegion,customDepth);
+ Check(customDepth.Count()==256&&std::abs(customDepth[136]-.25f)<.00001f,"custom material depth-only pass writes native depth");
+ d.RsSet(GxRs_ColorWrite,15);d.RsSet(GxRs_DepthWrite,0);
  // Bone0 is outside the viewport. UINT indices1/2 must select the two real
  // identity palettes; normalized indices or unnormalized weights miss pixels.
  constants[31][3]=50;d.ShaderConstantsSet(GxSh_Vertex,31,constants[31],1);

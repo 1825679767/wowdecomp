@@ -8,6 +8,11 @@ The subsequent merge includes x64 `f4f8382bd124d9cc92d934a106f800647cba30b0`:
 native CPU custom material draws, rebuilt topology/section ownership, procedural
 enchant composition, timed phases and clone lifetimes. CPU state restoration
 also uses the typed backend dispatcher on DX11.
+The latest merged x64 checkpoint is
+`4f433dfd28b8bbffa2da6687ed00c326cd753ca2`, adding owned positioner graphs,
+static attachment transforms, timed procedural fades and custom depth passes.
+The native GPU checks also verify custom material depth writes with color
+writes disabled. Original source guards and owner lifetimes remain in force.
 
 The active x64 and original DX11 repositories remain independent. Later active
 x64 changes require a reviewed subsequent merge; this branch names an exact
