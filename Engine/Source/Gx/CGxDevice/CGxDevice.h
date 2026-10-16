@@ -3,6 +3,8 @@
 
 #include <cstdarg>
 #include <cstddef>
+#include <memory>
+namespace wxl::native {struct ParticleRefractionCapture;}
 #include <cstdint>
 #include "Engine/Source/Gx/CGxBuf.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
@@ -122,6 +124,8 @@ class CGxDevice {
     /* 2534 */ int32_t m_scissorRectDirty;
     /* 2538 */ CRect m_scissorRect;
     /* 2548 */ CGxApiLight m_lights [4];
+    // Backend-owned capture is released before Reset/device destruction.
+    std::shared_ptr<wxl::native::ParticleRefractionCapture> m_wxlParticleRefractionCapture;
     /* 2668 */ TSHashTable<CGxShader, HASHKEY_STRI> m_shaderList [6];
     /* 2758 */ uint32_t m_appMasterEnables;
     /* 275C */ uint32_t m_hwMasterEnables;

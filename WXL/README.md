@@ -41,13 +41,17 @@ Sized sync/async BLP sources keep transcode buffers alive through upload. The ap
 
 Mesh blend7 ONE/INV_SRC_ALPHA remains separate from particle Screen INV_DEST_COLOR/ONE. EXP2 constant RGB/alpha multipliers are baked into private native keys. EXPT supports emitter RGB/alpha constants with neutral TXAC. EXP2 takes precedence when both extension chunks occur, matching source semantics. Identically-zero cutoff tracks support the full uint16 lifetime domain; nonzero single-texture sprite cutoff uses the native floating-alpha shader path described below. Layered rendering remains separate.
 
-## Remaining integration
+## Integration status and remaining work
 
-- Synthetic/private race authoring policies and children with emitters/lights/attachments; unique ancestor-closed subset/reordered skeletons are implemented.
-- Authenticated server acceptance of appearance hello/prepare/create and persistence; remaining feature packet consumers. Area-loot/garrison/spell charges have native consumers.
-- Remaining custom material shaders and layered/model particle families; broader model source compatibility.
-- Remaining WXL client extensions, UI, WMO/ADT and related modules, following the same module interfaces.
-- DX11 is a separate deferred task; DX11-PORT.md is historical dependency research, not a prerequisite for this x64 WXL build.
+The module table above is integrated source, not a list of unimplemented modules. Later sections below record the successive integration changes; their original worker-stage descriptions are historical, and the exact build/intake records determine installed state.
+
+Integrated owners include native retail/alternate appearance controls and snapshots, typed skinned appendages with particles/ribbons/lights, female Tuskarr and Murloc/Maria private profiles, ten-class creation choreography, source-indexed mesh21/33/35 and named Rift/DnD compatibility, layered alpha/additive/Screen particles, native item/UI/custom-opcode consumers, WMO/split-ADT providers, quest/ping/challenge modules and Skyriding input/animation. Layered native head/tail shapes now retain one or two native quads per logical particle, including the original atlas tracks and lifetime cutoff. All implemented controls default ON, subject to their actual dependencies and saved user settings.
+
+Remaining source-port work is concentrated in full private Broken appearance/equipment policies, modern DB2 equipment resource consumers and additional donor material/refraction contracts. Shader/particle/model compatibility limits are documented by the owning modules rather than treated as unimplemented copies of the whole module. Some limits also exist in the Win32 donor: inventing support for unsigned-versus-signed scale, unknown TXAC or arbitrary source shader families is not a conversion requirement and must not be disguised as parity.
+
+Separate acceptance work remains for authenticated appearance hello/prepare/create/database persistence, actual visuals and timelines, equipment transitions, streaming, device reset and gameplay. Persistent barber extras additionally require a matching server-side logged-in save protocol; the existing Glue-only server handler cannot commit them. Native Skyriding collision/movement remains authoritative; the donor's raw coordinate/flight-flag bypasses are not copied as a physics implementation.
+
+DX11 is a separate workstream. Native Gx/world rendering/fog/liquids/water/weather/postprocessing remain native. DX11-PORT.md is historical dependency research, not a prerequisite for this WXL x64 source integration.
 
 Compilation and source binding do not imply gameplay acceptance. Keep installed clients and rollback separate; no new Downloads folders or repeated gameplay probe loops are part of this work.
 

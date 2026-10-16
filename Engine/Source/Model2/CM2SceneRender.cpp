@@ -775,7 +775,7 @@ uint32_t CM2SceneRender::DrawBatchedParticle(uint32_t index, M2Element* elements
         }
 
         CParticleEmitter2* otherEmitter = other->m_emitter;
-        if(otherEmitter->m_params.m_wxlCutoff || otherEmitter->m_params.m_wxlLayerRecipe)break;
+        if(otherEmitter->m_params.m_wxlRefraction || otherEmitter->m_params.m_wxlCutoff || otherEmitter->m_params.m_wxlLayerRecipe)break;
         uint32_t otherParticles = 0x4000 / otherEmitter->m_vertsPerParticle;
         uint32_t otherLive = otherEmitter->m_liveList.m_count;
 
@@ -878,7 +878,7 @@ uint32_t CM2SceneRender::DrawParticle(uint32_t index, M2Element* elements, uint3
     this->m_curMaterial = &material;
     this->m_prevMaterial = nullptr;
 
-    if ((this->m_cache->m_flags & 0x80) && !emitter->m_params.m_wxlCutoff && !emitter->m_params.m_wxlLayerRecipe) {
+    if ((this->m_cache->m_flags & 0x80) && !emitter->m_params.m_wxlRefraction && !emitter->m_params.m_wxlCutoff && !emitter->m_params.m_wxlLayerRecipe) {
         return this->DrawBatchedParticle(index, elements, indices, count);
     }
 

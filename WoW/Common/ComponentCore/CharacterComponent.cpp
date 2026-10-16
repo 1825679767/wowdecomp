@@ -1815,6 +1815,7 @@ void CCharacterComponent::SetHairColor(int32_t hairColorID, bool loadHair, const
     }
 
     this->m_data.m_preferences.m_hairColorId = hairColorID;
+    wxl::native::SyncPrivateHairColor(*this,uint32_t(hairColorID));
     ChrRacesRec* raceRec = g_chrRacesDB.GetRecord(this->m_data.m_preferences.m_raceID);
 
     if (!this->m_data.m_preferences.m_sexID && !this->m_data.m_preferences.m_hairStyleId && (raceRec->m_flags & 0x8)) {
@@ -2249,7 +2250,7 @@ void CCharacterComponent::RemoveHandItem(CM2Model* model, INVENTORY_SLOTS invSlo
 // VERIFY: cdfacfc2 manual
 // OFFSET: 0x004EB150
 bool CCharacterComponent::SetNextSkin(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Skin,1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Skin,1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numColors = ComponentGetNumColors(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_SKIN, 0);
 
@@ -2295,7 +2296,7 @@ bool CCharacterComponent::SetNextSkin(COMPONENT_CONTEXT context) {
 // VERIFY: 249fa1e9 manual
 // OFFSET: 0x004EB290
 bool CCharacterComponent::SetPrevSkin(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Skin,-1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Skin,-1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numColors = ComponentGetNumColors(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_SKIN, 0);
 
@@ -2341,7 +2342,7 @@ bool CCharacterComponent::SetPrevSkin(COMPONENT_CONTEXT context) {
 // VERIFY: e740de70 manual
 // OFFSET: 0x004EB3E0
 bool CCharacterComponent::SetRandomSkin(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::Skin); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::Skin,count?CRandom::dice_(count,g_rndSeed):0);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::Skin); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::Skin,count?CRandom::dice_(count,g_rndSeed):0);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numSkins = CCharacterComponent::GetNumSkins(this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, this->m_data.m_preferences.m_classId, context);
     int32_t index = numSkins > 0 ? CRandom::dice_(numSkins, g_rndSeed) : 0;
@@ -2359,7 +2360,7 @@ bool CCharacterComponent::SetRandomSkin(COMPONENT_CONTEXT context) {
 // VERIFY: 9088bbfb manual
 // OFFSET: 0x004EB470
 bool CCharacterComponent::SetRandomHairStyle(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::HairStyle); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::HairStyle,count?CRandom::dice_(count,g_rndSeed):0);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::HairStyle); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::HairStyle,count?CRandom::dice_(count,g_rndSeed):0);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numStyles = CCharacterComponent::GetNumHairStylesForColor(this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, this->m_data.m_preferences.m_classId, this->m_data.m_preferences.m_hairColorId, context);
     int32_t index = numStyles > 0 ? CRandom::dice_(numStyles, g_rndSeed) : 0;
@@ -2377,7 +2378,7 @@ bool CCharacterComponent::SetRandomHairStyle(COMPONENT_CONTEXT context) {
 // VERIFY: 2f3a54f4 auto
 // OFFSET: 0x004EB500
 bool CCharacterComponent::SetNextHairColor(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::HairColor,1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::HairColor,1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numColors = ComponentGetNumColors(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_HAIR, this->m_data.m_preferences.m_hairStyleId);
 
@@ -2421,7 +2422,7 @@ bool CCharacterComponent::SetNextHairColor(COMPONENT_CONTEXT context) {
 // VERIFY: d3df073c auto
 // OFFSET: 0x004EB5C0
 bool CCharacterComponent::SetPrevHairColor(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::HairColor,-1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::HairColor,-1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numColors = ComponentGetNumColors(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_HAIR, this->m_data.m_preferences.m_hairStyleId);
 
@@ -2465,7 +2466,7 @@ bool CCharacterComponent::SetPrevHairColor(COMPONENT_CONTEXT context) {
 // VERIFY: 9837420d manual
 // OFFSET: 0x004EB680
 bool CCharacterComponent::SetRandomHairColor(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::HairColor); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::HairColor,count?CRandom::dice_(count,g_rndSeed):0);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::HairColor); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::HairColor,count?CRandom::dice_(count,g_rndSeed):0);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numColors = CCharacterComponent::GetNumHairColorsForStyle(this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, this->m_data.m_preferences.m_classId, this->m_data.m_preferences.m_hairStyleId, context);
     int32_t index = numColors > 0 ? CRandom::dice_(numColors, g_rndSeed) : 0;
@@ -2483,7 +2484,7 @@ bool CCharacterComponent::SetRandomHairColor(COMPONENT_CONTEXT context) {
 // VERIFY: a45f4034 manual
 // OFFSET: 0x004EB710
 bool CCharacterComponent::SetNextFace(COMPONENT_CONTEXT context, int32_t colorOffset) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Face,1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Face,1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numVariations = ComponentGetNumVariations(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_FACE);
 
@@ -2548,7 +2549,7 @@ bool CCharacterComponent::SetNextFace(COMPONENT_CONTEXT context, int32_t colorOf
 // VERIFY: 14384726 auto
 // OFFSET: 0x004EB990
 bool CCharacterComponent::SetPrevFace(COMPONENT_CONTEXT context, int32_t colorOffset) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Face,-1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Face,-1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numVariations = ComponentGetNumVariations(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_FACE);
 
@@ -2613,7 +2614,7 @@ bool CCharacterComponent::SetPrevFace(COMPONENT_CONTEXT context, int32_t colorOf
 // VERIFY: 951a025a manual
 // OFFSET: 0x004EBC10
 bool CCharacterComponent::SetRandomFace(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::Face); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::Face,count?CRandom::dice_(count,g_rndSeed):0);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::Face); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::Face,count?CRandom::dice_(count,g_rndSeed):0);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numFaces = CCharacterComponent::GetNumFacesForSkin(this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, this->m_data.m_preferences.m_classId, this->m_data.m_preferences.m_skinID, context);
     int32_t index = numFaces > 0 ? CRandom::dice_(numFaces, g_rndSeed) : 0;
@@ -2631,7 +2632,7 @@ bool CCharacterComponent::SetRandomFace(COMPONENT_CONTEXT context) {
 // VERIFY: d40caea4 manual
 // OFFSET: 0x004EBCA0
 bool CCharacterComponent::SetNextFacialFeature(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Facial,1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Facial,1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     bool found;
     ComponentGetSectionsRecord(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_FACIAL_HAIR, this->m_data.m_preferences.m_facialHairId, this->m_data.m_preferences.m_hairColorId, &found);
@@ -2702,7 +2703,7 @@ bool CCharacterComponent::SetNextFacialFeature(COMPONENT_CONTEXT context) {
 // VERIFY: 5aebe048 manual
 // OFFSET: 0x004EBE80
 bool CCharacterComponent::SetPrevFacialFeature(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Facial,-1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::Facial,-1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     bool found;
     ComponentGetSectionsRecord(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_FACIAL_HAIR, this->m_data.m_preferences.m_facialHairId, this->m_data.m_preferences.m_hairColorId, &found);
@@ -2773,7 +2774,7 @@ bool CCharacterComponent::SetPrevFacialFeature(COMPONENT_CONTEXT context) {
 // VERIFY: 0a57ee92 manual
 // OFFSET: 0x004EC050
 bool CCharacterComponent::SetRandomFacialFeature(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::Facial); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::Facial,count?CRandom::dice_(count,g_rndSeed):0);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {const auto count=wxl::native::RetailChoiceCount(m_data.m_preferences.m_raceID,m_data.m_preferences.m_sexID,wxl::native::RetailAxis::Facial); return wxl::native::SetRetailAxis(*this,wxl::native::RetailAxis::Facial,count?CRandom::dice_(count,g_rndSeed):0);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numFeatures = CCharacterComponent::GetNumFacialFeaturesForHairColor(this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, this->m_data.m_preferences.m_classId, this->m_data.m_preferences.m_hairColorId, context);
     int32_t index = numFeatures > 0 ? CRandom::dice_(numFeatures, g_rndSeed) : 0;
@@ -4595,7 +4596,7 @@ void CCharacterComponent::UpdateItemFO(ITEM_SLOT itemSlot, const ItemDisplayInfo
 // VERIFY: 4a14bd22 auto
 // OFFSET: 0x004F0490
 bool CCharacterComponent::SetNextHairStyle(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::HairStyle,1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::HairStyle,1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numVariations = ComponentGetNumVariations(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_HAIR);
 
@@ -4662,7 +4663,7 @@ bool CCharacterComponent::SetNextHairStyle(COMPONENT_CONTEXT context) {
 // VERIFY: bd306e5b auto
 // OFFSET: 0x004F0630
 bool CCharacterComponent::SetPrevHairStyle(COMPONENT_CONTEXT context) {
-    if (!(m_data.m_flags&1u) && wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::HairStyle,-1);}
+    if (!(m_data.m_flags&1u) && wxl::native::RetailAxisChoicesReady(m_data.m_preferences,m_data.m_model)) {return wxl::native::CycleRetailAxis(*this,wxl::native::RetailAxis::HairStyle,-1);}
     COMPONENT_SELECTION selection = GetSelectionFromContext(context, this->m_data.m_preferences.m_classId);
     int32_t numVariations = ComponentGetNumVariations(CCharacterComponent::s_chrVarArray, this->m_data.m_preferences.m_raceID, this->m_data.m_preferences.m_sexID, VARIATION_HAIR);
 

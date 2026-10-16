@@ -5,6 +5,7 @@
 #include <cstdint>
 #include "WXL/ParticleCutoff.hpp"
 #include "WXL/ParticleLayers.hpp"
+#include "WXL/ParticleRefraction.hpp"
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Model2/M2Data.h"
 #include "Engine/Source/Storm/H/stpl.h"
@@ -128,6 +129,7 @@ class CParticleEmitter2 {
         /* 0084 */ SimpleKey* m_simpleKeys;
 
         std::shared_ptr<const wxl::native::ParticleCutoffTrack> m_wxlCutoff;
+        std::shared_ptr<const wxl::native::ParticleRefractionRecipe> m_wxlRefraction;
         std::shared_ptr<const wxl::native::ParticleLayerRecipe> m_wxlLayerRecipe;
         std::shared_ptr<const wxl::native::ParticleLayerBinding> m_wxlLayers;
 
@@ -145,7 +147,7 @@ class CParticleEmitter2 {
     static void Destroy();
     static void Init();
     static void __stdcall RenderIndices(CGxBuf* buf);
-    static void __stdcall RenderParticleVertices(CGxBuf* buf, EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount);
+    static void __stdcall RenderParticleVertices(CGxBuf* buf, EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount, CParticleEmitter2* owner = nullptr);
 
     /* 0004 */ int32_t m_refCount;
     /* 0008 */ float m_emitAccumulator;

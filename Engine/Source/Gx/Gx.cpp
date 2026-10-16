@@ -1,5 +1,6 @@
 #include "WXL/MeshMaterials.hpp"
 #include "WXL/ParticleLayers.hpp"
+#include "WXL/ParticleRefraction.hpp"
 #include <cstdarg>
 #include <cstdint>
 #include <cstdlib>
@@ -1127,6 +1128,7 @@ void GxDevDestroy(CGxDevice* device) {
 
     wxl::native::mesh_materials::DestroyPrograms(*g_theGxDevicePtr);
     wxl::native::DestroyParticleLayerPrograms(*g_theGxDevicePtr);
+    wxl::native::DestroyParticleRefraction(*g_theGxDevicePtr);
     g_theGxDevicePtr->DeviceDestroy();
     delete g_theGxDevicePtr;
     g_theGxDevicePtr = nullptr;

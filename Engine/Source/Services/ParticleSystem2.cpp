@@ -834,7 +834,7 @@ void CParticleEmitter2::RenderParticlesPrep(const C44Matrix* frameOfReference, c
 
 // VERIFY: d76443ea auto
 // OFFSET: 0x0097A580
-void __stdcall CParticleEmitter2::RenderParticleVertices(CGxBuf* buf, EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount) {
+void __stdcall CParticleEmitter2::RenderParticleVertices(CGxBuf* buf, EGxVertexBufferFormat format, uint32_t vertexCount, uint32_t indexCount, CParticleEmitter2* owner) {
     if (!s_particleRenderEnable) {
         return;
     }
@@ -859,6 +859,13 @@ void __stdcall CParticleEmitter2::RenderParticleVertices(CGxBuf* buf, EGxVertexB
     batch.m_count = indexCount;
     batch.m_minIndex = 0;
     batch.m_maxIndex = vertexCount - 1;
+    if(owner && owner->m_params.m_wxlRefraction){
+        const auto result=wxl::native::DrawParticleRefraction(*owner,batch,format,vertexCount);
+        if(result!=wxl::native::ParticleRefractionDraw::Native){
+            if(result==wxl::native::ParticleRefractionDraw::Suppressed)owner->m_renderedParticles=0;
+            return;
+        }
+    }
     g_theGxDevicePtr->Draw(&batch, 1);
 }
 
@@ -2301,7 +2308,7 @@ void CParticleEmitter2::BuildParticleVertices(ParticleVertex& vertex, uint32_t c
     this->m_wxlLayerVertices.clear();this->m_wxlLayerValid=true;
     if(this->m_params.m_wxlLayerRecipe){
         const uint32_t stride=(this->m_params.m_wxlLayerRecipe->sourceFlags&1)?40u:52u;
-        try{this->m_wxlLayerVertices.reserve(size_t(count)*4*stride);}catch(...){this->m_wxlLayerValid=false;this->m_renderedParticles=0;return;}
+        try{this->m_wxlLayerVertices.reserve(size_t(count)*this->m_vertsPerParticle*stride);}catch(...){this->m_wxlLayerValid=false;this->m_renderedParticles=0;return;}
     }
     if(this->m_params.m_wxlCutoff){
         try{this->m_wxlRenderedCutoffs.reserve(count);}catch(...){this->m_renderedParticles=0;return;}
@@ -2311,7 +2318,13 @@ void CParticleEmitter2::BuildParticleVertices(ParticleVertex& vertex, uint32_t c
         const auto* nativeQuad=vertex.m_position;
         this->BuildVertex(particle,vertex);
         if(vertex.m_count>before && this->m_params.m_wxlLayerRecipe){
-            if(vertex.m_count-before!=4 || !wxl::native::AppendParticleLayerQuad(*this->m_params.m_wxlLayerRecipe,particle,nativeQuad,vertex.m_positionStride,this->m_wxlLayerVertices))this->m_wxlLayerValid=false;
+            const auto added=vertex.m_count-before;
+            // Native BuildVertex emits head first, then tail. Each owns its
+            // native atlas UV0; both use the same source lifetime/motion seed.
+            if(added!=this->m_vertsPerParticle || (added!=4 && added!=8))this->m_wxlLayerValid=false;
+            else for(uint32_t at=0;at<added;at+=4){
+                if(!wxl::native::AppendParticleLayerQuad(*this->m_params.m_wxlLayerRecipe,particle,nativeQuad+size_t(at)*vertex.m_positionStride,vertex.m_positionStride,this->m_wxlLayerVertices))this->m_wxlLayerValid=false;
+            }
         }
         if(vertex.m_count>before && this->m_params.m_wxlCutoff){
             // Same lifetime evaluation used by native InterpolateAllTracks and
@@ -2401,7 +2414,9 @@ void CParticleEmitter2::RenderParticles(const C44Matrix* frameOfReference, void*
         buf->m_hasData = 1;
 
         if (this->m_renderedParticles) {
-            if(this->m_params.m_wxlLayerRecipe){
+            if(this->m_params.m_wxlRefraction && wxl::native::ParticleRefractionEnabled()){
+                CParticleEmitter2::RenderParticleVertices(buf,format,vertex.m_count,this->m_renderedParticles*this->m_indicesPerParticle,this);
+            }else if(this->m_params.m_wxlLayerRecipe){
                 if(!wxl::native::DrawParticleLayers(*this))this->m_renderedParticles=0;
             }else if(this->m_params.m_wxlCutoff){
                 if(!wxl::native::DrawParticleCutoffVertices(buf,format,vertex.m_count,this->m_vertsPerParticle,this->m_indicesPerParticle,this->m_wxlRenderedCutoffs))this->m_renderedParticles=0;

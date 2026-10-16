@@ -3,6 +3,7 @@
 #include "NativeFeatures.hpp"
 #include "FdidCompat.hpp"
 #include "ParticleCompat.hpp"
+#include "ParticleRefraction.hpp"
 #include "MaterialCompat.hpp"
 #include "MeshMaterials.hpp"
 #include "Engine/Source/Base/SIMD.h"
@@ -25,7 +26,7 @@ constexpr uint32_t Limit=64u*1024*1024;
 std::string Key(const char* path){std::string key=path?path:"";for(auto& c:key){if(c=='/')c='\\';if(c>='A' && c<='Z')c=char(c-'A'+'a');}return key;}
 struct Skin {std::vector<uint8_t> original,prepared,converted;std::shared_ptr<const mesh_materials::Source> mesh;};
 }
-struct ModelAssets {std::string meshPath;const uint8_t* meshInput=nullptr;size_t meshInputSize=0;std::shared_ptr<const mesh_materials::Source> selectedMesh;std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;ParticleLayerSet layers;};
+struct ModelAssets {std::string meshPath;const uint8_t* meshInput=nullptr;size_t meshInputSize=0;std::shared_ptr<const mesh_materials::Source> selectedMesh;std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;ParticleLayerSet layers;std::shared_ptr<const ParticleRefractionRecipe> refraction;};
 namespace {
 thread_local ModelAssets* loading{};
 bool ReadCompanion(const char* path,std::vector<uint8_t>& output){
@@ -41,6 +42,7 @@ bool PrepareModel(CM2Shared& shared){
  if(std::memcmp(raw,"MD21",4))return true;
  if(!AssetsEnabled())return true; // Native unsupported-format handling remains authoritative.
  try{auto assets=std::make_unique<ModelAssets>();assets->meshPath=shared.m_fileName;assets->meshInput=raw;assets->meshInputSize=shared.m_fileSize;std::vector<uint8_t> converted;wxl::waystone::m2bytes::Stats stats;
+  assets->refraction=CaptureParticleRefraction(shared.m_fileName,raw,shared.m_fileSize);
   std::string layerReason;
   if(!CaptureParticleLayers(raw,shared.m_fileSize,assets->layers,layerReason)){
    WLOG_WARN("native-modern-layers: refused path=%s reason=%s",shared.m_fileName,layerReason.c_str());return false;
@@ -92,6 +94,9 @@ bool PrepareSkin(CM2Shared& shared,uint32_t& size){
 std::shared_ptr<const ParticleCutoffTrack> ParticleCutoffFor(const CM2Shared& shared,uint32_t index) noexcept {
  if(!shared.m_wxlAssets || index>=shared.m_wxlAssets->cutoffs.size())return {};
  return shared.m_wxlAssets->cutoffs[index];
+}
+std::shared_ptr<const ParticleRefractionRecipe> ParticleRefractionFor(const CM2Shared& shared,uint32_t index) noexcept {
+ return shared.m_wxlAssets && index==0 ? shared.m_wxlAssets->refraction : nullptr;
 }
 std::shared_ptr<const ParticleLayerRecipe> ParticleLayersFor(const CM2Shared& shared,uint32_t index) noexcept {
  if(!shared.m_wxlAssets || index>=shared.m_wxlAssets->layers.size())return {};

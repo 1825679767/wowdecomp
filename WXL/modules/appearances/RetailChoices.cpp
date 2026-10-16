@@ -47,7 +47,7 @@ const Authority* GetPrivate(uint32_t race,uint32_t sex,uint32_t family){
  static std::map<uint64_t,std::unique_ptr<Authority>> cache;const uint64_t key=(uint64_t(race)<<1)|sex;
  if(auto it=cache.find(key);it!=cache.end())return it->second->path==desc.path?it->second.get():nullptr;
  auto a=std::make_unique<Authority>();a->family=a->chrModel=desc.id;a->equipmentRace=race;a->path=desc.path;a->privateProfile=true;
- for(auto o:desc.options){Option entry;entry.id=o.id;for(uint32_t i=1;i<=o.count;++i)entry.choices.push_back(i);a->options.push_back(std::move(entry));}
+ for(auto o:desc.options){Option entry;entry.id=o.id;entry.choices.push_back(o.defaultChoice);for(uint32_t i=1;i<=o.count;++i)if(i!=o.defaultChoice)entry.choices.push_back(i);a->options.push_back(std::move(entry));}
  a->ready=true;auto* result=a.get();cache.emplace(key,std::move(a));return result;
 }
 
@@ -134,7 +134,20 @@ uint32_t RetailRaceId(uint32_t race) noexcept {static constexpr uint32_t ids[]={
 uint32_t RetailEquipmentRace(const CCharacterComponent& c) noexcept {try{auto* a=For(c.m_data.m_preferences,c.m_data.m_model);return a?a->equipmentRace:0;}catch(...){return 0;}}
 uint32_t RetailChoiceCount(uint32_t race,uint32_t sex,RetailAxis axis) noexcept {try{auto* a=Get(race,sex);const auto i=uint32_t(axis);return a&&!a->privateProfile&&i<5?a->counts[i]:0;}catch(...){return 0;}}
 bool RetailChoicesReady(const CharacterPreferences& p,const CM2Model* model) noexcept {try{return For(p,model)!=nullptr;}catch(...){return false;}}
-bool NormalizeRetailPreferences(CharacterPreferences& p,const CM2Model* model) noexcept {try{auto* a=For(p,model);if(!a)return false;if(a->privateProfile)return true;for(uint32_t i=0;i<5;++i)Field(p,RetailAxis(i))%=a->counts[i];return true;}catch(...){return false;}}
+
+bool RetailAxisChoicesReady(const CharacterPreferences& p,const CM2Model* model) noexcept {try{const auto* a=For(p,model);return a&&!a->privateProfile;}catch(...){return false;}}
+void SyncPrivateHairColor(CCharacterComponent& c,uint32_t color) noexcept {try{
+ const auto& p=c.m_data.m_preferences;if(p.m_raceID!=23||p.m_sexID>1||color>=10||(c.m_data.m_flags&1u))return;
+ auto* a=For(p,c.m_data.m_model);if(!a||!a->privateProfile)return;auto* state=c.m_wxlChoices;
+ if(state&&state->model!=a->chrModel)return;
+ uint32_t previous=1;if(state){const auto it=state->overrides.find(wxl::appearance::PrivateHairColor);if(it!=state->overrides.end())previous=it->second;}
+ const auto choice=color+1;if(previous==choice)return;
+ if(!state){c.m_wxlChoices=new RetailChoiceState;state=c.m_wxlChoices;state->model=a->chrModel;}
+ if(choice==1)state->overrides.erase(wxl::appearance::PrivateHairColor);else state->overrides[wxl::appearance::PrivateHairColor]=choice;
+ ++state->revision;if(!state->revision)state->revision=1;Dirty(c);
+}catch(...){}}
+
+bool NormalizeRetailPreferences(CharacterPreferences& p,const CM2Model* model) noexcept {try{auto* a=For(p,model);if(!a)return false;if(a->privateProfile)return p.m_raceID!=23;for(uint32_t i=0;i<5;++i)Field(p,RetailAxis(i))%=a->counts[i];return true;}catch(...){return false;}}
 bool SetRetailAxis(CCharacterComponent& c,RetailAxis axis,int32_t value) noexcept {try{if(c.m_data.m_flags&1u)return false;auto* a=For(c.m_data.m_preferences,c.m_data.m_model);const auto i=uint32_t(axis);if(!a||a->privateProfile||i>=5)return false;if(value<0||uint32_t(value)>=a->counts[i])return true;
  Field(c.m_data.m_preferences,axis)=uint32_t(value);if(auto* s=c.m_wxlChoices){for(const auto& o:a->options)if(o.axis==int(i))s->overrides.erase(o.id);++s->revision;}Dirty(c);return true;
  }catch(...){return false;}}
@@ -222,7 +235,7 @@ int LuaOptions(lua_State* L){auto* c=Current();if(!c)return 0;const Authority* a
 int LuaChoices(lua_State* L){uint32_t id;if(!Number(L,1,id))return 0;auto* c=Current();if(!c)return 0;const Authority* a=nullptr;try{a=For(c->m_data.m_preferences,c->m_data.m_model);}catch(...){return 0;}if(!a)return 0;const Option* o=nullptr;for(const auto& entry:a->options)if(entry.id==id)o=&entry;if(!o)return 0;
  lua_createtable(L,int(o->choices.size()),0);for(size_t i=0;i<o->choices.size();++i){const auto choice=o->choices[i];lua_createtable(L,0,4);lua_pushinteger(L,choice);lua_setfield(L,-2,"id");lua_pushstring(L,a->privateProfile?private_appearances::ChoiceName(c->m_data.m_preferences.m_raceID,id,choice):db::ChoiceName(choice));lua_setfield(L,-2,"name");WXL_ChrChoice info{};if(!a->privateProfile)db::ChoiceAt(id,uint32_t(i),info);else info.swatchColor=private_appearances::ChoiceSwatch(c->m_data.m_preferences.m_raceID,id,choice);lua_pushnumber(L,info.swatchColor);lua_setfield(L,-2,"swatchColor");lua_pushnumber(L,a->privateProfile?0:db::ChoiceSwatchColor2(choice));lua_setfield(L,-2,"swatchColor2");lua_rawseti(L,-2,int(i+1));}return 1;}
 bool Select(CCharacterComponent& c,uint32_t id,uint32_t choice){auto* a=For(c.m_data.m_preferences,c.m_data.m_model);if(!a)return false;for(const auto& o:a->options)if(o.id==id){auto it=std::find(o.choices.begin(),o.choices.end(),choice);if(it==o.choices.end())return false;if(barber_appearance::Active()&&o.axis>=0)return false;if(o.axis>=0)return SetRetailAxis(c,RetailAxis(o.axis),int32_t(it-o.choices.begin()));
- auto* s=c.m_wxlChoices;if(!s){c.m_wxlChoices=new RetailChoiceState;s=c.m_wxlChoices;s->model=a->chrModel;}if(s->model!=a->chrModel)return false;if(choice==o.choices.front())s->overrides.erase(id);else s->overrides[id]=choice;++s->revision;Dirty(c);return true;}return false;}
+ auto* s=c.m_wxlChoices;if(!s){c.m_wxlChoices=new RetailChoiceState;s=c.m_wxlChoices;s->model=a->chrModel;}if(s->model!=a->chrModel)return false;if(choice==o.choices.front())s->overrides.erase(id);else s->overrides[id]=choice;++s->revision;Dirty(c);if(c.m_data.m_preferences.m_raceID==23&&id==wxl::appearance::PrivateHairColor)c.SetHairColor(int32_t(choice-1),true,nullptr);return true;}return false;}
 int LuaSelect(lua_State* L){uint32_t option,choice;bool ok=false;if(Number(L,1,option)&&Number(L,2,choice)){try{if(auto* c=Current())ok=Select(*c,option,choice);}catch(...){}}lua_pushboolean(L,ok);return 1;}
 int LuaCanSave(lua_State* L){if(barber_appearance::Active()){lua_pushboolean(L,false);return 1;}auto* c=Current();lua_pushboolean(L,c&&(!RetailSelectionNeedsProtocol(*c)||appearance_session::CanPrepareCurrent()));return 1;}
 int LuaContext(lua_State* L){try{auto* c=Current();if(!c)return 0;const auto& p=c->m_data.m_preferences;

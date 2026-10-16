@@ -7492,6 +7492,7 @@ int32_t CM2Model::InitializeLoaded() {
             }
 
             emitter->SetMaterial(material, this->m_shared->m_textures[particleData->m_textureIndex]);
+            emitter->m_params.m_wxlRefraction = wxl::native::ParticleRefractionFor(*this->m_shared,i);
             emitter->m_params.m_wxlCutoff = wxl::native::ParticleCutoffFor(*this->m_shared,i);
             emitter->m_params.m_wxlLayerRecipe = wxl::native::ParticleLayersFor(*this->m_shared,i);
             emitter->m_params.m_wxlLayers = wxl::native::BindParticleLayers(*this,i);

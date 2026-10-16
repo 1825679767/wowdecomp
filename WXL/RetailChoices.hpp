@@ -20,6 +20,8 @@ bool ApplyRetailChoices(CCharacterComponent&,const RetailChoicePair*,uint32_t co
 enum class RetailAxis : uint32_t { Skin,Face,HairStyle,HairColor,Facial };
 uint32_t RetailRaceId(uint32_t) noexcept;
 uint32_t RetailChoiceCount(uint32_t,uint32_t,RetailAxis) noexcept;
+bool RetailAxisChoicesReady(const CharacterPreferences&,const CM2Model* = nullptr) noexcept;
+void SyncPrivateHairColor(CCharacterComponent&,uint32_t color) noexcept;
 bool RetailChoicesReady(const CharacterPreferences&,const CM2Model* = nullptr) noexcept;
 bool NormalizeRetailPreferences(CharacterPreferences&,const CM2Model* = nullptr) noexcept;
 bool SetRetailAxis(CCharacterComponent&,RetailAxis,int32_t) noexcept;

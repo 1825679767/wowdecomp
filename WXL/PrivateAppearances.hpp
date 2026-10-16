@@ -12,7 +12,7 @@ struct Option {uint32_t id,count,defaultChoice;const char* name;};
 struct Description {uint32_t id=0;std::string path;std::vector<Option> options;};
 void Register();
 bool Enabled() noexcept;
-// Only the two explicitly ported creature profiles have a native identity.
+// Only explicitly ported native private profiles have an identity.
 uint32_t Identity(uint32_t race,uint32_t sex) noexcept;
 bool Describe(uint32_t race,uint32_t sex,const char* mountedNativePath,Description&) noexcept;
 bool Validate(const wxl::appearance::Selection&) noexcept;

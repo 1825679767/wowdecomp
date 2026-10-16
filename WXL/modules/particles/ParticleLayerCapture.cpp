@@ -59,7 +59,9 @@ bool CaptureParticleLayers(const uint8_t* raw,size_t size,ParticleLayerSet& outp
   // Native shaded/unshaded flags remain intact. Runtime selects the exact
   // retained donor VS for native sunlight plus zero, one or two point lights.
   // Modx4/depth/refraction/TXAC shader variants are not guessed from firsttex.
-  if(!(flags&0x20000u) || (flags&(0x80100000u|0x20000000u|0x40000u)))return fail("layer source requires head sprites without modx4/depth variants");
+  // Head and tail are independently authored native quad shapes. Retain both
+  // bits; native BuildVertex owns the tail trajectory, clamp and atlas choice.
+  if(!(flags&0x60000u) || (flags&(0x80100000u|0x20000000u)))return fail("layer source requires head/tail quads without modx4/depth variants");
   for(const auto field:{offsetof(M2Particle,m_geometryMdl),offsetof(M2Particle,m_recursionMdl)}){
    const auto n=Read<uint32_t>(p,field),at=Read<uint32_t>(p,field+4);
    if(n && (n!=1 || !at || at>=bodySize || body[at]))return fail("layer source model/child particles are unsupported");

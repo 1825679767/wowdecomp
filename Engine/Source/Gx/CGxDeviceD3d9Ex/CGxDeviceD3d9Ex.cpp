@@ -1,4 +1,5 @@
 #include <cmath>
+#include "WXL/ParticleRefraction.hpp"
 #include <cstdint>
 #include <cstring>
 #include <malloc.h>
@@ -2633,6 +2634,7 @@ int32_t CGxDeviceD3d9Ex::ICreateD3dDevice(const CGxFormat& format) {
 // VERIFY: 22679807 manual
 // OFFSET: 0x006A1CE0
 void CGxDeviceD3d9Ex::IReleaseD3dResources(int32_t freeTextures) {
+    wxl::native::ReleaseParticleRefractionCapture(*this);
     this->ITexForceRecreation(freeTextures);
     this->IReleaseD3dShaders(freeTextures);
     this->IReleaseD3dPools(freeTextures);

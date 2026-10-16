@@ -5,6 +5,7 @@ option(WXL_ENABLE_ASSETS "Enable modern M2 assets" ON)
 option(WXL_ENABLE_DB2 "Enable retail DB2/FDID data" ON)
 option(WXL_ENABLE_BLP "Enable modern BLP decoding" ON)
 option(WXL_ENABLE_MATERIALS "Enable custom mesh materials" ON)
+option(WXL_ENABLE_BLOOD_REFRACTION "Enable exact-source donor Blood Boil refraction compatibility" ON)
 option(WXL_ENABLE_DND_MATERIALS "Enable exact-source donor DnD material compatibility" ON)
 option(WXL_ENABLE_PARTICLES "Enable modern particle compatibility" ON)
 option(WXL_ENABLE_APPEARANCES "Enable retail appearance recipes" ON)
@@ -46,7 +47,7 @@ wxl_module(WxlDB2 DB2 modules/db2/FdidCompat.cpp
 wxl_module(WxlBlp BLP modules/blp/BlpCompat.cpp "${V}/src/engine/assets/shared/textures/blp/BlpTranscode.cpp")
 wxl_module(WxlMaterials Materials modules/materials/MaterialCompat.cpp modules/materials/MeshMaterials.cpp modules/materials/DndMaterials.cpp)
 target_compile_definitions(WxlMaterials PRIVATE WXL_ENABLE_DND_MATERIALS=$<BOOL:${WXL_ENABLE_DND_MATERIALS}>)
-wxl_module(WxlParticles Particles modules/particles/ParticleCompat.cpp modules/particles/ParticleCutoff.cpp modules/particles/ParticleLayerCapture.cpp modules/particles/ParticleLayers.cpp
+wxl_module(WxlParticles Particles modules/particles/ParticleCompat.cpp modules/particles/ParticleCutoff.cpp modules/particles/ParticleLayerCapture.cpp modules/particles/ParticleLayers.cpp modules/particles/ParticleRefraction.cpp
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeParticles.cpp")
 wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
  "${V}/src/platform/waystone/M2Bytes.cpp" "${V}/src/platform/waystone/SkeletonIndex.cpp"
@@ -79,6 +80,7 @@ add_dependencies(WxlAppearanceSession WxlAppearances WxlProtocol)
 add_dependencies(WxlDB2 WxlRuntime WxlStorage)
 add_dependencies(WxlBlp WxlRuntime)
 add_dependencies(WxlMaterials WxlRuntime)
+target_compile_definitions(WxlParticles PRIVATE WXL_ENABLE_BLOOD_REFRACTION=$<BOOL:${WXL_ENABLE_BLOOD_REFRACTION}>)
 add_dependencies(WxlParticles WxlRuntime)
 add_dependencies(WxlM2 WxlStorage WxlDB2 WxlBlp WxlMaterials WxlParticles)
 add_dependencies(WxlAppearances WxlM2 WxlDB2 WxlBlp)

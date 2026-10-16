@@ -128,8 +128,12 @@ bool DrawParticleLayers(CParticleEmitter2& emitter){
  if(!device || (device->DeviceApi()!=GxApi_D3d9 && device->DeviceApi()!=GxApi_D3d9Ex) ||
     device->Caps().m_shaderTargets[GxSh_Vertex]<3 || device->Caps().m_shaderTargets[GxSh_Pixel]<4 ||
     !CShaderEffect::s_enableShaders || !CShaderEffect::s_curEffect || !emitter.m_wxlLayerValid ||
-    !binding || binding->recipe!=emitter.m_params.m_wxlLayerRecipe || emitter.m_params.m_hasModel ||
-    emitter.m_vertsPerParticle!=4 || emitter.m_indicesPerParticle!=6)return false;
+    !binding || binding->recipe!=emitter.m_params.m_wxlLayerRecipe || emitter.m_params.m_hasModel)return false;
+ const auto sourceStyle=binding->recipe->sourceFlags&0x60000u;
+ const uint32_t quads=uint32_t(bool(sourceStyle&0x20000u))+uint32_t(bool(sourceStyle&0x40000u));
+ const uint32_t perParticle=quads*4,indicesPerParticle=quads*6;
+ const uint32_t nativeStyle=((sourceStyle&0x20000u)?4u:0u)|((sourceStyle&0x40000u)?8u:0u);
+ if(!quads || (emitter.m_flags&12u)!=nativeStyle || emitter.m_vertsPerParticle!=perParticle || emitter.m_indicesPerParticle!=indicesPerParticle)return false;
  const bool lit=!(binding->recipe->sourceFlags&1);const uint32_t stride=lit?52u:40u;
  if(bool(emitter.m_params.m_materialFlags&1)!=lit ||
     (lit && (CShaderEffect::s_lightEnabled!=1 || CShaderEffect::s_localLightCount>2 || CShaderEffect::s_shadowValue)))return false;
@@ -142,8 +146,8 @@ bool DrawParticleLayers(CParticleEmitter2& emitter){
  if(!ResolveParticleLayerMaterial(binding->recipe->sourceBlend,material) ||
     emitter.m_params.m_materialBlend!=uint32_t(material.nativeBlend) ||
     device->m_appRenderStates[GxRs_BlendingMode].m_value.m_data.i[0]!=int32_t(material.nativeBlend))return false;
- if(emitter.m_renderedParticles>4096)return false;
- const auto vertices=emitter.m_renderedParticles*4;
+ if(emitter.m_renderedParticles>16384u/perParticle)return false;
+ const auto vertices=emitter.m_renderedParticles*perParticle;
  if(!vertices || vertices>16384 || emitter.m_wxlLayerVertices.size()!=size_t(vertices)*stride ||
     (emitter.m_params.m_wxlCutoff && emitter.m_wxlRenderedCutoffs.size()!=emitter.m_renderedParticles))return false;
  for(float cutoff:emitter.m_wxlRenderedCutoffs)if(!std::isfinite(cutoff)||cutoff<0||cutoff>1)return false;
@@ -200,8 +204,10 @@ bool DrawParticleLayers(CParticleEmitter2& emitter){
    // Weighted additive applies alpha exactly once in the native blend stage;
    // unweighted additive/Screen preserve independent RGB and opacity.
    const float parameters[4]{1,1,cutoff,0};device->ShaderConstantsSet(GxSh_Pixel,0,parameters,1);
-   CGxBatch batch;batch.m_primType=GxPrim_Triangles;batch.m_start=uint32_t(begin)*6;batch.m_count=uint32_t(end-begin)*6;
-   batch.m_minIndex=uint16_t(begin*4);batch.m_maxIndex=uint16_t(end*4-1);device->Draw(&batch,1);begin=end;
+   // One lifetime cutoff covers the logical particle, including both quads.
+   // Native shared quad indices stay consecutive:4/6 or8/12 per particle.
+   CGxBatch batch;batch.m_primType=GxPrim_Triangles;batch.m_start=uint32_t(begin)*indicesPerParticle;batch.m_count=uint32_t(end-begin)*indicesPerParticle;
+   batch.m_minIndex=uint16_t(begin*perParticle);batch.m_maxIndex=uint16_t(end*perParticle-1);device->Draw(&batch,1);begin=end;
   }
   return true;
  }catch(...){return false;}
