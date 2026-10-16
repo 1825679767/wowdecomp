@@ -1,3 +1,6 @@
+if(WXL_ENABLE_DX11)
+    add_subdirectory(D3D9ShaderConverter)
+endif()
 add_library(zlib STATIC
     zlib/adler32.c
     zlib/compress.c
