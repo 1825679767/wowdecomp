@@ -4,7 +4,12 @@
 #include "Engine/Source/Gx/CGxDeviceD3d9Ex/CGxDeviceD3d9Ex.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Services/Texture.h"
+#include "Engine/Source/Base/Status.h"
 #include "Engine/Source/Tempest/C44Matrix.h"
+#ifdef WXL_ENABLE_DX11
+#include "Engine/Source/Gx/CGxDeviceD3d11/CGxDeviceD3d11.h"
+#include "QuestWorldDrawDx11.inl"
+#endif
 #include <array>
 #include <cmath>
 namespace wxl::native::quest_marker {namespace {
@@ -16,8 +21,16 @@ struct Vertex {float x,y,z;DWORD color;float u,v;};
 }
 unsigned DrawWorldNavigation(std::span<const WorldPoint> points,float scale,unsigned alpha){
  auto* owner=g_theGxDevicePtr;if(!owner||points.empty()||points.size()>65||!std::isfinite(scale)||scale<=0||scale>8||alpha>255)return 0;
- IDirect3DDevice9* device=nullptr;if(owner->m_api==GxApi_D3d9)device=static_cast<CGxDeviceD3d*>(owner)->m_d3dDevice;else if(owner->m_api==GxApi_D3d9Ex)device=static_cast<CGxDeviceD3d9Ex*>(owner)->m_d3dDevice;if(!device)return 0;
- if(!atlas)atlas=TextureCreate("Interface\\Navigation\\InGameNavigationUI",CGxTexFlags(GxTex_Linear),nullptr,0);auto* gx=atlas?TextureGetGxTex(atlas,0,nullptr):nullptr;if(!gx)return 0;
+ IDirect3DDevice9* device=nullptr;if(owner->m_api==GxApi_D3d9)device=static_cast<CGxDeviceD3d*>(owner)->m_d3dDevice;else if(owner->m_api==GxApi_D3d9Ex)device=static_cast<CGxDeviceD3d9Ex*>(owner)->m_d3dDevice;
+#ifdef WXL_ENABLE_DX11
+ if(!device&&owner->m_api!=GxApi_D3d11)return 0;
+#else
+ if(!device)return 0;
+#endif
+ if(!atlas)atlas=TextureCreate("Interface\\Navigation\\InGameNavigationUI",CGxTexFlags(GxTex_Linear),&GetGlobalStatusObj(),0);auto* gx=atlas?TextureGetGxTex(atlas,0,nullptr):nullptr;if(!gx)return 0;
+#ifdef WXL_ENABLE_DX11
+ if(owner->m_api==GxApi_D3d11)return DrawWorldNavigationDx11(static_cast<CGxDeviceD3d11&>(*owner),*gx,points,scale,alpha);
+#endif
  // Bind through the actual native texture owner, including Ex cache residency.
  // RsPop marks the previous desired texture dirty; hardware overrides restore first.
  Pop nativeState(*owner);owner->RsSet(GxRs_Texture0,gx);if(owner->m_api==GxApi_D3d9)static_cast<CGxDeviceD3d*>(owner)->IStateSync();else static_cast<CGxDeviceD3d9Ex*>(owner)->IStateSync();
