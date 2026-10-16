@@ -58,7 +58,7 @@ class CLightning {
     void Init(const SpellChainEffectsRec* chainEffects);
     void PrecomputeBeamValues();
     void RandomizeJoint(LightningJoint& joint, float radius);
-    void Render(uint32_t index, const C3Vector& cameraPos);
+    void Render(uint32_t index, const C3Vector& cameraPos, bool worldCull = true);
     void Reset();
     void SetDstPos(const C3Vector& pos);
     void SetSrcPos(const C3Vector& pos);
@@ -78,7 +78,7 @@ class CLightningManager {
     CLightning* GetTempPtr(uint32_t index);
     void Move(uint32_t index, C3Vector* srcPos, C3Vector* dstPos);
     void Remove(uint32_t index);
-    void Render(const C3Vector& cameraPos);
+    void Render(const C3Vector& cameraPos, bool worldCull = true);
     void SetBoltVisible(uint32_t index, bool visible);
     void Update(float elapsed);
 };

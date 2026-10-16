@@ -9,6 +9,19 @@
 
 namespace wxl::runtime::db2::retail
 {
+    // WoWDBDefs physical layouts; verified against retained PTR WDC5 headers.
+    inline constexpr std::array kItemVisualsFields{
+        Field{"SpellVisualKitId1"}, Field{"SpellVisualKitId2"}, Field{"ModelFileID",5},
+    };
+    inline constexpr Definition ItemVisuals{"ItemVisuals","itemvisuals.db2",0x4D7EF22Cu,kItemVisualsFields,{},false};
+    inline constexpr std::array kItemVisualsXEffectFields{
+        Field{"AttachmentID"},Field{"DisplayWeaponSubclassID"},Field{"SpellVisualKitID"},
+        Field{"AttachmentModelFileID"},Field{"Scale"},
+    };
+    inline constexpr std::array kItemVisualsXEffectRelations{
+        Relation{"visual",RelationSource::ParentId,"",0,"ItemVisuals","@id"},
+    };
+    inline constexpr Definition ItemVisualsXEffect{"ItemVisualsXEffect","itemvisualsxeffect.db2",0x62F4C094u,kItemVisualsXEffectFields,kItemVisualsXEffectRelations,false};
     inline constexpr std::array kItemFields{
         Field{"ClassID"}, Field{"SubclassID"}, Field{"Material"}, Field{"InventoryType"},
         Field{"SheatheType"}, Field{"Sound_override_subclassID"}, Field{"IconFileDataID"},

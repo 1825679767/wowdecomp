@@ -19,7 +19,14 @@ struct BatchSource {
  std::array<uint16_t,2> textureIndices{},weightIndices{},transformIndices{};
  uint16_t flags=0,blend=0;
 };
+struct SectionSource {
+ uint16_t firstVertex=0,vertexCount=0,paletteOffset=0,influences=0;
+ std::vector<uint16_t> palette;
+};
 struct Source {
+ bool weighted=false;
+ uint32_t boneCount=0;
+ std::vector<SectionSource> sections;
  uint64_t modelFingerprint=0,skinFingerprint=0;
  std::string modelPath;
  uint32_t sectionCount=0,textureCount=0;
@@ -27,7 +34,7 @@ struct Source {
  std::shared_ptr<const DndSource> dnd;
 };
 std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* model,size_t modelBytes,
- const std::vector<uint8_t>& original,std::vector<uint8_t>& prepared);
+ const std::vector<uint8_t>& original,std::vector<uint8_t>& prepared,bool nativeGpuSkinning=false);
 // Exact named donor correction uses native stock Mod_Mod2x; no custom draw grant.
 bool PrepareNativeCompatibilitySkin(const char* modelPath,const uint8_t* model,size_t modelBytes,
  const std::vector<uint8_t>& original,std::vector<uint8_t>& prepared);

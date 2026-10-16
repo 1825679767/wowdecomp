@@ -507,7 +507,7 @@ void CLightning::BuildPointsUsingHierarchy() {
 
 // VERIFY: c9b19284 manual
 // OFFSET: 0x009AA210
-void CLightning::Render(uint32_t index, const C3Vector& cameraPos) {
+void CLightning::Render(uint32_t index, const C3Vector& cameraPos, bool worldCull) {
     this->m_flags &= ~0x30;
 
     if (!(this->m_flags & 0x2) || (this->m_flags & 0x4)) {
@@ -834,7 +834,7 @@ void CLightning::Render(uint32_t index, const C3Vector& cameraPos) {
         this->m_flags |= 0x20;
     }
 
-    if (count <= 2 || World::FrustumCull(this->m_bounds)) {
+    if (count <= 2 || (worldCull && World::FrustumCull(this->m_bounds))) {
         return;
     }
 
@@ -927,7 +927,7 @@ uint32_t CLightningManager::Add(void (*coordUpdate)(void*, uint32_t, C3Vector*, 
 
 // VERIFY: 26737101 manual
 // OFFSET: 0x009AB070
-void CLightningManager::Render(const C3Vector& cameraPos) {
+void CLightningManager::Render(const C3Vector& cameraPos, bool worldCull) {
     g_theGxDevicePtr->XformPush(GxXform_World);
     g_theGxDevicePtr->XformPush(GxXform_Tex0);
 
@@ -956,7 +956,7 @@ void CLightningManager::Render(const C3Vector& cameraPos) {
             }
 
             if (bolt->m_chainEffects && bolt->m_chainEffects->m_renderLayer == layer) {
-                bolt->Render(i, cameraPos);
+                bolt->Render(i, cameraPos, worldCull);
             }
         }
     }

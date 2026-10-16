@@ -143,3 +143,13 @@ The native source now includes Broken body/horns, actor-selected retail equipmen
 The separate default-on SpellVisuals module owns the donor retail spell graph, spell447445/Rift Lua and addon controls, native scene/model retirement and exact Rift particle source policy. Existing native particles handle the remaining Rift emitters. See modules/spell-visuals/INTEGRATION.md, modules/equipment/BODY-LAYERS.md, modules/equipment/HELMET-VISIBILITY.md and modules/blp/COMPONENT-CACHE.md. These entries supersede earlier unfinished-slice notes above; those notes retain integration history.
 
 This is source integration, not visual acceptance. Unsupported source geometry/material variants, donor approximations, dedicated beam rendering, experimental shader modes and server-dependent persistence still require explicit follow-up. DX11 and native world/fog/liquids/weather remain outside this work.
+
+## Remaining variants, beams and enchants (combined source)
+
+Native palette overflow now triggers complete perLOD topology partitioning with byte-identical vertex deduplication and paired model-owned SKIN publication. Equipment collections can use donor canonical-key/name/parent retargeting and legacy bind-pivot correction without weakening exact appearance-child mapping.
+
+The source21/33/35 custom GPU material path supports1..4influences/section palettes and1..4ownedSKINprofiles through a source-owned weighted VS, compiled once per native device. Existing donor pixel equations are retained. Unsupported CPU/projected/instanced variants remain explicit. See modules/materials/WEIGHTED-VARIANTS.md.
+
+The default-on CreationBeams module presents the Priest channel through mounted native spell/visual/kit/chain metadata and CLightningManager inside the actual Glue camera pass. Existing world callers keep their native behavior. Modern ItemVisuals direct model slots and ItemVisualsXEffect attachment/model/scale rows now have owned typed consumers, preserving nativeDBC precedence and explicit item-subclass selection. Kit-only modern rows remain metadata, not fabricated WotLK kit IDs. See modules/beams/INTEGRATION.md and modules/equipment/RETAIL-ENCHANTS.md.
+
+These entries supersede earlier missing-slice notes while preserving their history. Source integration does not establish visual or gameplay acceptance. DX11/native world/fog/liquids/weather remain outside this port.

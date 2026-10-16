@@ -22,6 +22,6 @@ bool SelectBodyLayers(const CCharacterComponent&,uint32_t display,std::array<std
 bool SuppressNativeArmor(const CCharacterComponent&,uint32_t slot) noexcept;
 // The native enchant owner retains its own item/visual identity. This only
 // creates validated native ItemVisualEffects children at real attachment IDs.
-void ApplyItemVisual(CM2Model*,int32_t visual) noexcept;
+void ApplyItemVisual(CM2Model*,int32_t visual,uint32_t display=0,uint32_t weaponSubclass=UINT32_MAX) noexcept;
 }
 }

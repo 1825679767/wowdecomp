@@ -504,6 +504,7 @@ void CM2SceneRender::DrawBatch() {
 // VERIFY: eebe62d2 manual
 // OFFSET: 0x00820720
 void CM2SceneRender::DrawBatchProj() {
+    if(this->m_curShared){const auto* source=wxl::native::MeshSourceFor(*this->m_curShared);if(source&&source->weighted)return;}
     DebugLog("BatchProj: model=%s index=%d", this->m_curModel->m_shared->m_fileNameWithoutPath, this->m_curElement->m_index);
 
     M2Element* element = this->m_curElement;
@@ -596,6 +597,7 @@ void CM2SceneRender::DrawBatchProj() {
 // VERIFY: 2ff5e9df manual
 // OFFSET: 0x00820AE0
 void CM2SceneRender::DrawBatchDoodad(M2Element* elements, uint32_t* indices) {
+    if(this->m_curShared){const auto* source=wxl::native::MeshSourceFor(*this->m_curShared);if(source&&source->weighted)return;}
     DebugLog("BatchDoodad: model=%s index=%d", this->m_curModel->m_shared->m_fileNameWithoutPath, this->m_curElement->m_index);
 
     M2Element* element = this->m_curElement;

@@ -1,3 +1,4 @@
+#include "WXL/CreationBeams.hpp"
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 // Authored WXL choreography; native source integration, no injected ABI.
 #include "WXL/CreationEffects.hpp"
@@ -105,6 +106,7 @@ std::vector<OwnedVisual> visuals;
 std::vector<CM2Model*> warm;
 void Dispose(OwnedVisual& v) { v.model->SetEmittersEnabled(0); v.model->SetRibbonsEnabled(0); v.model->DetachFromParent(); v.model->Release(); }
 void ClearVisuals(bool all=true) {
+ creation_beams::Stop();
  g_blizzardEmitter.active=g_priestChannelEmitter.active=false;
  if(all)g_warlockImpEmitter.active=g_warlockRainEmitter.active=false;
  if(all){g_druidMorphStart=g_druidTranquilityStart=0;g_druidFormPath=nullptr;g_druidFormAnimation=0;}
@@ -241,6 +243,8 @@ void UpdateVisuals() {
 
     void StartWotlkPriestChannelEmitter() noexcept
     {
+        // Authored channel phase is 6200..9400ms; existing missile stream stays intact.
+        if(auto* component=CCharacterCreation::m_character)creation_beams::StartMindFlay(*component,3200);
         g_priestChannelEmitter.active = true;
         g_priestChannelEmitter.nextMs = Now();
         g_priestChannelEmitter.emitted = 0;

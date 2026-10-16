@@ -18,6 +18,8 @@
 #include "WoW/Source/DB/Rec/ChrRacesRec.h"
 #include "WoW/Source/DB/Rec/ItemVisualsRec.h"
 #include "WoW/Source/DB/Rec/ItemVisualEffectsRec.h"
+#include "Engine/Source/Tempest/C3Vector.h"
+#include <cmath>
 #include <algorithm>
 #include <array>
 #include <memory>
@@ -171,6 +173,7 @@ bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t s
   if(skinned){if(!model->SetSkinningSource(owner.model,true,wire==18&&owner.sex==1?1.0f:0.0f))return false;claimed.push_back(variant);}
   else {model->AttachToParent(owner.model,row.attachId,nullptr,0);if(model->m_attachParent!=owner.model)return false;}
   model->SetBoneSequence(0xffffffffu,0,0xffffffffu,0,1.0f,1,1);
+  ApplyItemVisual(model,0,display);
   output.children.push_back(std::move(child));
  }
  output.ready=true;return true;
@@ -261,19 +264,51 @@ void Apply(CCharacterComponent& c) noexcept{try{
   if(slot==ITEMSLOT_HEAD)ApplyHelmet(c,*state);
  }
  }catch(...){Release(c);}}
-void ApplyItemVisual(CM2Model* parent,int32_t visual) noexcept{try{
+void ApplyItemVisual(CM2Model* parent,int32_t visual,uint32_t display,uint32_t weaponSubclass) noexcept{try{
  if(!parent)return;
  // Preserve the native owner contract: this item owns its visual children.
  while(parent->m_attachList){auto* child=parent->m_attachList;child->SetEmittersEnabled(0);child->SetRibbonsEnabled(0);child->DetachFromParent();}
- if(visual<=0||!parent->m_scene)return;auto* record=g_itemVisualsDB.GetRecord(visual);if(!record)return;
+ if(!parent->m_scene)return;
+ auto* record=visual>0?g_itemVisualsDB.GetRecord(visual):nullptr;
+ if(!record){
+  ItemGraphVisual modern;
+  const bool resolved=visual>0?ItemGraphVisualData(uint32_t(visual),modern):ItemGraphDisplayVisual(display,modern);
+  if(!resolved)return;
+  struct Choice {uint32_t point;std::string path;float scale;};
+  std::vector<Choice> choices;choices.reserve(modern.models.size()+modern.effects.size());
+  for(const auto& effect:modern.models)choices.push_back({effect.attachmentId,effect.path,1.0f});
+  uint32_t subclass=weaponSubclass;
+  if(subclass!=UINT32_MAX||ItemGraphWeaponSubclass(display,subclass))for(const auto& effect:modern.effects){
+   if(effect.displayWeaponSubclassId!=subclass||!effect.fileDataId||effect.path.empty()||!std::isfinite(effect.scale)||effect.scale<=0)continue;
+   // Kit-only rows have no model. A separately named direct attachment model
+   // remains usable without interpreting its kit ID as a WotLK visual ID.
+   choices.push_back({effect.attachmentId,effect.path,effect.scale});
+  }
+  for(const auto& effect:choices){
+   if(!parent->IsLoaded(1,0)||!parent->HasAttachment(effect.point))continue;
+   const auto path=Key(effect.path);if(!SafePart(path)||path.size()>=260||!SFile::FileExists(path.c_str()))continue;
+   // Before attachment the creation reference is the only owner. Do not use
+   // Child's attached-model destructor on a not-yet-attached visual.
+   auto release=[](CM2Model* model){if(model)model->Release();};
+   std::unique_ptr<CM2Model,decltype(release)> owner(parent->m_scene->CreateModel(path.c_str(),0),release);
+   auto* child=owner.get();if(!child)continue;
+   if(child->IsLoaded(1,0)&&child->m_shared&&Key(child->m_shared->m_fileName)==path){
+    child->SetBoneSequence(0xffffffffu,0,0xffffffffu,0,1.0f,1,1);
+    child->AttachToParent(parent,effect.point,nullptr,0);
+    if(child->m_attachParent==parent)child->SetWorldTransform(C3Vector(0,0,0),0,effect.scale);
+   }
+   // Owner drops the creation reference; successful attachment retained its own.
+  }
+  return;
+ }
  for(uint32_t point=0;point<5;++point){if(!parent->IsLoaded(1,0)||!parent->HasAttachment(point))continue;
   const auto* effect=g_itemVisualEffectsDB.GetRecord(record->m_slot[point]);if(!effect||!effect->m_model||!*effect->m_model)continue;
   const auto path=Key(effect->m_model);if(path.size()>=260||!SFile::FileExists(path.c_str()))continue;
-  auto child=std::make_unique<Child>();child->model=parent->m_scene->CreateModel(path.c_str(),0);
-  if(!child->model||!child->model->IsLoaded(1,0)||!child->model->m_shared||Key(child->model->m_shared->m_fileName)!=path)continue;
-  child->model->AttachToParent(parent,point,nullptr,0);
-  // Scene attachment retains the visual. Drop only our creation reference.
-  if(child->model->m_attachParent==parent){child->model->Release();child->model=nullptr;}
+  auto release=[](CM2Model* model){if(model)model->Release();};
+  std::unique_ptr<CM2Model,decltype(release)> child(parent->m_scene->CreateModel(path.c_str(),0),release);
+  if(!child||!child->IsLoaded(1,0)||!child->m_shared||Key(child->m_shared->m_fileName)!=path)continue;
+  child->AttachToParent(parent,point,nullptr,0);
+  // Attachment retains the visual. The RAII owner drops only creation's ref.
  }
  }catch(...){}}
 }

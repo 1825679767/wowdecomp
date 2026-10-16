@@ -1,4 +1,5 @@
 #include "Player_C.h"
+#include "WXL/EquipmentAttachments.hpp"
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -14031,7 +14032,11 @@ void CGPlayer_C::UpdateObjComponentVisuals(const VisibleItem_C* item, GEOCOMPONE
 
     for (CM2Model* model = this->m_worldModel->m_attachList; model; model = model->m_attachNext) {
         if (model->m_attachmentId == static_cast<uint32_t>(link)) {
-            CCharacterComponent::ComponentUtilAddItemVisual(model, visual);
+            if (wxl::native::equipment_attachments::Enabled()) {
+                auto* selected=const_cast<VisibleItem_C*>(item);
+                wxl::native::equipment_attachments::ApplyItemVisual(model,visual,selected->GetDisplayID(),
+                    selected->GetClassID()==2?selected->GetSubtypeID():UINT32_MAX);
+            } else CCharacterComponent::ComponentUtilAddItemVisual(model, visual);
             CGGameUI::UnitModelUpdate(this->m_obj->m_guid, 3);
             return;
         }

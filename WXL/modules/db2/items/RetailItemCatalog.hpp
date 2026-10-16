@@ -30,6 +30,9 @@ namespace wxl::runtime::db2::retailitems
         std::unordered_map<uint32_t, Item> items;
         std::unordered_map<uint32_t, uint32_t> iconByDisplay;
         std::unordered_map<uint32_t, uint32_t> soundByDisplay;
+        // A display can be shared by incompatible weapon classes. UINT32_MAX
+        // retains that ambiguity instead of choosing whichever item came first.
+        std::unordered_map<uint32_t, uint32_t> weaponSubclassByDisplay;
         std::unordered_set<uint32_t> displayIds;
 
         // The C facade exposes positional enumeration to other extensions.

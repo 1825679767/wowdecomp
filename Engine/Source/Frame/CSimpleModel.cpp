@@ -1,3 +1,4 @@
+#include "WXL/CreationBeams.hpp"
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -483,6 +484,7 @@ void CSimpleModel::RenderModel(void* arg) {
         simpleModel->GetScene()->Animate(cameraPos);
         simpleModel->GetScene()->Draw(M2PASS_0);
         simpleModel->GetScene()->Draw(M2PASS_1);
+        if (camera) wxl::native::creation_beams::Render(simpleModel,cameraPos);
     }
 
     g_theGxDevicePtr->XformSetProjection(projection);

@@ -2086,7 +2086,9 @@ void CCharacterComponent::AddLink(CM2Model* parent, GEOCOMPONENTLINKS link, cons
     HandleClose(reinterpret_cast<HOBJECT>(texture));
 
     wxl::native::equipment_attachments::BindNativeMaterials(model,uint32_t(displayRec->m_id));
-    if (itemVisual > 0) {
+    if (wxl::native::equipment_attachments::Enabled()) {
+        wxl::native::equipment_attachments::ApplyItemVisual(model,itemVisual,uint32_t(displayRec->m_id));
+    } else if (itemVisual > 0) {
         CCharacterComponent::ComponentUtilAddItemVisual(model, itemVisual);
     }
 
@@ -2147,7 +2149,9 @@ CM2Model* CCharacterComponent::MakeAmmoModel(CM2Model* model, const ItemDisplayI
     ammoModel->ReplaceTexture(2, texture);
     HandleClose(reinterpret_cast<HOBJECT>(texture));
     wxl::native::equipment_attachments::BindNativeMaterials(ammoModel,uint32_t(displayRec->m_id));
-    CCharacterComponent::ComponentUtilAddItemVisual(ammoModel, displayRec->m_itemVisual);
+    if (wxl::native::equipment_attachments::Enabled())
+        wxl::native::equipment_attachments::ApplyItemVisual(ammoModel,displayRec->m_itemVisual,uint32_t(displayRec->m_id));
+    else CCharacterComponent::ComponentUtilAddItemVisual(ammoModel, displayRec->m_itemVisual);
 
     return ammoModel;
 }

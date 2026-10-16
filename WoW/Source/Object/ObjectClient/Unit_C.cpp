@@ -1,4 +1,5 @@
 #include "WXL/Skyriding.hpp"
+#include "WXL/EquipmentAttachments.hpp"
 #include "Unit_C.h"
 #include "WXL/AppearanceSession.hpp"
 #include "WoW/Source/Ui/BarberShop.h"
@@ -21782,7 +21783,9 @@ CM2Model* CGUnit_C::CreateItemModel(uint32_t displayId, uint32_t inventoryType, 
         }
     }
 
-    CCharacterComponent::ComponentUtilAddItemVisual(model, rec.m_itemVisual);
+    if (wxl::native::equipment_attachments::Enabled())
+        wxl::native::equipment_attachments::ApplyItemVisual(model,rec.m_itemVisual,uint32_t(rec.m_id));
+    else CCharacterComponent::ComponentUtilAddItemVisual(model, rec.m_itemVisual);
     CM2Model* worldModel = this->m_worldModel;
 
     if (scale && worldModel && worldModel->IsLoaded(0, 0)) {

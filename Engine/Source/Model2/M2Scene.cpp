@@ -1,3 +1,4 @@
+#include "WXL/CreationBeams.hpp"
 #include <cfloat>
 #include <cmath>
 #include <cstdint>
@@ -1648,6 +1649,7 @@ CM2Scene::CM2Scene(CM2Cache* cache) {
 // VERIFY: aa195899 manual
 // OFFSET: 0x00821850
 CM2Scene::~CM2Scene() {
+    wxl::native::creation_beams::ReleaseScene(this);
     wxl::native::spell_visuals::ReleaseScene(this);
     for (CM2Model* model = this->m_modelList; model; model = this->m_modelList) {
         while (model->Release()) {

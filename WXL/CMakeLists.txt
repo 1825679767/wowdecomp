@@ -21,6 +21,7 @@ option(WXL_ENABLE_CHALLENGE_MODE "Enable native Mythic+ challenge API" ON)
 option(WXL_ENABLE_MYTHIC_DIFFICULTY "Enable native third dungeon difficulty and portal models" ON)
 option(WXL_ENABLE_QUEST_MARKER "Enable native quest marker and objective highlights" ON)
 option(WXL_ENABLE_RADIAL_PING "Enable native radial pings" ON)
+option(WXL_ENABLE_CREATION_BEAMS "Enable native metadata-driven creation beams" ON)
 option(WXL_ENABLE_CREATION_EFFECTS "Enable native character creation choreography" ON)
 option(WXL_ENABLE_SKYRIDING "Enable native server-authorized Skyriding" ON)
 option(WXL_ENABLE_BARBER_PREVIEW "Enable native barber retail-detail previews" ON)
@@ -48,6 +49,7 @@ target_compile_definitions(WxlSpellVisuals PRIVATE WXL_ENABLE_RETAIL_SPELL_VISUA
 wxl_module(WxlDB2 DB2 modules/db2/FdidCompat.cpp
  modules/db2/items/RetailItemIndex.cpp modules/db2/items/RetailItemCatalog.cpp
  modules/db2/items/ItemDisplayIndex.cpp modules/db2/items/NativeItemRows.cpp
+ modules/db2/items/ItemVisualGraph.cpp
  "${V}/extensions/wxl-db2/src/decode/DB2File.cpp" "${V}/extensions/wxl-db2/src/decode/Db2Decode.cpp"
  "${V}/extensions/wxl-db2/src/decode/Wdc5.cpp" "${V}/extensions/wxl-db2/src/decode/Wdc5Table.cpp"
  "${V}/extensions/wxl-db2/src/api/Db2.cpp" "${V}/extensions/wxl-db2/src/schemas/AppearanceStore.cpp")
@@ -78,6 +80,9 @@ wxl_module(WxlChallengeMode ChallengeMode modules/challenge-mode/ChallengeMode.c
 add_dependencies(WxlChallengeMode WxlRuntime WxlProtocol)
 wxl_module(WxlQuestMarker QuestMarker modules/quest-marker/QuestMarker.cpp)
 add_dependencies(WxlQuestMarker WxlRuntime WxlProtocol)
+wxl_module(WxlCreationBeams CreationBeams modules/beams/CreationBeams.cpp)
+target_compile_definitions(WxlCreationBeams PRIVATE WXL_ENABLE_CREATION_BEAMS=$<BOOL:${WXL_ENABLE_CREATION_BEAMS}>)
+add_dependencies(WxlCreationBeams WxlRuntime WxlBlp WxlStorage)
 wxl_module(WxlCreationEffects CreationEffects modules/creation/CreationEffects.cpp)
 add_dependencies(WxlCreationEffects WxlRuntime WxlAppearances WxlStorage)
 wxl_module(WxlSkyriding Skyriding modules/skyriding/Skyriding.cpp)
@@ -97,6 +102,7 @@ add_dependencies(WxlAppearances WxlM2 WxlDB2 WxlBlp)
 add_dependencies(WxlProtocol WxlRuntime)
 add_dependencies(WxlSpellVisuals WxlRuntime WxlStorage WxlDB2 WxlM2 WxlProtocol)
 add_library(WxlNative STATIC
+ $<TARGET_OBJECTS:WxlCreationBeams>
  $<TARGET_OBJECTS:WxlSpellVisuals>
  $<TARGET_OBJECTS:WxlEquipmentAttachments>
  $<TARGET_OBJECTS:WxlRuntime> $<TARGET_OBJECTS:WxlStorage> $<TARGET_OBJECTS:WxlDB2>

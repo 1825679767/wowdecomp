@@ -108,6 +108,22 @@ bool ItemGraphHelmetData(uint32_t id,uint32_t sex,uint32_t modelRace,ItemGraphHe
   output=std::move(result);return true;
  }catch(...){return false;}
 }
+bool ItemGraphWeaponSubclass(uint32_t id,uint32_t& subclass) noexcept {
+ subclass=UINT32_MAX;if(!ItemGraphOwnsDisplay(id))return false;
+ try {auto catalog=items::Current();if(!catalog)return false;
+ const auto found=catalog->weaponSubclassByDisplay.find(id);
+ if(found==catalog->weaponSubclassByDisplay.end()||found->second==UINT32_MAX)return false;
+ subclass=found->second;return true;
+ }catch(...){return false;}
+}
+bool ItemGraphDisplayVisual(uint32_t id,ItemGraphVisual& output) noexcept {
+ output={};if(!ItemGraphOwnsDisplay(id))return false;
+ try {auto index=display::Current();if(!index||!index->resolvedDisplays.contains(id)){display::Request(id);return false;}
+ const auto found=index->displayRecords.find(id);if(found==index->displayRecords.end())return false;
+ if(!found->second.itemVisual)return true;
+ return ItemGraphVisualData(found->second.itemVisual,output);
+ }catch(...){output={};return false;}
+}
 bool ItemGraphInventoryType(uint32_t id,uint32_t& inventoryType) noexcept {
  inventoryType=0;if(!ItemGraphOwnsDisplay(id))return false;
  try {auto index=display::Current();if(!index||!index->resolvedDisplays.contains(id)){display::Request(id);return false;}

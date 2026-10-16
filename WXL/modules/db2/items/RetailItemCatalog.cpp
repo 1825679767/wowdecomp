@@ -19,6 +19,18 @@ namespace wxl::runtime::db2::retailitems
 
     void Publish(std::shared_ptr<Catalog> catalog)
     {
+        catalog->weaponSubclassByDisplay.clear();
+        auto add=[&](uint32_t display,const Item& item){
+            if(!display)return;
+            const uint32_t subclass=item.classId==2?item.subclassId:UINT32_MAX;
+            auto [it,inserted]=catalog->weaponSubclassByDisplay.emplace(display,subclass);
+            if(!inserted&&it->second!=subclass)it->second=UINT32_MAX;
+        };
+        for(const auto& [id,item]:catalog->items)add(item.displayId,item);
+        for(const auto& [key,variant]:catalog->variants){
+            const auto item=catalog->items.find(variant.itemId);
+            if(item!=catalog->items.end())add(variant.displayId,item->second);
+        }
         std::atomic_store_explicit(&CurrentSlot(),
                                    std::shared_ptr<const Catalog>(std::move(catalog)),
                                    std::memory_order_release);

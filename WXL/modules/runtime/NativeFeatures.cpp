@@ -1,3 +1,4 @@
+#include "WXL/CreationBeams.hpp"
 #include "WXL/DonorMaterialFallback.hpp"
 #include "WXL/EquipmentAttachments.hpp"
 #include "WXL/PrivateAppearances.hpp"
@@ -27,6 +28,7 @@ bool Changed(CVar*,const char*,const char* value,void* arg){
 bool On(uint32_t bit) noexcept{return (enabled.load(std::memory_order_acquire)&Compiled&bit)!=0;}
 }
 void RegisterFeatures(){
+ creation_beams::Register();
  RegisterDonorMaterialFallback();
  equipment_attachments::Register();
  mesh_materials::RegisterDndMaterials();

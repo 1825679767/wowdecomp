@@ -25,6 +25,21 @@ struct ItemGraphHelmet {
  // Amount is not permission to scale an actor or an attached helmet model.
  bool hasAnimScale=false;float animScale=0;
 };
+// Modern ItemVisuals owns FDID slots directly; never legacy effect-row IDs.
+struct ItemGraphVisualModel {uint32_t attachmentId=0,fileDataId=0;std::string path;};
+struct ItemGraphVisualEffect {
+ uint32_t id=0,attachmentId=0,displayWeaponSubclassId=0,spellVisualKitId=0,fileDataId=0;
+ float scale=1;std::string path;
+};
+struct ItemGraphVisual {
+ uint32_t id=0,spellVisualKitId1=0,spellVisualKitId2=0;
+ std::vector<ItemGraphVisualModel> models;
+ // Explicit selectors/kit ownership are retained, not guessed as legacy IDs.
+ std::vector<ItemGraphVisualEffect> effects;
+};
+bool ItemGraphVisualData(uint32_t visual,ItemGraphVisual&) noexcept;
+bool ItemGraphWeaponSubclass(uint32_t display,uint32_t& subclass) noexcept;
+bool ItemGraphDisplayVisual(uint32_t display,ItemGraphVisual&) noexcept;
 bool ItemGraphHelmetData(uint32_t display,uint32_t sex,uint32_t modelRace,ItemGraphHelmet&) noexcept;
 // Existing native DBC presentation always wins. Queries copy bounded owned data.
 bool ItemGraphOwnsDisplay(uint32_t displayId) noexcept;

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 WarcraftXL. GPLv3.
 
 #include "ItemDisplayIndex.hpp"
+#include "ItemVisualGraph.hpp"
 #include "RetailItemCatalog.hpp"
 #include "RetailSchemas.hpp"
 
@@ -975,6 +976,7 @@ namespace
                 if (BuildRelationshipIndex()) { ready=true; break; }
                 if (Pause(250u*(attempt+1))) break;
             }
+            wxl::native::LoadItemVisualGraph();
             if (!ready) { itemdisplay::StopRequests(); return; }
             while (!g_stopping.load()) {
                 auto requests=itemdisplay::WaitTakeRequests();
@@ -1005,5 +1007,6 @@ void StopItemGraph() noexcept {
     auto& owner=Owner(); std::lock_guard lock(owner.lifecycle);
     g_stopping.store(true); itemdisplay::StopRequests(); owner.wake.notify_all();
     if (owner.thread.joinable()) owner.thread.join();
+    ClearItemVisualGraph();
 }
 }

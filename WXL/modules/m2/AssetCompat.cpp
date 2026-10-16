@@ -27,7 +27,7 @@ constexpr uint32_t Limit=64u*1024*1024;
 std::string Key(const char* path){std::string key=path?path:"";for(auto& c:key){if(c=='/')c='\\';if(c>='A' && c<='Z')c=char(c-'A'+'a');}return key;}
 struct Skin {std::vector<uint8_t> original,prepared,converted;std::shared_ptr<const mesh_materials::Source> mesh;std::shared_ptr<const DonorMaterialRecipe> donor;};
 }
-struct ModelAssets {bool donorFallback=false;std::vector<uint8_t> donorSourceModel;std::string meshPath;const uint8_t* meshInput=nullptr;size_t meshInputSize=0;std::shared_ptr<const mesh_materials::Source> selectedMesh;std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;ParticleLayerSet layers;bool riftSource=false;std::shared_ptr<const ParticleRefractionRecipe> refraction;};
+struct ModelAssets {bool nativeGpuSkinning=false;bool donorFallback=false;std::vector<uint8_t> donorSourceModel;std::string meshPath;const uint8_t* meshInput=nullptr;size_t meshInputSize=0;std::shared_ptr<const mesh_materials::Source> selectedMesh;std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;ParticleLayerSet layers;bool riftSource=false;std::shared_ptr<const ParticleRefractionRecipe> refraction;};
 namespace {
 thread_local ModelAssets* loading{};
 bool ReadCompanion(const char* path,std::vector<uint8_t>& output){
@@ -35,7 +35,7 @@ bool ReadCompanion(const char* path,std::vector<uint8_t>& output){
  const auto key=Key(path);
  if(loading && key.ends_with(".skin")){
   auto& skin=loading->skins[key];skin.original=output;
-  skin.mesh=mesh_materials::Prepare(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);
+  skin.mesh=mesh_materials::Prepare(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared,loading->nativeGpuSkinning);
   if(!skin.mesh)mesh_materials::PrepareNativeCompatibilitySkin(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);
   // Exact renderer-owned prepared skins have priority. Sample the optional
   // approximation policy once per model, never per batch or asynchronous read.
@@ -56,7 +56,7 @@ bool PrepareModel(CM2Shared& shared){
  const auto* raw=reinterpret_cast<const uint8_t*>(shared.m_data);
  if(std::memcmp(raw,"MD21",4))return true;
  if(!AssetsEnabled())return true; // Native unsupported-format handling remains authoritative.
- try{auto assets=std::make_unique<ModelAssets>();assets->donorFallback=DonorMaterialFallbackEnabled();assets->meshPath=shared.m_fileName;assets->meshInput=raw;assets->meshInputSize=shared.m_fileSize;std::vector<uint8_t> converted;wxl::waystone::m2bytes::Stats stats;
+ try{auto assets=std::make_unique<ModelAssets>();assets->nativeGpuSkinning=shared.m_cache&&(shared.m_cache->m_flags&8);assets->donorFallback=DonorMaterialFallbackEnabled();assets->meshPath=shared.m_fileName;assets->meshInput=raw;assets->meshInputSize=shared.m_fileSize;std::vector<uint8_t> converted;wxl::waystone::m2bytes::Stats stats;
   assets->refraction=CaptureParticleRefraction(shared.m_fileName,raw,shared.m_fileSize);
   assets->riftSource=MatchExactRiftSource(shared.m_fileName,raw,shared.m_fileSize);
   std::string layerReason;

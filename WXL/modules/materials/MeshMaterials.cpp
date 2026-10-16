@@ -1,4 +1,4 @@
-// Source21/33/35 WXL donor compatibility, source-indexed one-bone/two-UV batches.
+// Source21/33/35 WXL donor compatibility, source-indexed rigid/weighted two-UV batches.
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "MeshMaterials.hpp"
 #include "DndMaterials.hpp"
@@ -13,14 +13,20 @@
 #include "Engine/Source/Model2/CM2SceneRender.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Shared.h"
+#include "Engine/Source/Model2/M2Cache.h"
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
 #include <windows.h>
 #include <d3d9.h>
+#include <d3dcompiler.h>
+#include <algorithm>
+#include <cwchar>
+#include "common/Log.hpp"
 #include <cstring>
 #include <span>
 #include <string_view>
 #include "shaders/CombinersModAddAlphaVs.h"
 #include "shaders/CombinersModAddAlphaPs.h"
+#include "shaders/CombinersModAddAlphaSkinnedSource.hpp"
 namespace wxl::native::mesh_materials {
 namespace {
 template<class T>T Read(const uint8_t* p,size_t at){T value{};std::memcpy(&value,p+at,sizeof(T));return value;}
@@ -68,28 +74,39 @@ bool PrepareNativeCompatibilitySkin(const char* modelPath,const uint8_t* raw,siz
  if(!corrected)return false;
  prepared.swap(candidate);return true;
 }
-std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,size_t size,const std::vector<uint8_t>& skin,std::vector<uint8_t>& prepared){
+std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,size_t size,const std::vector<uint8_t>& skin,std::vector<uint8_t>& prepared,bool nativeGpuSkinning){
  prepared.clear();
  if(auto dnd=PrepareDnd(modelPath,raw,size,skin,prepared))return dnd;
  if(!MaterialsEnabled()||!D3D9()||!modelPath||!raw||size<312||size>64u*1024*1024||skin.size()<48||skin.size()>64u*1024*1024||std::memcmp(raw,"MD21",4)||std::memcmp(skin.data(),"SKIN",4))return {};
  const uint32_t bodySize=Read<uint32_t>(raw,4);if(bodySize<304||bodySize>size-8)return {};
  const auto* body=raw+8;
- if(std::memcmp(body,"MD20",4)||Read<uint32_t>(body,4)!=274||Read<uint32_t>(body,0x2c)!=1||Read<uint32_t>(body,0x44)!=1)return {};
+  const uint32_t bones=Read<uint32_t>(body,0x2c),profiles=Read<uint32_t>(body,0x44);
+ const bool weighted=bones!=1;
+ if(std::memcmp(body,"MD20",4)||Read<uint32_t>(body,4)!=274||!bones||bones>4096||!profiles||profiles>4)return {};
+ if(weighted && (!nativeGpuSkinning||g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256))return {};
  const uint32_t batches=Read<uint32_t>(skin.data(),36),at=Read<uint32_t>(skin.data(),40),sections=Read<uint32_t>(skin.data(),28),sectionAt=Read<uint32_t>(skin.data(),32);
  if(!batches||batches>32||!sections||sections>32||at<48||sectionAt<48||!Range(skin.size(),at,batches,24)||!Range(skin.size(),sectionAt,sections,48))return {};
  const uint32_t boneCombos=Read<uint32_t>(body,0x78),boneAt=Read<uint32_t>(body,0x7c);
- if(!Range(bodySize,boneAt,boneCombos,2))return {};
- for(uint32_t i=0;i<sections;++i){
-  const auto* section=skin.data()+sectionAt+48*i;const uint32_t palette=Read<uint16_t>(section,14);
-  if(Read<uint16_t>(section,12)!=1||Read<uint16_t>(section,16)!=1||!Read<uint16_t>(section,10)||palette>=boneCombos||Read<uint16_t>(body,boneAt+2*palette)!=0)return {};
- }
  const uint32_t vertexCount=Read<uint32_t>(body,0x3c),vertexAt=Read<uint32_t>(body,0x40),lookupCount=Read<uint32_t>(skin.data(),4),lookupAt=Read<uint32_t>(skin.data(),8),propsAt=Read<uint32_t>(skin.data(),24);
- if(!Range(bodySize,vertexAt,vertexCount,48)||!Range(skin.size(),lookupAt,lookupCount,2)||Read<uint32_t>(skin.data(),20)!=lookupCount||!Range(skin.size(),propsAt,lookupCount,4))return {};
- for(uint32_t i=0;i<lookupCount;++i){
-  const auto vertex=Read<uint16_t>(skin.data(),lookupAt+2*i);if(vertex>=vertexCount||Read<uint32_t>(skin.data(),propsAt+4*i)!=0)return {};
-  const auto* v=body+vertexAt+48*vertex;if(v[12]!=255||v[13]||v[14]||v[15]||Read<uint32_t>(v,16)!=0)return {};
- }
- const uint32_t materials=Read<uint32_t>(body,0x70),materialAt=Read<uint32_t>(body,0x74);
+ if(!Range(bodySize,boneAt,boneCombos,2)||!Range(bodySize,vertexAt,vertexCount,48)||!Range(skin.size(),lookupAt,lookupCount,2)||Read<uint32_t>(skin.data(),20)!=lookupCount||!Range(skin.size(),propsAt,lookupCount,4))return {};
+ std::vector<SectionSource> sourceSections;sourceSections.reserve(sections);
+ const auto constants=g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex];
+ const uint32_t paletteLimit=constants>32?(std::min)(75u,(constants-(constants>0xc0?64u:32u))/3u):0;
+ for(uint32_t i=0;i<sections;++i){
+  const auto* section=skin.data()+sectionAt+48*i;SectionSource captured;
+  const uint32_t count=Read<uint16_t>(section,12),palette=Read<uint16_t>(section,14),influences=Read<uint16_t>(section,16),first=Read<uint16_t>(section,4),vertices=Read<uint16_t>(section,6);
+  if(!count||count>(weighted?paletteLimit:1u)||!influences||influences>4||!Read<uint16_t>(section,10)||palette>boneCombos||count>boneCombos-palette||first>lookupCount||vertices>lookupCount-first)return {};
+  captured.firstVertex=uint16_t(first);captured.vertexCount=uint16_t(vertices);captured.paletteOffset=uint16_t(palette);captured.influences=uint16_t(influences);
+  for(uint32_t bone=0;bone<count;++bone){const auto global=Read<uint16_t>(body,boneAt+2*(palette+bone));if(global>=bones)return {};captured.palette.push_back(global);}
+  for(uint32_t vertex=first;vertex<first+vertices;++vertex){
+   const auto index=Read<uint16_t>(skin.data(),lookupAt+2*vertex);if(index>=vertexCount)return {};
+   const auto* source=body+vertexAt+48*index;const auto* local=skin.data()+propsAt+4*vertex;
+   uint32_t sum=0;bool ended=false;
+   for(uint32_t lane=0;lane<4;++lane){const auto weight=source[12+lane];if(!weight){ended=true;continue;}if(ended||lane>=influences||local[lane]>=count)return {};sum+=weight;}
+   if(sum!=255)return {};
+  }
+  sourceSections.push_back(std::move(captured));
+ } const uint32_t materials=Read<uint32_t>(body,0x70),materialAt=Read<uint32_t>(body,0x74);
  const uint32_t textures=Read<uint32_t>(body,0x50),textureAt=Read<uint32_t>(body,0x54),combos=Read<uint32_t>(body,0x80),comboAt=Read<uint32_t>(body,0x84);
  if(!textures||textures>64||!Range(bodySize,materialAt,materials,4)||!Range(bodySize,textureAt,textures,16)||!Range(bodySize,comboAt,combos,2))return {};
  std::span<const uint8_t> txid;
@@ -98,7 +115,7 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
   if(!std::memcmp(raw+off,"TXID",4)){if(!txid.empty()||n!=textures*4)return {};txid={raw+off+8,n};}off+=8+n;
  }
  if(txid.size()!=textures*4)return {};
- auto result=std::make_shared<Source>();result->modelPath=modelPath;result->sectionCount=sections;result->textureCount=textures;result->batches.reserve(batches);
+ auto result=std::make_shared<Source>();result->weighted=weighted;result->boneCount=bones;result->sections=std::move(sourceSections);result->modelPath=modelPath;result->sectionCount=sections;result->textureCount=textures;result->batches.reserve(batches);
  for(uint32_t b=0;b<batches;++b){
   const auto* batch=skin.data()+at+24*b;const uint16_t shader=Read<uint16_t>(batch,2);
   // The donor's exact named Rift33 correction has a different pixel equation.
@@ -140,6 +157,7 @@ bool ConvertedMatches(const Source& source,const std::vector<uint8_t>& skin) noe
 
 namespace {
 constexpr const char* VertexName="WXL_Mesh_AddAlpha21_VS_20261016";
+constexpr const char* WeightedVertexName="WXL_Mesh_AddAlpha21_Weighted_VS_20261016";
 constexpr const char* PixelName="WXL_Mesh_AddAlpha21_PS_20261016";
 CGxShader* Program(CGxDevice& device,EGxShTarget target,const char* name,const uint8_t* code,uint32_t size){
  auto* shader=device.m_shaderList[target].Ptr(name);
@@ -150,6 +168,49 @@ CGxShader* Program(CGxDevice& device,EGxShTarget target,const char* name,const u
  }
  // Native list/reset ownership preserves code and invalidates/recreates API handles.
  return shader->Valid()?shader:nullptr;
+}
+struct CompilerModule {
+ HMODULE value=nullptr;
+ ~CompilerModule(){if(value)FreeLibrary(value);}
+ bool Open(){
+  wchar_t path[MAX_PATH]{};const UINT length=GetSystemDirectoryW(path,MAX_PATH);
+  constexpr wchar_t suffix[]=L"\\d3dcompiler_47.dll";
+  if(!length||length>=MAX_PATH||length+sizeof(suffix)/sizeof(wchar_t)>MAX_PATH)return false;
+  std::memcpy(path+length,suffix,sizeof(suffix));value=LoadLibraryW(path);return value!=nullptr;
+ }
+};
+struct Blob {ID3DBlob* value=nullptr;~Blob(){if(value)value->Release();}};
+CGxShader* WeightedProgram(CGxDevice& device){
+ if(auto* existing=device.m_shaderList[GxSh_Vertex].Ptr(WeightedVertexName))
+  return existing->m_target==GxSh_Vertex&&existing->m_code.Count()&&existing->Valid()?existing:nullptr;
+ auto* shader=device.m_shaderList[GxSh_Vertex].New(WeightedVertexName,0,0);if(!shader)return nullptr;
+ shader->m_refCount=1;shader->m_target=GxSh_Vertex;
+ // This empty owner also caches a compiler refusal until device teardown. Never
+ // recreate/load/compile a missing shader on every emitter draw.
+ CompilerModule compiler;Blob code,errors;
+ if(!compiler.Open()) {WLOG_WARN("native-mesh: weighted AddAlpha unavailable: system d3dcompiler_47.dll missing");return nullptr;}
+ auto compile=reinterpret_cast<decltype(&D3DCompile)>(GetProcAddress(compiler.value,"D3DCompile"));
+ if(!compile){WLOG_WARN("native-mesh: weighted AddAlpha unavailable: D3DCompile export missing");return nullptr;}
+ const HRESULT result=compile(kCombinersModAddAlphaSkinnedSource,sizeof(kCombinersModAddAlphaSkinnedSource)-1,"WXL/CombinersModAddAlphaSkinned.vs.hlsl",nullptr,nullptr,"main","vs_3_0",D3DCOMPILE_ENABLE_STRICTNESS|D3DCOMPILE_OPTIMIZATION_LEVEL3,0,&code.value,&errors.value);
+ if(FAILED(result)||!code.value){
+  WLOG_WARN("native-mesh: weighted AddAlpha compilation refused hr=0x%08x detail=%.*s",unsigned(result),errors.value?int((std::min)(size_t(2048),errors.value->GetBufferSize())):0,errors.value?static_cast<const char*>(errors.value->GetBufferPointer()):"");return nullptr;
+ }
+ const auto bytes=code.value->GetBufferSize();
+ if(bytes<8||bytes>65536||bytes%4||Read<uint32_t>(static_cast<const uint8_t*>(code.value->GetBufferPointer()),0)!=0xfffe0300||Read<uint32_t>(static_cast<const uint8_t*>(code.value->GetBufferPointer()),bytes-4)!=0x0000ffff)return nullptr;
+ shader->m_code.SetCount(uint32_t(bytes));std::memcpy(shader->m_code.m_data,code.value->GetBufferPointer(),bytes);
+ return shader->Valid()?shader:nullptr;
+}
+bool WeightedDeclaration(const CGxDevice& device){
+ if(device.m_primVertexFormat!=GxVBF_PBNT2||device.m_primVertexSize!=48)return false;
+ const auto* types=device.m_api==GxApi_D3d9?CGxDeviceD3d::s_gxAttribToD3dAttribType:CGxDeviceD3d9Ex::s_gxAttribToD3dAttribType;
+ return types[1]==D3DDECLTYPE_UBYTE4&&types[2]==D3DDECLTYPE_UBYTE4N;
+}
+void UploadPalette(CGxDevice& device,const CM2Model& model,const SectionSource& section){
+ float* rows=device.ShaderConstantsLock(GxSh_Vertex)+31*4;
+ for(const auto index:section.palette){const auto& bone=model.m_boneMatrices[index];
+  const float native[]={bone.a0,bone.b0,bone.c0,bone.d0,bone.a1,bone.b1,bone.c1,bone.d1,bone.a2,bone.b2,bone.c2,bone.d2};std::memcpy(rows,native,sizeof(native));rows+=12;
+ }
+ device.ShaderConstantsUnlock(GxSh_Vertex,31,uint32_t(section.palette.size())*3);
 }
 struct StateScope {
  CGxDevice& device;explicit StateScope(CGxDevice& d):device(d){device.RsPush();}
@@ -165,7 +226,7 @@ bool OwnsBatch(const CM2SceneRender& context) noexcept {
  return context.m_curBatch!=&skin.m_batches[2];
 }
 bool Draw(CM2SceneRender& context,CGxBatch& draw){
- if(!MaterialsEnabled()||!D3D9()||!CShaderEffect::s_enableShaders||context.m_curType!=0||!context.m_curShared||!context.m_curShared->m_data||!context.m_curShared->m_skinData||!context.m_curModel||!context.m_curBatch||!context.m_curSkinSection||!context.m_curMaterial||context.m_pass!=M2PASS_0)return false;
+ if(!MaterialsEnabled()||!D3D9()||!CShaderEffect::s_enableShaders||context.m_curType!=0||!context.m_curShared||!context.m_curShared->m_data||!context.m_curShared->m_skinData||!context.m_curModel||!context.m_curBatch||!context.m_curSkinSection||!context.m_curMaterial||!context.m_curElement||context.m_pass!=M2PASS_0)return false;
  const auto* source=MeshSourceFor(*context.m_curShared);if(!source)return false;
  if(source->dnd){const auto& skin=*context.m_curShared->m_skinData;if(skin.m_batches.m_count!=3)return false;for(uint32_t i=0;i<2;++i)if(&skin.m_batches[i]==context.m_curBatch)return DrawDnd(context,draw,*source,i);return false;}
  const auto& data=*context.m_curShared->m_data;const auto& skin=*context.m_curShared->m_skinData;const auto& b=*context.m_curBatch;
@@ -175,16 +236,22 @@ bool Draw(CM2SceneRender& context,CGxBatch& draw){
  if(sourceIndex>=source->batches.size())return false;
  const auto& record=source->batches[sourceIndex];const auto* raw=record.batch.data();
  if(!AddAlphaFamily(Read<uint16_t>(raw,2))||(Read<uint16_t>(raw,2)==0x8021&&RiftPath(source->modelPath.c_str()))||b.m_skinSectionIndex!=Read<uint16_t>(raw,4)||b.m_skinSectionIndex>=skin.m_skinSections.m_count||&skin.m_skinSections[b.m_skinSectionIndex]!=context.m_curSkinSection)return false;
- if(!context.m_curModel->m_boneMatrices||context.m_curSkinSection->m_boneComboIndex>=data.m_boneCombos.m_count||data.m_boneCombos[context.m_curSkinSection->m_boneComboIndex]!=0)return false;
- if(data.m_bones.m_count!=1||context.m_curSkinSection->m_boneCount!=1||b.m_shader!=0x11||b.m_textureCount!=2||b.m_textureCoordComboIndex!=4||b.m_materialLayer||context.m_curElement->m_flags&1)return false;
+ if(!context.m_curModel->m_boneMatrices||data.m_bones.m_count!=source->boneCount||b.m_skinSectionIndex>=source->sections.size())return false;
+ const auto& captured=source->sections[b.m_skinSectionIndex];const auto& section=*context.m_curSkinSection;
+ if(source->weighted){
+  if(section.m_vertexStart!=captured.firstVertex||section.m_vertexCount!=captured.vertexCount||section.m_boneInfluences!=captured.influences||section.m_boneComboIndex!=captured.paletteOffset||section.m_boneCount!=captured.palette.size()||uint32_t(section.m_boneComboIndex)+section.m_boneCount>data.m_boneCombos.m_count)return false;
+  for(uint32_t bone=0;bone<section.m_boneCount;++bone)if(data.m_boneCombos[section.m_boneComboIndex+bone]!=captured.palette[bone])return false;
+  if(!context.m_curShared->m_cache||!(context.m_curShared->m_cache->m_flags&8)||g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256||!WeightedDeclaration(*g_theGxDevicePtr)||!g_theGxDevicePtr->m_primVertexBuf||!g_theGxDevicePtr->m_primVertexBuf->m_hasData||g_theGxDevicePtr->m_primVertexBuf!=context.m_curShared->m_vertexBuf)return false;
+ }else if(section.m_boneCount!=1||section.m_boneComboIndex>=data.m_boneCombos.m_count||data.m_boneCombos[section.m_boneComboIndex]!=0)return false; if(b.m_shader!=0x11||b.m_textureCount!=2||b.m_textureCoordComboIndex!=4||b.m_materialLayer||context.m_curElement->m_flags&1)return false;
  if(b.m_materialIndex!=Read<uint16_t>(raw,10)||b.m_textureComboIndex!=Read<uint16_t>(raw,16)||b.m_colorIndex!=Read<uint16_t>(raw,8)||b.m_textureWeightComboIndex!=Read<uint16_t>(raw,20)||b.m_textureTransformComboIndex!=Read<uint16_t>(raw,22)||context.m_curMaterial->m_blendMode!=record.blend||context.m_curMaterial->m_flags!=record.flags)return false;
  for(uint32_t i=0;i<2;++i){
   if(b.m_textureComboIndex+i>=data.m_textureCombos.m_count||data.m_textureCombos[b.m_textureComboIndex+i]!=record.textureIndices[i]||!context.m_curModel->m_textures[record.textureIndices[i]])return false;
   if(b.m_textureWeightComboIndex+i>=data.m_textureWeightCombos.m_count||data.m_textureWeightCombos[b.m_textureWeightComboIndex+i]!=record.weightIndices[i]||b.m_textureTransformComboIndex+i>=data.m_textureTransformCombos.m_count||data.m_textureTransformCombos[b.m_textureTransformComboIndex+i]!=record.transformIndices[i])return false;
  }
- try{auto* vertex=Program(*g_theGxDevicePtr,GxSh_Vertex,VertexName,kCombinersModAddAlphaVs,sizeof(kCombinersModAddAlphaVs));
+ try{auto* vertex=source->weighted?WeightedProgram(*g_theGxDevicePtr):Program(*g_theGxDevicePtr,GxSh_Vertex,VertexName,kCombinersModAddAlphaVs,sizeof(kCombinersModAddAlphaVs));
   auto* pixel=Program(*g_theGxDevicePtr,GxSh_Pixel,PixelName,kCombinersModAddAlphaPs,sizeof(kCombinersModAddAlphaPs));
   if(!vertex||!pixel)return false;StateScope state(*g_theGxDevicePtr);
+  if(source->weighted)UploadPalette(*g_theGxDevicePtr,*context.m_curModel,captured);
   g_theGxDevicePtr->RsSet(GxRs_VertexShader,vertex);g_theGxDevicePtr->RsSet(GxRs_PixelShader,pixel);
   g_theGxDevicePtr->Draw(&draw,1);return true;
  }catch(...){return false;}
@@ -193,6 +260,7 @@ void DestroyPrograms(CGxDevice& device) noexcept {
  DestroyDndPrograms(device);
  try{auto* pixel=device.m_shaderList[GxSh_Pixel].Ptr(PixelName);if(pixel)device.ShaderDestroy(pixel);
   auto* vertex=device.m_shaderList[GxSh_Vertex].Ptr(VertexName);if(vertex)device.ShaderDestroy(vertex);
+  auto* weighted=device.m_shaderList[GxSh_Vertex].Ptr(WeightedVertexName);if(weighted)device.ShaderDestroy(weighted);
  }catch(...){}
 }
 }
