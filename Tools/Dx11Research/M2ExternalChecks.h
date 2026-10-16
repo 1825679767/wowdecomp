@@ -36,13 +36,30 @@ template<class T,class V> static void M2SampleCheck(CM2Model& model,M2ModelBone&
     float components[4]{};static_assert(sizeof(V)<=sizeof(components));std::memcpy(components,&state.m_currentValue,sizeof(V));
     for(unsigned i=0;i<sizeof(V)/sizeof(float);++i)Check(std::isfinite(components[i]),"native animated bone component is finite");
 }
+static void M2GlobalExternalCheck(){
+    constexpr uint32_t size=2048;auto* bytes=static_cast<uint8_t*>(OsAllocNear(nullptr,size));Check(bytes!=nullptr,"global-track model allocation");std::memset(bytes,0,size);
+    auto* external=static_cast<uint8_t*>(OsAllocNear(bytes,8));Check(external!=nullptr,"global-track external allocation");std::memset(external,0,8);
+    auto& data=*reinterpret_cast<M2Data*>(bytes);data.m_magic=0x3032444d;data.m_version=264;uint32_t offset=sizeof(M2Data);
+    data.m_loops={1,offset};reinterpret_cast<M2Loop*>(bytes+offset)->m_length=1000;offset+=sizeof(M2Loop);
+    data.m_sequences={1,offset};auto* sequence=reinterpret_cast<M2Sequence*>(bytes+offset);sequence->m_id=74;sequence->m_duration=1000;offset+=sizeof(M2Sequence);
+    data.m_bones={1,offset};auto* bone=reinterpret_cast<M2CompBone*>(bytes+offset);offset+=sizeof(M2CompBone);bone->m_parentIndex=0xffff;bone->m_translationTrack.m_loopIndex=0;bone->m_translationTrack.m_trackType=1;bone->m_rotationTrack.m_loopIndex=bone->m_scaleTrack.m_loopIndex=0xffff;
+    bone->m_translationTrack.m_sequenceTimes={1,offset};auto* times=reinterpret_cast<M2Array<uint32_t>*>(bytes+offset);offset+=sizeof(*times);
+    bone->m_translationTrack.m_sequenceKeys={1,offset};auto* keys=reinterpret_cast<M2Array<C3Vector>*>(bytes+offset);offset+=sizeof(*keys);
+    *times={1,offset};*reinterpret_cast<uint32_t*>(bytes+offset)=0;offset+=4;*keys={1,offset};*reinterpret_cast<C3Vector*>(bytes+offset)=C3Vector(1,2,3);offset+=sizeof(C3Vector);Check(offset<size,"bounded synthetic global-track fixture");
+    Check(M2Init(bytes,size,data)!=0,"native global-track model relocation");auto* originalTimes=bone->m_translationTrack.m_sequenceTimes[0].Data();auto* originalKeys=bone->m_translationTrack.m_sequenceKeys[0].Data();
+    CM2Shared shared(nullptr);shared.m_data=&data;shared.m_fileSize=size;std::snprintf(shared.m_fileName,sizeof(shared.m_fileName),"global-track-fixture.m2");
+    struct Cleanup{CM2Shared& s;uint8_t* model;uint8_t* stream;~Cleanup(){s.m_data=nullptr;OsFreeNear(stream);OsFreeNear(model);}} cleanup{shared,bytes,external};
+    CAsyncObject object{};object.m_buffer=external;object.m_size=8;Check(shared.FinishLoadingLowPrioritySequence(0,&object)!=0,"external index zero can coexist with an embedded global track");
+    Check(bone->m_translationTrack.m_sequenceTimes[0].Data()==originalTimes&&bone->m_translationTrack.m_sequenceKeys[0].Data()==originalKeys,"external loading preserves global-track model ownership");
+    Check(*originalTimes==0&&originalKeys->x==1&&originalKeys->y==2&&originalKeys->z==3,"embedded global-track values remain readable and unchanged");
+}
 static int M2ExternalChecks(const std::filesystem::path& directory){
     uint32_t loaded=0;
     for(const char* name:{"ogremale","ogrefemale"}){
         const auto original=M2Bytes(directory/(std::string(name)+".m2"));
         const auto& raw=*reinterpret_cast<const M2Data*>(original.data());
         Check(raw.m_sequences.m_offset+uint64_t(raw.m_sequences.m_count)*sizeof(M2Sequence)<=original.size(),"raw sequence table bounds");
-        const auto* sequences=reinterpret_cast<const M2Sequence*>(original.data()+raw.m_sequences.m_offset);
+        const auto* sequences=reinterpret_cast<const M2Sequence*>(original.data()+raw.m_sequences.m_offset);bool metadataCases=false;
         for(uint32_t i=0;i<raw.m_sequences.m_count;++i){
             if(sequences[i].m_flags&(0x20|0x40))continue;
             std::ostringstream file;file<<name<<std::setfill('0')<<std::setw(4)<<sequences[i].m_id<<'-'<<std::setw(2)<<sequences[i].m_variationIndex<<".anim";
@@ -59,7 +76,26 @@ static int M2ExternalChecks(const std::filesystem::path& directory){
             std::vector<uint32_t> aliases{i};auto next=data->m_sequences[i].m_aliasNext;
             while(next!=i){Check(next<data->m_sequences.m_count&&aliases.size()<data->m_sequences.m_count,"bounded native alias ring");aliases.push_back(next);next=data->m_sequences[next].m_aliasNext;}
             CAsyncObject object{};object.m_buffer=animation;object.m_size=uint32_t(bytes.size());
+            const std::vector<uint8_t> before(model,model+original.size());
+            object.m_size=1;Check(!shared.FinishLoadingLowPrioritySequence(i,&object),"truncated external animation rejected before relocation");
+            Check(!std::memcmp(model,before.data(),before.size()),"short-read rejection leaves all model bytes and aliases unchanged");
+            object.m_size=0;Check(!shared.FinishLoadingLowPrioritySequence(i,&object),"empty external animation rejected");
+            object.m_size=uint32_t(bytes.size());
+            Check(!shared.FinishLoadingLowPrioritySequence(UINT32_MAX,&object)&&!shared.FinishLoadingLowPrioritySequence(i,static_cast<CAsyncObject*>(nullptr)),"invalid external sequence index and async object rejected");
+            const auto savedAlias=data->m_sequences[i].m_aliasNext;data->m_sequences[i].m_aliasNext=uint16_t(data->m_sequences.m_count);
+            const std::vector<uint8_t> badAlias(model,model+original.size());
+            Check(!shared.FinishLoadingLowPrioritySequence(i,&object),"out-of-range native alias rejected before any relocation");
+            Check(!std::memcmp(model,badAlias.data(),badAlias.size()),"bad alias rejection is transactional");data->m_sequences[i].m_aliasNext=savedAlias;
+            if(!metadataCases){
+                const uint32_t other=i?0:1;Check(other<data->m_sequences.m_count,"alias-cycle fixture index");const auto savedOther=data->m_sequences[other].m_aliasNext;
+                data->m_sequences[i].m_aliasNext=uint16_t(other);data->m_sequences[other].m_aliasNext=uint16_t(other);const std::vector<uint8_t> cyclic(model,model+original.size());
+                Check(!shared.FinishLoadingLowPrioritySequence(i,&object),"nonreturning native alias cycle rejects within a bounded walk");Check(!std::memcmp(model,cyclic.data(),cyclic.size()),"cyclic alias rejection does not change model state");data->m_sequences[i].m_aliasNext=savedAlias;data->m_sequences[other].m_aliasNext=savedOther;
+                bool checkedCount=false;auto rejectCount=[&](auto& track){if(checkedCount||track.m_loopIndex!=0xffff||i>=track.m_sequenceKeys.m_count||!track.m_sequenceKeys[i].m_count)return;auto& leaf=track.m_sequenceKeys[i];const auto saved=leaf.m_count;leaf.m_count=UINT32_MAX;const std::vector<uint8_t> overflow(model,model+original.size());Check(!shared.FinishLoadingLowPrioritySequence(i,&object),"oversized external key count rejects without integer overflow");Check(!std::memcmp(model,overflow.data(),overflow.size()),"bad key-count rejection is transactional");leaf.m_count=saved;checkedCount=true;};
+                for(uint32_t b=0;b<data->m_bones.m_count;++b){auto& bone=data->m_bones[b];rejectCount(bone.m_translationTrack);rejectCount(bone.m_rotationTrack);rejectCount(bone.m_scaleTrack);}Check(checkedCount,"real Ogre stream contains a bounded key-count corruption target");metadataCases=true;
+            }
             Check(shared.FinishLoadingLowPrioritySequence(i,&object)!=0,"native external animation and alias relocation");
+            const std::vector<uint8_t> loadedBytes(model,model+original.size());
+            Check(shared.FinishLoadingLowPrioritySequence(i,&object)!=0&&!std::memcmp(model,loadedBytes.data(),loadedBytes.size()),"already loaded external aliases are idempotent");
             for(auto index:aliases){
                 auto track=[&](const auto& t){M2TrackCheck(t,index,model,original.size(),animation,bytes.size());};
                 for(uint32_t b=0;b<data->m_bones.m_count;++b){const auto& bone=data->m_bones[b];track(bone.m_translationTrack);track(bone.m_rotationTrack);track(bone.m_scaleTrack);}
@@ -88,5 +124,6 @@ static int M2ExternalChecks(const std::filesystem::path& directory){
         }
     }
     Check(loaded==72,"all exact Ogre external sequences exercised");
+    M2GlobalExternalCheck();
     std::cout<<"native Ogre external sequences="<<loaded<<" checks="<<checks<<'\n';return 0;
 }

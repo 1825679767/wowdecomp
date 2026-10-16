@@ -55,6 +55,16 @@ the actual model and external `.anim` filename before loading and relocation.
 Passing extracted-byte checks does not establish that the reported race crash
 is fixed; retain the exact runtime failure and matching executable/symbols.
 
+External animation relocation now preflights the whole bounded alias group and
+every selected leaf against the actual stream size before publishing any offset
+or loaded flag. Embedded global tracks keep their model ownership; shared leaf
+headers relocate once and loaded clips are idempotent. A rejected asynchronous
+stream keeps current playback, drops its deferred requests and remains suppressed
+for that shared model until reload. Its buffer retains the existing shared-owner
+destruction path. Negative fixtures cover short/empty streams, index/object and
+alias failures, count overflow, unchanged rejected model bytes and global tracks.
+The reported race crash still needs its exact runtime reproduction.
+
 ## Import into the active x64 branch
 
 The separate DX11 track starts at `760079926aada4cf4e46c4cc3d83a89f3d4f0907`. Apply its ordered commit series to an isolated integration branch, retaining all subsequent WXL modules and game changes. Review overlapping root/Gx/ThirdParty/Wow CMake changes and Gx factory/adapter hooks; do not replace whole files with older copies. The shader translator and new device are additive. Build both DX11 ON and the default OFF configuration, then repeat native tests and game acceptance against the combined source. Bring `fetch_dependencies.py`, licenses and the signer deployment hook with the code. Release-control pending intake is not promotion or permission to publish.

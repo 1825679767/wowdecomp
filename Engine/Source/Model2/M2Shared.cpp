@@ -6,6 +6,9 @@
 #include <new>
 #include <typeinfo>
 #include <atomic>
+#include <algorithm>
+#include <vector>
+#include <unordered_map>
 #include <windows.h>
 #include "Engine/Source/Model2/M2Shared.h"
 #include "Engine/Source/Base/Handle.h"
@@ -45,6 +48,32 @@ static uint8_t* s_sequenceData;
 
 // STATIC: 0x00D4125C
 static uint32_t s_sequenceSize;
+using ExternalSequencePlan=std::unordered_map<uint32_t*,uint32_t>;
+static ExternalSequencePlan* s_sequenceFixups;
+static size_t s_sequenceFixupLimit;
+
+// External leaf offsets are file offsets until the entire alias group has been
+// validated. Build a write plan first so a short stream cannot partly relocate
+// a model that is still used by its current animation.
+template<class T> static bool PlanExternalArray(M2Array<T>& array){
+    if(!s_sequenceFixups)return false;
+    uint32_t value=0;
+    if(array.m_count){
+        if(array.m_offset>s_sequenceSize||uint64_t(array.m_count)*sizeof(T)>s_sequenceSize-array.m_offset)return false;
+        const auto target=reinterpret_cast<uintptr_t>(s_sequenceData)+array.m_offset;
+        const auto origin=reinterpret_cast<uintptr_t>(&array);
+#if defined(WOWDECOMP_ARCH_64)
+        if(target>=origin){if(target-origin>INT32_MAX)return false;value=uint32_t(target-origin);}
+        else {if(origin-target>uint64_t(INT32_MAX)+1)return false;value=uint32_t(-int64_t(origin-target));}
+#else
+        value=uint32_t(target-origin);
+#endif
+    }
+    const auto found=s_sequenceFixups->find(&array.m_offset);
+    if(found!=s_sequenceFixups->end())return found->second==value;
+    if(s_sequenceFixups->size()>=s_sequenceFixupLimit)return false;
+    s_sequenceFixups->emplace(&array.m_offset,value);return true;
+}
 
 // VERIFY: eb5cb8e9 auto
 // OFFSET: 0x00835950
@@ -196,8 +225,8 @@ int32_t M2Init(uint8_t* base, uint32_t size, const M2Data& data, M2TrackBase& tr
         } else if (!M2Init(base, size, data, track.m_sequenceTimes)) {
             return 0;
         }
-    } else if (s_sequenceIndex < track.m_sequenceTimes.m_count) {
-        track.m_sequenceTimes[s_sequenceIndex].Relocate(s_sequenceData);
+    } else if (track.m_loopIndex==0xFFFF && s_sequenceIndex < track.m_sequenceTimes.m_count) {
+        if(!PlanExternalArray(track.m_sequenceTimes[s_sequenceIndex]))return 0;
     }
 
     return 1;
@@ -230,13 +259,13 @@ int32_t M2Init(uint8_t* base, uint32_t size, const M2Data& data, M2Track<T>& tra
         } else if (!M2Init(base, size, data, track.m_sequenceKeys)) {
             return 0;
         }
-    } else {
+    } else if(track.m_loopIndex==0xFFFF) {
         if (s_sequenceIndex < track.m_sequenceTimes.m_count) {
-            track.m_sequenceTimes[s_sequenceIndex].Relocate(s_sequenceData);
+            if(!PlanExternalArray(track.m_sequenceTimes[s_sequenceIndex]))return 0;
         }
 
         if (s_sequenceIndex < track.m_sequenceKeys.m_count) {
-            track.m_sequenceKeys[s_sequenceIndex].Relocate(s_sequenceData);
+            if(!PlanExternalArray(track.m_sequenceKeys[s_sequenceIndex]))return 0;
         }
     }
 
@@ -247,6 +276,7 @@ int32_t M2Init(uint8_t* base, uint32_t size, const M2Data& data, M2Track<T>& tra
 // OFFSET: 0x00835C70
 template <>
 int32_t M2Init<M2Sequence>(uint8_t* base, uint32_t size, const M2Data& data, M2Array<M2Sequence>& array) {
+    if(s_sequenceIndex!=0xFFFFFFFF)return 1; // Initial normalization never mutates a dry external plan.
     if (s_sequenceIndex == 0xFFFFFFFF) {
         if (array.m_offset > size || array.m_offset + sizeof(M2Sequence) * array.m_count > size) {
             return 0;
@@ -1561,48 +1591,51 @@ int32_t M2Init(uint8_t* base, uint32_t size, M2Data& data) {
     return M2Init(base, size, data, data.m_name) && M2Init(base, size, data, data.m_loops) && M2Init(base, size, data, data.m_sequences) && M2Init(base, size, data, data.m_sequenceIdxHashById) && M2Init(base, size, data, data.m_bones) && M2Init(base, size, data, data.m_boneIndicesById) && M2Init(base, size, data, data.m_vertices) && M2Init(base, size, data, data.m_colors) && M2Init(base, size, data, data.m_textures) && M2Init(base, size, data, data.m_textureWeights) && M2Init(base, size, data, data.m_textureTransforms) && M2Init(base, size, data, data.m_textureIndicesById) && M2Init(base, size, data, data.m_materials) && M2Init(base, size, data, data.m_boneCombos) && M2Init(base, size, data, data.m_textureCombos) && M2Init(base, size, data, data.m_textureCoordCombos) && M2Init(base, size, data, data.m_textureWeightCombos) && M2Init(base, size, data, data.m_textureTransformCombos) && M2Init(base, size, data, data.m_collisionIndices) && M2Init(base, size, data, data.m_collisionPositions) && M2Init(base, size, data, data.m_collisionFaceNormals) && M2Init(base, size, data, data.m_attachments) && M2Init(base, size, data, data.m_attachmentIndicesById) && M2Init(base, size, data, data.m_events) && M2Init(base, size, data, data.m_lights) && M2Init(base, size, data, data.m_cameras) && M2Init(base, size, data, data.m_cameraIndicesById) && M2Init(base, size, data, data.m_ribbons) && M2Init(base, size, data, data.m_particles) && (!(data.m_flags & 8) || M2Init(base, size, data, data.m_textureCombinerCombos));
 }
 
+namespace {
+struct ExternalSequenceScope {
+    uint32_t index=s_sequenceIndex,size=s_sequenceSize;uint8_t* data=s_sequenceData;
+    ExternalSequencePlan* fixups=s_sequenceFixups;size_t limit=s_sequenceFixupLimit;
+    ExternalSequenceScope(uint32_t next,uint8_t* bytes,uint32_t length,ExternalSequencePlan& plan,size_t maximum){s_sequenceIndex=next;s_sequenceData=bytes;s_sequenceSize=length;s_sequenceFixups=&plan;s_sequenceFixupLimit=maximum;}
+    ~ExternalSequenceScope(){s_sequenceIndex=index;s_sequenceData=data;s_sequenceSize=size;s_sequenceFixups=fixups;s_sequenceFixupLimit=limit;}
+};
+bool RelocateExternalGroup(CM2Shared& shared,uint32_t first,uint8_t* buffer,uint32_t size,bool includeAliases) noexcept {
+    try {
+        if(!shared.m_data||!buffer||!size||first>=shared.m_data->m_sequences.m_count)return false;
+        auto& sequences=shared.m_data->m_sequences;std::vector<uint32_t> indices;uint32_t current=first;
+        do {
+            if(current>=sequences.m_count||indices.size()>=sequences.m_count)return false;
+            indices.push_back(current);if(!includeAliases)break;current=sequences[current].m_aliasNext;
+        }while(current!=first);
+        ExternalSequencePlan plan;const size_t limit=shared.m_fileSize/sizeof(M2Array<uint32_t>);
+        plan.reserve((std::min)(limit,size_t(4096)));
+        for(auto index:indices){
+            if(sequences[index].m_flags&0x20)continue; // Loaded clips are already relative to their owner.
+            TraceExternalSequence("relocate-begin",shared,index,nullptr,size);
+            ExternalSequenceScope context(index,buffer,size,plan,limit);
+            if(!M2Init(reinterpret_cast<uint8_t*>(shared.m_data),shared.m_fileSize,*shared.m_data))return false;
+        }
+        // Shared leaf headers are applied once, after every alias and leaf span
+        // has passed. No failure or allocation remains after this point.
+        for(const auto& fixup:plan)*fixup.first=fixup.second;
+        for(auto index:indices){sequences[index].m_flags=(sequences[index].m_flags&~0x30u)|0x20;TraceExternalSequence("relocate-complete",shared,index,nullptr,size);}
+        return true;
+    }catch(...){return false;}
+}
+}
 // VERIFY: 8000b812 manual
 // OFFSET: 0x0083C6E0
 int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, uint8_t* buffer, uint32_t size) {
-    TraceExternalSequence("relocate-begin",*this,sequenceIndex,nullptr,size);
-    s_sequenceIndex = sequenceIndex;
-    s_sequenceData = buffer;
-
-    int32_t result = M2Init(reinterpret_cast<uint8_t*>(this->m_data), this->m_fileSize, *this->m_data);
-    M2Sequence* sequence = &this->m_data->m_sequences[sequenceIndex];
-
-    s_sequenceIndex = 0xFFFFFFFF;
-    s_sequenceData = nullptr;
-    s_sequenceSize = 0;
-
-    if (!result) {
-        TraceExternalSequence("relocate-failed",*this,sequenceIndex,nullptr,size);
-        DebugLog("Corrupt model sequence data: %s (%d)", this->m_fileName, sequenceIndex);
-        return 0;
-    }
-
-    sequence->m_flags = (sequence->m_flags & ~0x30u) | 0x20;
-    TraceExternalSequence("relocate-complete",*this,sequenceIndex,nullptr,size);
-
-    return 1;
+    if(RelocateExternalGroup(*this,sequenceIndex,buffer,size,false))return 1;
+    TraceExternalSequence("relocate-failed",*this,sequenceIndex,nullptr,size);
+    DebugLog("Corrupt model sequence data: %s (%d)",this->m_fileName,sequenceIndex);return 0;
 }
 
 // VERIFY: b8d661f9 manual
 // OFFSET: 0x0083CA90
 int32_t CM2Shared::FinishLoadingLowPrioritySequence(uint32_t sequenceIndex, CAsyncObject* object) {
-    M2Sequence* sequence = &this->m_data->m_sequences[sequenceIndex];
-
-    if (!this->FinishLoadingLowPrioritySequence(sequenceIndex, static_cast<uint8_t*>(object->m_buffer), object->m_size)) {
-        return 0;
-    }
-
-    for (uint16_t* alias = &sequence->m_aliasNext; *alias != sequenceIndex; alias = &this->m_data->m_sequences[*alias].m_aliasNext) {
-        if (!this->FinishLoadingLowPrioritySequence(*alias, static_cast<uint8_t*>(object->m_buffer), object->m_size)) {
-            return 0;
-        }
-    }
-
-    return 1;
+    if(object&&RelocateExternalGroup(*this,sequenceIndex,static_cast<uint8_t*>(object->m_buffer),object->m_size,true))return 1;
+    TraceExternalSequence("relocate-failed",*this,sequenceIndex,nullptr,object?object->m_size:0);
+    DebugLog("Corrupt model sequence data or alias ring: %s (%d)",this->m_fileName,sequenceIndex);return 0;
 }
 
 // VERIFY: 803bac57 auto
@@ -1961,11 +1994,15 @@ void CM2Shared::LowPrioritySequenceLoadedCallback(void* param) {
     CM2Shared* shared = load->m_shared;
 
     shared->m_flags |= 0x10;
-    shared->FinishLoadingLowPrioritySequence(load->m_sequenceIndex, load->m_asyncObject);
+    const bool loaded=shared->FinishLoadingLowPrioritySequence(load->m_sequenceIndex, load->m_asyncObject)!=0;
+    // A rejected stream keeps the actor's current playback. The pending bit
+    // suppresses retries against this same bad clip until its model is reloaded;
+    // the bounded buffer remains owned by the shared model for destruction.
+    if(!loaded){TraceExternalSequence("playback-failed",*shared,load->m_sequenceIndex,nullptr,load->m_asyncObject?load->m_asyncObject->m_size:0);load->m_playbacks.Clear();}
 
     CM2SequencePlayBack* playback = load->m_playbacks.Head();
 
-    while (!load->m_playbacks.IsEnd(playback)) {
+    while (loaded && !load->m_playbacks.IsEnd(playback)) {
         CM2SequencePlayBack* next = load->m_playbacks.RawNext(playback);
 
         if (playback->m_flags & 8) {
@@ -2018,6 +2055,9 @@ void CM2Shared::LowPrioritySequenceFailedCallback(void* param) {
 // VERIFY: 0ec0803c manual
 // OFFSET: 0x0083DA10
 CM2SequenceLoad* CM2Shared::LoadLowPrioritySequence(uint16_t sequenceIndex) {
+    if(!this->m_data||sequenceIndex>=this->m_data->m_sequences.m_count||!this->m_lowPrioritySequenceBuffers||this->m_lowPrioritySequenceCount>=this->m_lowPrioritySequenceCapacity||this->m_lowPrioritySequenceCount>UINT16_MAX)return nullptr;
+    uint32_t ring=sequenceIndex,hops=0;
+    do {if(ring>=this->m_data->m_sequences.m_count||hops++>=this->m_data->m_sequences.m_count)return nullptr;ring=this->m_data->m_sequences[ring].m_aliasNext;}while(ring!=sequenceIndex);
     M2Sequence* sequence = &this->m_data->m_sequences[sequenceIndex];
     CM2SequenceLoad* load = this->m_sequenceLoads.NewNode(2, 0, 0);
 
@@ -2030,7 +2070,9 @@ CM2SequenceLoad* CM2Shared::LoadLowPrioritySequence(uint16_t sequenceIndex) {
 
     M2Sequence* source = sequence;
 
+    uint32_t aliasHops=0;
     while (source->m_flags & 0x40) {
+        if(source->m_aliasNext>=this->m_data->m_sequences.m_count||++aliasHops>=this->m_data->m_sequences.m_count){this->m_sequenceLoads.DeleteNode(load);return nullptr;}
         source = &this->m_data->m_sequences[source->m_aliasNext];
     }
 
