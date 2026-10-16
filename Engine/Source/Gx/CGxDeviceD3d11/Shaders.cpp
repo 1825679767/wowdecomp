@@ -3,6 +3,7 @@
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Gx/ShaderContainer/LegacyContainer.h"
 #include <cstdio>
+#include "WXL/UnitOutline.hpp"
 
 using namespace gx11;
 
@@ -210,6 +211,7 @@ bool CGxDeviceD3d11::SyncDraw(EGxPrim primitive){
         if(!Check(m->device->CreateInputLayout(used.data(),UINT(used.size()),code.data(),code.size(),&layout),"input layout"))return false;
         if(vertex->layouts.size()>=32)vertex->layouts.clear();found=vertex->layouts.emplace(layoutKey,std::move(layout)).first;
     }
+    m->drawVertex=vertex;
     m->context->IASetInputLayout(found->second.Get());m->context->IASetVertexBuffers(0,UINT(streams.size()),buffers,strides,offsets);
     m->context->VSSetShader(vertex->vertex.Get(),nullptr,0);m->context->PSSetShader(pixel->pixel.Get(),nullptr,0);
     if(!m->UploadConstants(*vertex,true)||!m->UploadConstants(*pixel,false)||!m->States())return false;
@@ -249,5 +251,7 @@ void CGxDeviceD3d11::Draw(CGxBatch* batch,int32_t indexed){
         m->context->DrawIndexed(batch->m_count,batch->m_start,0);
     }else m->context->Draw(batch->m_count,batch->m_start);
     ++m->drawCalls;
+    float outlineColor[4];bool outlineDepth=false;
+    if(wxl::native::unit_outline::CurrentTarget(*this,outlineColor,outlineDepth))StampUnitOutline(*batch,indexed!=0,outlineColor,outlineDepth);
     if(auto* target=m_textureTarget[GxBuffers_Color].m_texture)m->textures[target].mipGenerationDirty=true;
 }

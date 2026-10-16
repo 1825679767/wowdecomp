@@ -80,6 +80,7 @@ bool CGxDeviceD3d11::CreateOffscreen(uint32_t width,uint32_t height,bool warp){
 
 bool CGxDeviceD3d11::Resize(uint32_t width,uint32_t height){
     if(!m->device||!width||!height||width>16384||height>16384)return false;
+    m->outline=Impl::Outline{};
     m_context=0;
     m->UnbindViews();m->savedDepth.Reset();m->depthOverride.Reset();m->colorView.Reset();m->depthView.Reset();m->depthSrv.Reset();
     m->backbuffer.Reset();m->color.Reset();m->depth.Reset();

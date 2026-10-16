@@ -92,6 +92,24 @@ struct CGxDeviceD3d11::Impl {
     ComPtr<ID3D11Buffer> blitConstants;
     std::string lastError;
     std::shared_ptr<Variant> Shader(CGxShader*,const std::vector<gx::shader::Semantic>&,const gx::shader::TranslationState&);
+    std::shared_ptr<Variant> drawVertex;
+    struct Outline {
+        ComPtr<ID3D11Texture2D> mask,resolved;
+        ComPtr<ID3D11RenderTargetView> view;
+        ComPtr<ID3D11ShaderResourceView> srv;
+        ComPtr<ID3D11RenderTargetView> destination;
+        ComPtr<ID3D11PixelShader> edge;
+        ComPtr<ID3D11VertexShader> screen;
+        ComPtr<ID3D11Buffer> constants;
+        ComPtr<ID3D11BlendState> opaque,blend;
+        ComPtr<ID3D11DepthStencilState> depth,through;
+        ComPtr<ID3D11RasterizerState> raster;
+        ComPtr<ID3D11SamplerState> sampler;
+        std::unique_ptr<CGxShader> programs[2];
+        uint32_t width=0,height=0,samples=0,quality=0;
+        bool active=false,stamped=false;
+    } outline;
+    bool EnsureOutline();
     bool UploadConstants(const Variant&,bool vertex);
     bool States();
     bool Blit(ID3D11ShaderResourceView*,ID3D11RenderTargetView*,const CiRect&,const CiRect&,uint32_t,uint32_t,bool depthCopy=false);
