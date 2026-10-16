@@ -2164,7 +2164,7 @@ CParticleEmitter2::CParticleEmitter2() : m_random(0) {
     this->m_textureCellWidth = 1.0f;
     this->m_textureCellHeight = 1.0f;
     this->m_renderedParticles = 0;
-    this->m_emitterType = 0;
+    this->m_emitterType = PET_BASE_EMITTER;
     this->m_childEmitterCount = 4;
     this->m_model = nullptr;
     this->m_childModel = nullptr;
@@ -2765,7 +2765,7 @@ void CSortableParticleQueue::Push(float depth, CParticle2* particle) {
 CPlaneParticleEmitter::CPlaneParticleEmitter() {
     this->m_width = 0.0f;
     this->m_height = 0.0f;
-    this->m_emitterType = 1;
+    this->m_emitterType = PET_PLANE_EMITTER;
     this->m_latitude = 0.0f;
     this->m_longitude = 0.0f;
 }
@@ -2808,7 +2808,7 @@ void CPlaneParticleEmitter::SetLongitude(float longitude) {
 CSphereParticleEmitter::CSphereParticleEmitter() {
     this->m_minRadius = 0.0f;
     this->m_maxRadius = 0.0f;
-    this->m_emitterType = 2;
+    this->m_emitterType = PET_SPHERE_EMITTER;
     this->m_latitude = 0.0f;
     this->m_longitude = 0.0f;
 }
@@ -3134,7 +3134,7 @@ CSplineParticleEmitter::CSplineParticleEmitter() {
     this->m_start = 0.0f;
     this->m_end = 0.0f;
     this->m_latitude = 0.0f;
-    this->m_emitterType = 3;
+    this->m_emitterType = PET_SPLINE_EMITTER;
     this->m_longitude = 0.0f;
     this->m_emitAtEnd = 0;
     this->m_ratePerUnit = 0.0f;
