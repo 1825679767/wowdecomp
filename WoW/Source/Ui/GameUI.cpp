@@ -173,6 +173,12 @@
 #include "WoW/Source/DB/Rec/CreatureFamilyRec.h"
 #include "WoW/Source/DB/Rec/CreatureTypeRec.h"
 
+namespace {
+// User inactivity thresholds in milliseconds; signed to match idleTime arithmetic.
+constexpr int32_t AUTO_SIT_IDLE_TIME = 300000;
+constexpr int32_t AUTO_LOGOUT_IDLE_TIME = 1800000;
+}
+
 // STATIC: 0x00ACC3F8
 CImVector s_deadSelectionColor = CImVector(0x7F, 0x7F, 0x7F, 0xFF);
 
@@ -2075,8 +2081,8 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
 
     int32_t idleTime = OsGetAsyncTimeMs() - CSimpleTop::s_eventTime;
 
-    if (idleTime - 300000 >= 0) {
-        if (idleTime - 1800000 < 0) {
+    if (idleTime - AUTO_SIT_IDLE_TIME >= 0) {
+        if (idleTime - AUTO_LOGOUT_IDLE_TIME < 0) {
             if (player) {
                 if (!player->m_unit->m_unitFieldBytes1[0] && !(player->m_unit->m_unitFieldFlags & 0x80000) && !player->IsMounted() && !player->IsAutoTracking()) {
                     player->ChangeStandState(1);
