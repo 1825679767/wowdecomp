@@ -29,53 +29,59 @@ namespace wxl::native::grass_wind {namespace {
     const char* kMotionInject =
         "    dp3 r2.x, c0, r0\n"
         "    dp3 r2.y, c1, r0\n"
-        "    add r2.xy, r2, c14\n"
+        "    add r2.xy, r2, c32\n"
         "    mov r4.xy, r2\n"
         "    dp3 r3.z, c2, r0\n"
-        "    add r3.z, r3.z, c14.z\n"
-        "    add r3.z, r3.z, -c16.z\n"
-        "    add r3.z, r3.z, -c15.z\n"
-        "    mul_sat r4.z, r3.z, c15.x\n"
-        "    add r2.xy, r2, -c16\n"
+        "    add r3.z, r3.z, c32.z\n"
+        "    add r3.z, r3.z, -c34.z\n"
+        "    add r3.z, r3.z, -c33.z\n"
+        "    mul_sat r4.z, r3.z, c33.x\n"
+        "    add r2.xy, r2, -c34\n"
         "    mul r2.z, r2.x, r2.x\n"
         "    mad r2.z, r2.y, r2.y, r2.z\n"
-        "    add r2.z, r2.z, c15.w\n"
+        "    add r2.z, r2.z, c33.w\n"
         "    rsq r2.w, r2.z\n"
         "    mul r3.x, r2.z, r2.w\n"
-        "    mul_sat r3.y, r3.x, c15.y\n"
-        "    mad r3.y, c17.x, r3.y, c17.y\n"
-        "    slt r3.z, r3.x, c17.z\n"
+        "    mul_sat r3.y, r3.x, c33.y\n"
+        "    mad r3.y, c35.x, r3.y, c35.y\n"
+        "    slt r3.z, r3.x, c35.z\n"
         "    mul r3.y, r3.y, r3.z\n"
         "    mul r3.y, r3.y, r4.z\n"
         "    mul r3.y, r3.y, r2.w\n"
         "    mul r2.xy, r2, r3.y\n"
         "    add r5.z, c13.y, -v3.y\n"
-        "    add r5.z, r5.z, c21.z\n"
-        "    mul_sat r5.z, r5.z, c21.w\n"
+        "    add r5.z, r5.z, c39.z\n"
+        "    mul_sat r5.z, r5.z, c39.w\n"
         "    mul r5.z, r5.z, r5.z\n"
         "    mov r5.w, c13.y\n"
-        "    mad r5.w, r0.z, c20.w, r5.w\n"
+        "    mad r5.w, r0.z, c38.w, r5.w\n"
         "    rcp r5.w, r5.w\n"
         "    mul r5.z, r5.z, r5.w\n"
-        "    mul r3.x, r4.x, c20.x\n"
-        "    mad r3.x, r4.y, c20.y, r3.x\n"
+        "    mul r3.x, r4.x, c38.x\n"
+        "    mad r3.x, r4.y, c38.y, r3.x\n"
         "    frc r3.x, r3.x\n"
-        "    mad r2.z, r3.x, c21.y, c21.x\n"
+        "    mad r2.z, r3.x, c39.y, c39.x\n"
         "    mul r5.z, r5.z, r2.z\n"
-        "    mul r3.x, r3.x, c20.z\n"
-        "    mul r3.y, r4.x, c18.z\n"
-        "    mad r3.y, r4.y, c18.w, r3.y\n"
+        "    mul r3.x, r3.x, c38.z\n"
+        "    mul r3.y, r4.x, c36.z\n"
+        "    mad r3.y, r4.y, c36.w, r3.y\n"
         "    add r3.y, r3.y, r3.x\n"
-        "    add r3.y, r3.y, c17.w\n"
-        "    mul r3.z, r4.x, c19.z\n"
-        "    mad r3.z, r4.y, c19.w, r3.z\n"
+        "    add r3.y, r3.y, c35.w\n"
+        "    mul r3.z, r4.x, c37.z\n"
+        "    mad r3.z, r4.y, c37.w, r3.z\n"
         "    add r3.z, r3.z, r3.x\n"
-        "    add r3.z, r3.z, c14.w\n"
+        "    add r3.z, r3.z, c32.w\n"
+        "    mad r3.y, r3.y, c42.x, c42.y\n"
+        "    frc r3.y, r3.y\n"
+        "    mad r3.y, r3.y, c42.z, c42.w\n"
+        "    mad r3.z, r3.z, c42.x, c42.y\n"
+        "    frc r3.z, r3.z\n"
+        "    mad r3.z, r3.z, c42.z, c42.w\n"
         "    sincos r4.xy, r3.y\n"
-        "    add r4.w, r4.y, c16.w\n"
+        "    add r4.w, r4.y, c34.w\n"
         "    sincos r5.xy, r3.z\n"
-        "    mul r3.zw, c18.xxxy, r4.wwww\n"
-        "    mad r3.zw, c19.xxxy, r5.yyyy, r3\n"
+        "    mul r3.zw, c36.xxxy, r4.wwww\n"
+        "    mad r3.zw, c37.xxxy, r5.yyyy, r3\n"
         "    mul r3.zw, r3, r5.zzzz\n"
         "    add r2.xy, r2, r3.zwzw\n"
         "    mul r3.xyz, c0, r2.x\n"
@@ -104,7 +110,24 @@ const std::vector<DWORD>* Inject(const uint8_t* bytes,uint32_t length){auto& dat
  Entry e;e.source.assign(bytes,bytes+length);Library loaded;auto library=loaded.handle;if(!library)return nullptr;
  auto disassemble=reinterpret_cast<decltype(&D3DDisassemble)>(GetProcAddress(library,"D3DDisassemble"));auto assemble=reinterpret_cast<AssembleFn>(GetProcAddress(library,"D3DAssemble"));
  Com<ID3DBlob> text,code,error;bool ok=disassemble&&assemble&&SUCCEEDED(disassemble(bytes,length,0,nullptr,&text.p))&&text.p;
- if(ok){std::string source(static_cast<const char*>(text.p->GetBufferPointer()),text.p->GetBufferSize());while(!source.empty()&&!source.back())source.pop_back();auto at=source.find("add r0, r0, c3");if(at!=std::string::npos)at=source.find('\n',at);if(at==std::string::npos)ok=false;else{source.insert(at+1,kMotionInject);ok=SUCCEEDED(assemble(source.data(),source.size(),"WxlGrassMotion",nullptr,nullptr,0,&code.p,&error.p))&&code.p;if(ok){const auto size=code.p->GetBufferSize();if(!size||size%4||size>0x20000)ok=false;else{e.injected.resize(size/4);std::memcpy(e.injected.data(),code.p->GetBufferPointer(),size);}}}}
+ if(ok){std::string source(static_cast<const char*>(text.p->GetBufferPointer()),text.p->GetBufferSize());while(!source.empty()&&!source.back())source.pop_back();auto at=source.find("add r0, r0, c3");if(at!=std::string::npos)at=source.find('\n',at);if(at==std::string::npos)ok=false;else{
+  std::string motion=kMotionInject;const bool vs2=source.find("vs_2_0")!=std::string::npos;
+  auto replace=[&](const std::string& before,const std::string& after){const auto p=motion.find(before);if(p==std::string::npos)return false;motion.replace(p,before.size(),after);return true;};
+  if(vs2){
+   // SM2 vertex shaders have explicit min/max saturation and four-operand
+   // sincos. Coefficients below come from the Microsoft vs_2_0 compiler.
+   ok=replace("mul_sat r4.z, r3.z, c33.x","mul r4.z, r3.z, c33.x\n    max r4.z, r4.z, c13.x\n    min r4.z, r4.z, c13.y")&&
+      replace("mul_sat r3.y, r3.x, c33.y","mul r3.y, r3.x, c33.y\n    max r3.y, r3.y, c13.x\n    min r3.y, r3.y, c13.y")&&
+      replace("mul_sat r5.z, r5.z, c39.w","mul r5.z, r5.z, c39.w\n    max r5.z, r5.z, c13.x\n    min r5.z, r5.z, c13.y")&&
+      replace("sincos r4.xy, r3.y","sincos r4.xy, r3.y, c40, c41")&&replace("sincos r5.xy, r3.z","sincos r5.xy, r3.z, c40, c41");
+  }
+  if(ok){source.insert(at+1,motion);const auto declarations=source.find('\n');if(declarations==std::string::npos)ok=false;else{
+   std::string constants="    def c42, 0.159154937, 0.5, 6.28318548, -3.14159274\n";
+   if(vs2)constants+="    def c40, -1.55009923e-006, -2.17013894e-005, 0.00260416674, 0.00026041668\n    def c41, -0.020833334, -0.125, 1, 0.5\n";
+   source.insert(declarations+1,constants);ok=SUCCEEDED(assemble(source.data(),source.size(),"WxlGrassMotion",nullptr,nullptr,0,&code.p,&error.p))&&code.p;
+  }}
+  if(ok){const auto size=code.p->GetBufferSize();if(!size||size%4||size>0x20000)ok=false;else{e.injected.resize(size/4);std::memcpy(e.injected.data(),code.p->GetBufferPointer(),size);}}
+ }}
  data.code.push_back(std::move(e));if(!ok){WLOG_WARN("native-grass-wind: unsupported shader shape; native grass retained");return nullptr;}return &data.code.back().injected;
 }
 }
@@ -139,8 +162,8 @@ void Upload(CGxShader& shader) noexcept {try{
  {d1x*amp1,d1y*amp1,d1x*k1,d1y*k1},{d2x*amp2,d2y*amp2,d2x*k2,d2y*k2},
  {.737f,1.311f,1.7f,Value(12)},{1.f-var*.5f,var,-anchor,1.f/(1.f-anchor)}};
  for(auto& row:constants)for(float n:row)if(!std::isfinite(n))return;
- // Native base constants were just uploaded. Only this proven patched permutation receives c14..21;
- // unpatched stock point-light slots are never overwritten.
- g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex,14,&constants[0][0],8);
+ // Native point lights retain c14..22. Motion has an independent c32..39 lease;
+ // only the proven patched detail-doodad permutation consumes those registers.
+ g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex,32,&constants[0][0],8);
  }catch(...){}}
 }

@@ -9,6 +9,7 @@ static void QuestNavigationChecks(bool warp){
     for(unsigned y=0;y<64;++y)for(unsigned x=0;x<256;++x)pixels.data[y*256+x]=x<112?CImVector(0,0,255,255):CImVector(0,255,0,128);
     CGxTexFlags flags(GxTex_Linear);auto* texture=TextureCreate(GxTex_2d,256,64,1,GxTex_Argb8888,GxTex_Argb8888,flags,&pixels,TextureData,"Interface\\Navigation\\InGameNavigationUI",0);
     Check(texture!=nullptr,"real quest atlas texture owner");TextureCacheNewTexture(texture,flags);
+    auto* cached=TextureCreate("Interface\\Navigation\\InGameNavigationUI",flags,&GetGlobalStatusObj(),1);Check(cached==texture,"quest atlas fixture matches actual named linear texture lookup");HandleClose(reinterpret_cast<HOBJECT>(cached));
     C44Matrix identity;identity.Identity();C44Matrix projection=identity;projection.c2=100.f/99;projection.c3=1;projection.d2=-100.f/99;projection.d3=0;
     d.RsSet(GxRs_DepthTest,1);d.RsSet(GxRs_DepthFunc,0);d.RsSet(GxRs_DepthWrite,1);d.RsSet(GxRs_Culling,0);d.RsSet(GxRs_ScissorTest,0);d.RsSet(GxRs_BlendingMode,GxBlend_Opaque);d.RsSet(GxRs_Fog,0);d.RsSet(GxRs_Lighting,0);
     d.XformSetProjection(identity);d.SceneClear(3,CImVector(0,0,0,255));Triangle(d,CImVector(255,255,255,255));
@@ -25,7 +26,7 @@ static void QuestNavigationChecks(bool warp){
     CiRect center(32,32,33,33);TSGrowableArray<float> depth;d.DeviceReadDepths(center,depth);Check(depth.Count()==1&&depth[0]>.999f,"quest billboard never writes scene depth");
     d.SceneClear(3,CImVector(0,0,0,255));Check(quest::DrawWorldNavigation({&corpse,1},1,17)==2,"DX11 corpse billboard has independent alpha policy");Equal(Center(d,64,64),CImVector(0,0,255,255),"corpse atlas region and opaque tint");
     for(unsigned y=0;y<64;++y)for(unsigned x=0;x<112;++x)pixels.data[y*256+x].a=128;
-    auto* atlas=TextureGetGxTex(texture,0,nullptr);d.TexMarkForUpdate(atlas,CiRect(0,0,256,64),0);d.SceneClear(3,CImVector(0,0,0,255));quest::DrawWorldNavigation({&corpse,1},1,255);Equal(Center(d,64,64),CImVector(0,0,0,255),"corpse alpha coverage rejects texels below 160");
+    auto* atlas=TextureGetGxTex(texture,0,nullptr);d.TexMarkForUpdate(atlas,CiRect(0,0,64,256),0);d.SceneClear(3,CImVector(0,0,0,255));quest::DrawWorldNavigation({&corpse,1},1,255);Equal(Center(d,64,64),CImVector(0,0,0,255),"corpse alpha coverage rejects texels below 160");
     world.m_mtx[world.m_level]=identity;d.m_projNative=identity;d.SceneClear(3,CImVector(0,0,0,255));Triangle(d,CImVector(255,0,0,255),.25f);d.m_projNative=projection;
     quest::DrawWorldNavigation({&marker,1},1,255);Equal(Center(d,64,64),CImVector(255,0,0,255),"quest billboard respects existing scene occlusion");
     const auto before=d.SubmittedDraws();Check(!quest::DrawWorldNavigation({&behind,1},1,255)&&d.SubmittedDraws()==before,"behind-camera quest markers never submit");

@@ -27,7 +27,7 @@ unsigned DrawWorldNavigation(std::span<const WorldPoint> points,float scale,unsi
 #else
  if(!device)return 0;
 #endif
- if(!atlas)atlas=TextureCreate("Interface\\Navigation\\InGameNavigationUI",CGxTexFlags(GxTex_Linear),&GetGlobalStatusObj(),0);auto* gx=atlas?TextureGetGxTex(atlas,0,nullptr):nullptr;if(!gx)return 0;
+ if(!atlas)atlas=TextureCreate("Interface\\Navigation\\InGameNavigationUI",CGxTexFlags(GxTex_Linear),&GetGlobalStatusObj(),1);auto* gx=atlas?TextureGetGxTex(atlas,0,nullptr):nullptr;if(!gx||gx->m_target!=GxTex_2d||gx->m_width<32||gx->m_height<32)return 0;
 #ifdef WXL_ENABLE_DX11
  if(owner->m_api==GxApi_D3d11)return DrawWorldNavigationDx11(static_cast<CGxDeviceD3d11&>(*owner),*gx,points,scale,alpha);
 #endif
