@@ -1,3 +1,4 @@
+#include "WXL/ProceduralEnchants.hpp"
 #include "WXL/CreationBeams.hpp"
 #include <cfloat>
 #include <cmath>
@@ -1649,6 +1650,7 @@ CM2Scene::CM2Scene(CM2Cache* cache) {
 // VERIFY: aa195899 manual
 // OFFSET: 0x00821850
 CM2Scene::~CM2Scene() {
+    wxl::native::procedural_enchants::ReleaseScene(this);
     wxl::native::creation_beams::ReleaseScene(this);
     wxl::native::spell_visuals::ReleaseScene(this);
     for (CM2Model* model = this->m_modelList; model; model = this->m_modelList) {
@@ -1709,6 +1711,7 @@ M2Element* CM2Scene::AddParticleElement(CParticleEmitter2* emitter, CM2Model* mo
 // VERIFY: d0feeb6c manual
 // OFFSET: 0x00821A20
 int32_t CM2Scene::Animate(const C3Vector& cameraPos) {
+    wxl::native::procedural_enchants::TickScene(this); // Before animation workers read tint/alpha.
     this->m_frameStamp++;
 
     uint32_t optFlags = this->m_cache->m_flags & 0xE000;

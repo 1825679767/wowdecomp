@@ -37,12 +37,21 @@ struct ItemGraphKitModel {
  float scale=1,alpha=1,offset[3]{};
  std::string path;
 };
+// KitEffect1 -> SpellProceduralEffect. Preserve modern identity/raw payload;
+// supported tint/alpha is an explicit compatibility subset, not an enum alias.
+struct ItemGraphProcedural {
+ uint32_t kitId=0,kitEffectId=0,procedureId=0,type=0;
+ uint32_t rawValues[4]{};
+ uint32_t displayWeaponSubclassId=UINT32_MAX,sourceEffectId=0;
+ bool compatible=false;
+};
 struct ItemGraphVisual {
  uint32_t id=0,spellVisualKitId1=0,spellVisualKitId2=0;
  std::vector<ItemGraphVisualModel> models;
  // Explicit selectors/kit ownership are retained, not guessed as legacy IDs.
  std::vector<ItemGraphVisualEffect> effects;
  std::vector<ItemGraphKitModel> kitModels;
+ std::vector<ItemGraphProcedural> procedurals;
  uint32_t unsupportedKitRows=0;
 };
 bool ItemGraphVisualData(uint32_t visual,ItemGraphVisual&) noexcept;

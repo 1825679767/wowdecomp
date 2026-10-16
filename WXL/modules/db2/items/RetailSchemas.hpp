@@ -201,6 +201,12 @@ namespace wxl::runtime::db2::retail
         kSpellVisualEventFields,
     };
 
+    // Mounted PTR12.1 physical layout, verified against primary WoWDBDefs.
+    inline constexpr std::array kSpellProceduralEffectFields{Field{"Type"},Field{"Value",4}};
+    inline constexpr Definition SpellProceduralEffect{
+        "SpellProceduralEffect","spellproceduraleffect.db2",0xB442AB81u,kSpellProceduralEffectFields,
+    };
+
     inline constexpr std::array kSpellVisualKitEffectFields{
         Field{"EffectType"}, Field{"Effect"},
     };

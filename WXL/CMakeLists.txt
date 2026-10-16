@@ -1,5 +1,6 @@
 # Native WXL modules are object libraries, collected once into a static facade.
 # This retains independent build targets without cross-archive linker cycles.
+option(WXL_ENABLE_PROCEDURAL_ENCHANTS "Enable bounded donor-compatible retail enchant tint/alpha" ON)
 option(WXL_ENABLE_EQUIPMENT_ATTACHMENTS "Enable native retail equipment attachment consumer" ON)
 option(WXL_ENABLE_NATIVE "Enable native WXL features" ON)
 option(WXL_ENABLE_ASSETS "Enable modern M2 assets" ON)
@@ -67,7 +68,8 @@ target_compile_definitions(WxlM2 PRIVATE WXL_ENABLE_DONOR_MATERIAL_FALLBACK=$<BO
 wxl_module(WxlAppearances Appearances modules/private-appearances/PrivateAppearances.cpp modules/barber-preview/BarberAppearance.cpp modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
  "${V}/src/platform/waystone/CharacterAtlas.cpp")
 target_compile_definitions(WxlAppearances PRIVATE WXL_ENABLE_PRIVATE_APPEARANCES=$<BOOL:${WXL_ENABLE_PRIVATE_APPEARANCES}>)
-wxl_module(WxlEquipmentAttachments EquipmentAttachments modules/equipment/EquipmentAttachments.cpp)
+wxl_module(WxlEquipmentAttachments EquipmentAttachments modules/equipment/EquipmentAttachments.cpp modules/equipment/ProceduralEnchants.cpp)
+target_compile_definitions(WxlEquipmentAttachments PRIVATE WXL_ENABLE_PROCEDURAL_ENCHANTS=$<BOOL:${WXL_ENABLE_PROCEDURAL_ENCHANTS}>)
 add_dependencies(WxlEquipmentAttachments WxlRuntime WxlM2 WxlDB2 WxlBlp)
 wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
 wxl_module(WxlAppearanceSession AppearanceSession modules/appearance-session/AppearanceSession.cpp)

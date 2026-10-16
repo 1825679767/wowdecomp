@@ -1,3 +1,4 @@
+#include "WXL/ProceduralEnchants.hpp"
 // Typed native consumer of the owned retail item graph. No renderer hooks.
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "WXL/EquipmentAttachments.hpp"
@@ -180,7 +181,7 @@ bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t s
 }
 }
 namespace equipment_attachments {
-void Register(){enabled=CVar::Register("wxlEquipmentAttachments","WXL native retail armor models and native item visual validation",2,WXL_ENABLE_EQUIPMENT_ATTACHMENTS?"1":"0",nullptr,0,false,nullptr,false);}
+void Register(){procedural_enchants::Register();enabled=CVar::Register("wxlEquipmentAttachments","WXL native retail armor models and native item visual validation",2,WXL_ENABLE_EQUIPMENT_ATTACHMENTS?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept{return WXL_ENABLE_EQUIPMENT_ATTACHMENTS&&NativeEnabled()&&AssetsEnabled()&&Db2Enabled()&&BlpEnabled()&&enabled&&enabled->m_intValue;}
 bool SuppressNativeArmor(const CCharacterComponent& c,uint32_t slot) noexcept{
  if(!Enabled()||slot>=11||(c.m_data.m_flags&1u))return false;
@@ -266,6 +267,7 @@ void Apply(CCharacterComponent& c) noexcept{try{
  }catch(...){Release(c);}}
 void ApplyItemVisual(CM2Model* parent,int32_t visual,uint32_t display,uint32_t weaponSubclass) noexcept{try{
  if(!parent)return;
+ procedural_enchants::Release(parent);
  // Preserve the native owner contract: this item owns its visual children.
  while(parent->m_attachList){auto* child=parent->m_attachList;child->SetEmittersEnabled(0);child->SetRibbonsEnabled(0);child->DetachFromParent();}
  if(!parent->m_scene)return;
@@ -285,6 +287,7 @@ void ApplyItemVisual(CM2Model* parent,int32_t visual,uint32_t display,uint32_t w
    // remains usable without interpreting its kit ID as a WotLK visual ID.
    choices.push_back({effect.attachmentId,effect.path,effect.scale});
   }
+  procedural_enchants::Apply(parent,modern,subclass);
   for(const auto& model:modern.kitModels){
    if(model.displayWeaponSubclassId!=UINT32_MAX&&model.displayWeaponSubclassId!=subclass)continue;
    Choice choice{model.attachmentId,model.path,model.scale};choice.alpha=model.alpha;choice.animation=model.animationId;

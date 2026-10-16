@@ -1,3 +1,4 @@
+#include "WXL/ProceduralEnchants.hpp"
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -6615,6 +6616,7 @@ void CM2Model::ProcessCallbacksRecursive() {
 // VERIFY: d96ccadd manual
 // OFFSET: 0x00832640
 CM2Model::~CM2Model() {
+    wxl::native::procedural_enchants::Release(this);
     this->SetSkinningSource(nullptr);
     CM2Model* model30 = this->m_model30;
 
