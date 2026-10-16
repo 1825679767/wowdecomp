@@ -37,6 +37,10 @@ char* CGxDeviceD3d11::BufLock(CGxBuf* buf){
 }
 int32_t CGxDeviceD3d11::BufUnlock(CGxBuf* buf,uint32_t size){
     if(!buf||!buf->m_pool||size>buf->m_size)return 0;auto& p=m->pools[buf->m_pool];
+    // Wrath callers pass zero to commit the complete locked buffer. D3D9
+    // unlocks the complete lock regardless of this argument; honor that native
+    // convention before deciding which bytes need uploading to D3D11.
+    if(!size)size=buf->m_size;
     if(buf->m_index>p.cpu.size()||size>p.cpu.size()-buf->m_index)return 0;
     p.dirtyBegin=std::min(p.dirtyBegin,buf->m_index);p.dirtyEnd=std::max(p.dirtyEnd,buf->m_index+size);
     buf->m_valid=1;buf->m_hasData=1;buf->m_dirty=0;CGxDevice::BufUnlock(buf,size);return 1;

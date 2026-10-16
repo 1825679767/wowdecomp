@@ -67,10 +67,10 @@ static_assert(sizeof(Vertex)==24,"native PCT layout");
 static void Triangle(CGxDeviceD3d11& device,CImVector color,float z=.25f,bool indexed=false){
     const Vertex vertices[]={{-1,-1,z,color,.5f,.5f},{-1,3,z,color,.5f,.5f},{3,-1,z,color,.5f,.5f}};
     auto* v=device.BufStream(GxPoolTarget_Vertex,sizeof(Vertex),3);auto* data=device.BufLock(v);
-    Check(data!=nullptr,"native vertex lock");std::memcpy(data,vertices,sizeof(vertices));Check(device.BufUnlock(v,sizeof(vertices))!=0,"native vertex unlock");
+    Check(data!=nullptr,"native vertex lock");std::memcpy(data,vertices,sizeof(vertices));Check(device.BufUnlock(v,0)!=0,"native whole-buffer vertex unlock (zero size)");
     device.PrimVertexPtr(v,GxVBF_PCT);CGxBatch batch{};batch.m_primType=GxPrim_Triangles;batch.m_count=3;batch.m_minIndex=0;batch.m_maxIndex=2;
     if(indexed){const uint16_t indices[]={0,1,2};auto* i=device.BufStream(GxPoolTarget_Index,2,3);auto* out=device.BufLock(i);
-        Check(out!=nullptr,"native index lock");std::memcpy(out,indices,sizeof(indices));Check(device.BufUnlock(i,sizeof(indices))!=0,"native index unlock");device.PrimIndexPtr(i);}
+        Check(out!=nullptr,"native index lock");std::memcpy(out,indices,sizeof(indices));Check(device.BufUnlock(i,0)!=0,"native whole-buffer index unlock (zero size)");device.PrimIndexPtr(i);}
     device.Draw(&batch,indexed?1:0);
 }
 static CImVector Center(CGxDeviceD3d11& device,uint32_t width=16,uint32_t height=16){
