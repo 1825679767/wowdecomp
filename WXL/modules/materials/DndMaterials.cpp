@@ -8,6 +8,7 @@
 #include "Engine/Source/Gx/CGxDeviceD3d9Ex/CGxDeviceD3d9Ex.h"
 #include "Engine/Source/Model2/CM2SceneRender.h"
 #include "Engine/Source/Model2/M2Model.h"
+#include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Model2/M2Shared.h"
 #include "Engine/Source/Services/Texture.h"
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
@@ -117,7 +118,7 @@ bool NativeContract(CGxDevice& device){
  if(!vs||!ps||!vs->m_valid||!ps->m_valid||!device.m_appRenderStates[GxRs_Texture0].m_value.m_data.p||!device.m_appRenderStates[GxRs_Texture1].m_value.m_data.p)return false;
  auto* native=NativeDevice(device);if(!native)return false;
  ComRead<IDirect3DVertexShader9> liveVS;ComRead<IDirect3DPixelShader9> livePS;
- if(FAILED(native->GetVertexShader(&liveVS.value))||FAILED(native->GetPixelShader(&livePS.value))||!Exact(liveVS.value,kDeathDecayNativeVS)||!Exact(livePS.value,kDeathDecayNativePS))return false;
+ if(FAILED(native->GetVertexShader(&liveVS.value))||FAILED(native->GetPixelShader(&livePS.value))||!Exact(liveVS.value,wxl::modern::materialblend::kDeathDecayNativeVS)||!Exact(livePS.value,wxl::modern::materialblend::kDeathDecayNativePS))return false;
  DWORD src=0,dst=0,on=0,operation=0,zwrite=1;
  return SUCCEEDED(native->GetRenderState(D3DRS_SRCBLEND,&src))&&src==D3DBLEND_SRCALPHA&&SUCCEEDED(native->GetRenderState(D3DRS_DESTBLEND,&dst))&&dst==D3DBLEND_ONE&&SUCCEEDED(native->GetRenderState(D3DRS_ALPHABLENDENABLE,&on))&&on&&SUCCEEDED(native->GetRenderState(D3DRS_BLENDOP,&operation))&&operation==D3DBLENDOP_ADD&&SUCCEEDED(native->GetRenderState(D3DRS_ZWRITEENABLE,&zwrite))&&!zwrite;
 }
