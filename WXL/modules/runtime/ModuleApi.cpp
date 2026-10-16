@@ -1,4 +1,5 @@
 #include "WXL/UnitOutline.hpp"
+#include "WXL/GrassWind.hpp"
 #include "WXL/WmoMaterials.hpp"
 #include "WXL/ProceduralEnchants.hpp"
 #include "WXL/RetailUi.hpp"
@@ -18,6 +19,7 @@ namespace {
 struct Entry {const char* id;const char* dependencies;bool(*enabled)() noexcept;};
 const Entry entries[]{
  {"wmo-materials","world-wmo,native-d3d9",&wmo_materials::Enabled},
+ {"grass-wind","runtime,native-detail-doodads",&grass_wind::Enabled},
  {"unit-outline","runtime,m2,native-d3d9",&unit_outline::Enabled},
  {"retail-ui","runtime,protocol,db2,client-extensions",&retail_ui::Enabled},
  {"procedural-enchants","equipment-attachments,item-visual-graph",&procedural_enchants::Enabled},

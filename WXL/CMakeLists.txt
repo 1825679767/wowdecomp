@@ -72,6 +72,10 @@ target_compile_definitions(WxlAppearances PRIVATE WXL_ENABLE_PRIVATE_APPEARANCES
 wxl_module(WxlEquipmentAttachments EquipmentAttachments modules/equipment/EquipmentAttachments.cpp modules/equipment/ProceduralEnchants.cpp modules/equipment/EnchantModelTimeline.cpp)
 target_compile_definitions(WxlEquipmentAttachments PRIVATE WXL_ENABLE_PROCEDURAL_ENCHANTS=$<BOOL:${WXL_ENABLE_PROCEDURAL_ENCHANTS}>)
 add_dependencies(WxlEquipmentAttachments WxlRuntime WxlM2 WxlDB2 WxlBlp)
+option(WXL_ENABLE_GRASS_WIND "Donor grass sway and player repulsion" ON)
+wxl_module(WxlGrassWind GrassWind modules/grass-wind/GrassWind.cpp)
+target_compile_definitions(WxlGrassWind PRIVATE WXL_ENABLE_GRASS_WIND=$<BOOL:${WXL_ENABLE_GRASS_WIND}>)
+add_dependencies(WxlGrassWind WxlRuntime)
 option(WXL_ENABLE_UNIT_OUTLINE "Reaction-colored target/mouseover silhouettes" ON)
 wxl_module(WxlUnitOutline UnitOutline modules/unit-outline/UnitOutline.cpp)
 target_compile_definitions(WxlUnitOutline PRIVATE WXL_ENABLE_UNIT_OUTLINE=$<BOOL:${WXL_ENABLE_UNIT_OUTLINE}>)
@@ -118,7 +122,7 @@ add_dependencies(WxlAppearances WxlM2 WxlDB2 WxlBlp)
 add_dependencies(WxlProtocol WxlRuntime)
 add_dependencies(WxlSpellVisuals WxlRuntime WxlStorage WxlDB2 WxlM2 WxlProtocol)
 add_library(WxlNative STATIC
- $<TARGET_OBJECTS:WxlUnitOutline>
+ $<TARGET_OBJECTS:WxlGrassWind> $<TARGET_OBJECTS:WxlUnitOutline>
  $<TARGET_OBJECTS:WxlRetailUi>
  $<TARGET_OBJECTS:WxlCreationBeams>
  $<TARGET_OBJECTS:WxlSpellVisuals>

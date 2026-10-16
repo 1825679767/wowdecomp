@@ -87,7 +87,7 @@ bool PrepareWmo(CMapObj& object) noexcept {
   const auto groups=Read(prepared.root.bytes.data()+root.slots[0].offset+4);
   if(groups>512 || prepared.groups.size()!=groups)return false;
   auto materials=std::make_shared<const w::MaterialPlan>(std::move(prepared.root.materials));
-  auto family=std::make_shared<Family>();family->groups.reserve(groups);size_t total=prepared.root.bytes.size();
+  auto family=std::make_shared<Family>();family->groups.reserve(groups);size_t total=prepared.root.bytes.size()+materials->records.size()*sizeof(w::MaterialRecord);for(const auto& material:materials->records)for(const auto& name:material.paths)total+=name.size()+1;if(total>128u*1024u*1024u)return false;
   std::string stem=object.m_wmoName;if(stem.size()<4)return false;stem.resize(stem.size()-4);
   for(unsigned i=0;i<groups;++i){char suffix[32];std::snprintf(suffix,sizeof(suffix),"_%03u.wmo",i);
    // This key is the exact verified native ReadGroup filename contract. Only
@@ -113,7 +113,7 @@ GroupLoad LoadPreparedWmoGroup(CMapObj& root,unsigned index,CMapObjGroup& group)
   std::shared_ptr<const Family> family;{std::lock_guard lock(mutex);auto it=families.find(&root);if(it==families.end())return GroupLoad::Classic;family=it->second;}
   if(index>=family->groups.size())return GroupLoad::Rejected;const auto& bytes=family->groups[index];
   void* memory=SMemAlloc(bytes.size(),__FILE__,__LINE__,0);if(!memory)return GroupLoad::Rejected;
-  std::memcpy(memory,bytes.data(),bytes.size());group.m_filePtr=memory;group.m_fileSize=uint32_t(bytes.size());group.m_parent=&root;group.Create();{std::lock_guard lock(mutex);if(families.find(&root)==families.end()||families.at(&root)!=family)return GroupLoad::Rejected;bindings[&group]={&root,index,memory};}return GroupLoad::Loaded;
+  std::memcpy(memory,bytes.data(),bytes.size());group.m_filePtr=memory;group.m_fileSize=uint32_t(bytes.size());group.m_parent=&root;group.Create();if(group.m_vertexListCount!=family->render[index]->vertices)return GroupLoad::Rejected;{std::lock_guard lock(mutex);if(families.find(&root)==families.end()||families.at(&root)!=family)return GroupLoad::Rejected;bindings[&group]={&root,index,memory};}return GroupLoad::Loaded;
  }catch(...){SErrDisplayAppFatal("Unable to load prepared native WMO group");return GroupLoad::Rejected;}
 }
 void ReleaseWmo(CMapObj& object) noexcept {try{std::lock_guard lock(mutex);auto it=families.find(&object);if(it!=families.end()){residentBytes-=it->second->bytes;families.erase(it);for(auto b=bindings.begin();b!=bindings.end();)if(b->second.root==&object)b=bindings.erase(b);else ++b;}}catch(...){}}

@@ -1,4 +1,5 @@
 #include "DetailDoodad.h"
+#include "WXL/GrassWind.hpp"
 #include <cmath>
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
@@ -153,6 +154,7 @@ void CDetailDoodad::SetupVertexShader(const C44Matrix& world, uint32_t index) {
 
     CDetailDoodad::s_shaderConstants.m_worldView = world * view;
     g_theGxDevicePtr->ShaderConstantsSet(GxSh_Vertex, 0, reinterpret_cast<const float*>(&CDetailDoodad::s_shaderConstants), sizeof(CDetailDoodad::s_shaderConstants) / sizeof(C4Vector));
+    if(auto* selected=CDetailDoodad::s_vertexShader[3*index+shadow])wxl::native::grass_wind::Upload(*selected);
 }
 
 // VERIFY: f3428d3d manual

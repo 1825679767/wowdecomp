@@ -1,4 +1,5 @@
 #include "WXL/UnitOutline.hpp"
+#include "WXL/GrassWind.hpp"
 #include "WXL/WmoMaterials.hpp"
 #include "WXL/CreationBeams.hpp"
 #include "WXL/DonorMaterialFallback.hpp"
@@ -43,6 +44,7 @@ void RegisterFeatures(){
  skyriding::Register();
  creation_effects::Register();
  unit_outline::Register();
+ grass_wind::Register();
  wmo_materials::Register();
  CVar::Register("wxlAreaLootAuto","WXL automatic area loot",2,"1",nullptr,0,false,nullptr,false);
  CVar::Register("wxlAreaLootQuality","WXL minimum automatic area loot quality",2,"0",nullptr,0,false,nullptr,false);
