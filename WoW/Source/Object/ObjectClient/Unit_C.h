@@ -394,7 +394,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     virtual void GetDNDText(char* buffer, uint32_t size) const;
     virtual void GetGMText(char* buffer, uint32_t size) const;
     virtual void GetDevText(char* buffer, uint32_t size) const;
-    virtual void PlayUnitSound(uint32_t soundType, int32_t a2);
+    virtual void PlayUnitSound(UNITSOUNDTYPE soundType, int32_t a2);
     virtual void PlayFoleySound();
     virtual uint32_t GetImpactType() const;
     virtual const CGUnitVirtualItem* GetDefendingItem() const;
@@ -597,7 +597,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void PlayStandSound();
     int32_t GetNewNPCSoundCount(int32_t count, int32_t* soundKitId, int32_t* soundIndex) const;
     void PlayEmoteStateSound(const C3Vector* position);
-    int32_t GetUnitSoundKitIndex(uint32_t soundType) const;
+    int32_t GetUnitSoundKitIndex(UNITSOUNDTYPE soundType) const;
     void VehiclePassengerOnUninit();
     int32_t HasVehicleTransport() const;
     int32_t IsSeatedInVehicle() const;

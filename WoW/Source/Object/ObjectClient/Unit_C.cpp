@@ -2266,13 +2266,13 @@ void CGUnit_C::PlayFallLandAnimation(uint32_t oldFlags, int32_t jumping) {
             uint32_t flags = this->m_movementData.m_flags;
 
             if (!(flags & 0xF)) {
-                this->PlayUnitSound(12, 1);
+                this->PlayUnitSound(UNITSOUNDTYPE_JUMPEND, 1);
                 this->PlayBaseAnimation(ANIM_JUMP_END, 0);
                 return;
             }
 
             if (!(flags & 0x2) && !(flags & 0x100) && !this->IsRunning()) {
-                this->PlayUnitSound(12, 1);
+                this->PlayUnitSound(UNITSOUNDTYPE_JUMPEND, 1);
                 this->PlayBaseAnimation(ANIM_JUMP_LAND_RUN, 0);
                 return;
             }
@@ -2297,7 +2297,7 @@ void CGUnit_C::OnCollideFallLand(uint32_t a1, int32_t a2) {
 
     if (distance >= 70.0f || (distance > 13.0f && !this->IsDeadOrGhost())) {
         if (!(this->m_obj->m_type & TYPEMASK_PLAYER) || (!(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000) && this->m_unit->m_unitFieldHealth > 0)) {
-            this->PlayUnitSound(13, 1);
+            this->PlayUnitSound(UNITSOUNDTYPE_INJURY_FALL, 1);
         }
 
         this->HandleEnvironmentDamage(2, 0, 0, 0);
@@ -11380,7 +11380,7 @@ void CGUnit_C::MoveEventHappened(uint32_t msgId) {
 
         case MSG_MOVE_JUMP:
             this->CancelRangedMode();
-            this->PlayUnitSound(11, 1);
+            this->PlayUnitSound(UNITSOUNDTYPE_JUMPSTART, 1);
 
             if (!this->GetVehicleRec() || !this->m_vehicle->HasHighPriorityAnim()) {
                 this->PlayBaseAnimation(ANIM_JUMP_START, 0);
@@ -11426,7 +11426,7 @@ void CGUnit_C::MoveEventHappened(uint32_t msgId) {
                     break;
                 }
 
-                this->PlayUnitSound(11, 1);
+                this->PlayUnitSound(UNITSOUNDTYPE_JUMPSTART, 1);
 
                 if (!this->GetVehicleRec() || !this->m_vehicle->HasHighPriorityAnim()) {
                     this->PlayBaseAnimation(ANIM_JUMP_START, 0);
@@ -11434,7 +11434,7 @@ void CGUnit_C::MoveEventHappened(uint32_t msgId) {
 
                 this->m_animationState |= 0x800000;
             } else {
-                this->PlayUnitSound(12, 1);
+                this->PlayUnitSound(UNITSOUNDTYPE_JUMPEND, 1);
 
                 if (!this->GetVehicleRec() || !this->m_vehicle->HasHighPriorityAnim()) {
                     this->PlayBaseAnimation(ANIM_JUMP_LAND_RUN, 0);
@@ -13403,7 +13403,7 @@ void CGUnit_C::PlayAttackerRound(const ATTACKROUNDINFO& info) {
     }
 
     if (info.m_victimState) {
-        this->PlayUnitSound((info.m_hitInfo >> 9) & 0x1, 0);
+        this->PlayUnitSound(static_cast<UNITSOUNDTYPE>((info.m_hitInfo >> 9) & 0x1), 0);
     }
 }
 
@@ -17826,7 +17826,7 @@ int32_t Packet_SMSG_AI_REACTION(void* param, NETMESSAGE msgId, uint32_t time, CD
 
     if (unit) {
         if (!reaction) {
-            unit->PlayUnitSound(8, 0);
+            unit->PlayUnitSound(UNITSOUNDTYPE_ALERT, 0);
         } else if (reaction == 2) {
             unit->OnAiReaction(0);
         }
@@ -18762,11 +18762,11 @@ void CGUnit_C::HandleAnimEvent(uint32_t boneId, uint32_t eventId, uint32_t data,
             return;
 
         case 0x474E5724:
-            this->PlayUnitSound(7, 0);
+            this->PlayUnitSound(UNITSOUNDTYPE_WINGFLAP, 0);
             return;
 
         case 0x47475724:
-            this->PlayUnitSound(10, 0);
+            this->PlayUnitSound(UNITSOUNDTYPE_WINGGLIDE, 0);
             return;
 
         case 0x44534524:
