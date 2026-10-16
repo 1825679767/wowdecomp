@@ -560,6 +560,7 @@ namespace
                     copy.folder = next->Intern(entry.folder);
                     copy.model = next->Intern(entry.model);
                     copy.texture = next->Intern(entry.texture);
+                    copy.texturePath = next->Intern(entry.texturePath);
                     copy.skinSectionIds = next->Intern(entry.skinSectionIds);
                     copy.batchIndexes = next->Intern(entry.batchIndexes);
                     copy.targetSkinSectionIds = next->Intern(entry.targetSkinSectionIds);
@@ -849,6 +850,7 @@ namespace
                 }
                 entry.folder = next->Intern(ObjectFolder(path->second));
                 entry.texture = next->Intern(TextureName(path->second));
+                entry.texturePath = next->Intern(path->second);
                 next->materials[material.displayId].push_back(entry);
 
                 if (material.layer < 8)

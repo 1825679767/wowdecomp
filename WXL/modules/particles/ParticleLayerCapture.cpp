@@ -13,6 +13,11 @@ template<class T>T Read(const uint8_t* p,size_t at){T value;std::memcpy(&value,p
 bool Fits(size_t limit,uint32_t at,uint32_t n,size_t stride){return at<=limit && n<=(limit-at)/stride;}
 float Scroll(uint16_t raw){return float(raw&0x7fff)*(raw&0x8000?-1.0f:1.0f)/512.0f;}
 }
+bool MatchExactRiftSource(const char* path,const uint8_t* raw,size_t size) noexcept {
+ if(!path||!raw||size!=613316)return false;constexpr std::string_view target="spells\\cfx_priest_entropicrift_areatrigger.m2";const std::string_view name(path);if(name.size()!=target.size())return false;
+ for(size_t i=0;i<name.size();++i){char c=name[i];if(c=='/')c='\\';if(c>='A'&&c<='Z')c=char(c+'a'-'A');if(c!=target[i])return false;}
+ uint64_t hash=14695981039346656037ull;for(size_t i=0;i<size;++i){hash^=raw[i];hash*=1099511628211ull;}return hash==0xed4dfce6eaa818ebull;
+}
 bool CaptureParticleLayers(const char* path,const uint8_t* raw,size_t size,ParticleLayerSet& output,std::string& reason){
  output.clear();auto fail=[&](const char* text){reason=text;return false;};
  if(!ParticlesEnabled())return true;
@@ -31,8 +36,9 @@ bool CaptureParticleLayers(const char* path,const uint8_t* raw,size_t size,Parti
     device->Caps().m_shaderTargets[GxSh_Vertex]<3 || device->Caps().m_shaderTargets[GxSh_Pixel]<4 ||
     device->Caps().m_shaderConstants[GxSh_Vertex]<35 || device->Caps().m_numTmus<3)return fail("layer source requires native D3D9 SM3 backend; OpenGL/DX11 deferred");
  if(Read<uint32_t>(body,4)!=274)return fail("layer source version is not 274");
+ const bool rift=MatchExactRiftSource(path,raw,size);
  const auto global=Read<uint32_t>(body,offsetof(M2Data,m_flags));
- if(global!=0x3090u && global!=0x2090u)return fail("layer source global flags are outside the donor native-sprite family");
+ if(global!=0x3090u && global!=0x2090u && !rift)return fail("layer source global flags are outside the donor native-sprite family");
  const auto textures=Read<uint32_t>(body,offsetof(M2Data,m_textures));
  const auto texturesAt=Read<uint32_t>(body,offsetof(M2Data,m_textures)+4);
  const auto materials=Read<uint32_t>(body,offsetof(M2Data,m_materials));
@@ -46,6 +52,7 @@ bool CaptureParticleLayers(const char* path,const uint8_t* raw,size_t size,Parti
   else if(is("AFID"))bit=8;else if(is("SKID"))bit=16;else if(is("LDV1"))bit=32;
   else if(is("EXPT"))bit=64;else if(is("EXP2"))bit=128;
   else if(is("TXAC")){bit=256;txac=raw+at+8;txacBytes=n;}
+  else if(rift&&is("EDGF"))bit=512;else if(rift&&is("DBOC"))bit=1024;
   else return fail("layer source has unimplemented auxiliary chunk");
   if(seen&bit)return fail("layer source duplicate chunk");seen|=bit;at+=8+n;
  }
@@ -59,7 +66,8 @@ bool CaptureParticleLayers(const char* path,const uint8_t* raw,size_t size,Parti
  const auto id=[&](uint32_t i){return txid && i<textures && txidBytes==uint64_t(textures)*4?Read<uint32_t>(txid,4*i):0u;};
  const bool boil=simpleChunks&&rowsKnown&&samePath("spells\\cfx_deathknight_bloodboil_castworld.m2")&&global==0x3090&&count==7&&textures==6&&txac&&txac11==0x42&&id(0)==1601218&&id(1)==1601219&&id(2)==1602396&&id(3)==1601199&&id(4)==1601200;
  const bool plague=simpleChunks&&rowsKnown&&samePath("spells\\cfx_deathknight_bloodplague_statechest.m2")&&global==0x2090&&count==2&&textures==3&&txac&&txac11==2&&id(0)==667363&&id(1)==1601219&&id(2)==1601220;
- if(global!=0x3090&&!plague)return fail("layer source 2090 requires exact Blood Plague family");
+ if(rift&&(global!=0x203090||count!=13||textures!=27||materials!=11))return fail("rift source identity");
+ if(global!=0x3090&&!plague&&!rift)return fail("layer source 2090 requires exact Blood Plague family");
  auto bloodKind=[&](uint32_t i,const uint8_t* p){
   const auto flags=Read<uint32_t>(p,offsetof(M2Particle,m_flags));const auto blend=Read<uint8_t>(p,offsetof(M2Particle,m_blendMode));const auto packed=Read<uint16_t>(p,offsetof(M2Particle,m_textureIndex));
   if(boil&&(i==1||i==2||i==5||i==6)){
@@ -78,7 +86,8 @@ bool CaptureParticleLayers(const char* path,const uint8_t* raw,size_t size,Parti
  ParticleLayerSet captured(count);size_t bytes=0;
  for(uint32_t i=0;i<count;++i){
   const auto* p=body+particlesAt+size_t(i)*stride;const auto flags=Read<uint32_t>(p,offsetof(M2Particle,m_flags));
-  if(!(flags&wxl::structure::m2records::kParticleFlagMultiTex))continue;
+  if(rift&&!(0x21fu&(1u<<i)))continue; // exact donor keeps other seven native
+  if(!(flags&wxl::structure::m2records::kParticleFlagMultiTex)){if(rift)return fail("rift selected emitter is not multitexture");continue;}
   // The same three-layer donor kernels feed distinct native framebuffer blends.
   // Capture their original identity before the native emitter is constructed.
   ParticleLayerMaterial material{};
@@ -89,20 +98,21 @@ bool CaptureParticleLayers(const char* path,const uint8_t* raw,size_t size,Parti
   // Head and tail are independently authored native quad shapes. Retain both
   // bits; native BuildVertex owns the tail trajectory, clamp and atlas choice.
   const auto blood=bloodKind(i,p);
-  if(!(flags&0x60000u) || (flags&0x80100000u) || ((flags&0x20000000u)&&blood==BloodSpriteFamily::None))return fail("layer source requires head/tail quads without modx4/depth variants");
+  if(!(flags&0x60000u) || (flags&0x80100000u) || ((flags&0x20000000u)&&blood==BloodSpriteFamily::None&&!rift))return fail("layer source requires head/tail quads without modx4/depth variants");
   for(const auto field:{offsetof(M2Particle,m_geometryMdl),offsetof(M2Particle,m_recursionMdl)}){
    const auto n=Read<uint32_t>(p,field),at=Read<uint32_t>(p,field+4);
    if(n && (n!=1 || !at || at>=bodySize || body[at]))return fail("layer source model/child particles are unsupported");
   }
   auto recipe=std::make_shared<ParticleLayerRecipe>();recipe->sourceFlags=flags;recipe->packedIndices=Read<uint16_t>(p,offsetof(M2Particle,m_textureIndex));
-  recipe->sourceBlend=material.sourceBlend;recipe->bloodFamily=blood;
+  recipe->sourceBlend=material.sourceBlend;recipe->bloodFamily=blood;recipe->riftNative=rift;
+  if(rift&&material.sourceBlend!=7)return fail("rift selected source blend");
   recipe->hasTxac=txac!=nullptr;
   if(txac){const auto row=2*(uint64_t(materials)+i);recipe->txac={txac[row],txac[row+1]};}
   if((recipe->txac[0] || recipe->txac[1]) && (blood==BloodSpriteFamily::None || blood==BloodSpriteFamily::BoilScreen || recipe->txac!=std::array<uint8_t,2>{1,1}))return fail("layer source nonneutral TXAC shader is unimplemented");
   if(recipe->packedIndices&0x8000)return fail("layer source unknown packed texture bit");
   recipe->threeColor=(flags&0x40000000u)!=0;
   for(unsigned layer=0;layer<3;++layer){
-   const auto index=uint16_t((recipe->packedIndices>>(5*layer))&31u);recipe->textures[layer]=index;if(blood!=BloodSpriteFamily::None)recipe->sourceTextureIds[layer]=id(index);
+   const auto index=uint16_t((recipe->packedIndices>>(5*layer))&31u);recipe->textures[layer]=index;if(blood!=BloodSpriteFamily::None||rift)recipe->sourceTextureIds[layer]=id(index);
    if(index>=textures || Read<uint32_t>(body,texturesAt+size_t(index)*sizeof(M2Texture)+offsetof(M2Texture,m_type))!=0)return fail("layer source texture is not a file texture");
   }
   for(unsigned layer=0;layer<2;++layer){

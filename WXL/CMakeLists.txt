@@ -3,7 +3,9 @@
 option(WXL_ENABLE_EQUIPMENT_ATTACHMENTS "Enable native retail equipment attachment consumer" ON)
 option(WXL_ENABLE_NATIVE "Enable native WXL features" ON)
 option(WXL_ENABLE_ASSETS "Enable modern M2 assets" ON)
+option(WXL_ENABLE_DONOR_MATERIAL_FALLBACK "Enable native donor SKIN presentation approximations" ON)
 option(WXL_ENABLE_DB2 "Enable retail DB2/FDID data" ON)
+option(WXL_ENABLE_RETAIL_SPELL_VISUALS "Enable source-owned retail spell visuals" ON)
 option(WXL_ENABLE_BLP "Enable modern BLP decoding" ON)
 option(WXL_ENABLE_MATERIALS "Enable custom mesh materials" ON)
 option(WXL_ENABLE_BLOOD_REFRACTION "Enable exact-source donor Blood Boil refraction compatibility" ON)
@@ -41,6 +43,8 @@ endfunction()
 wxl_module(WxlRuntime Runtime modules/runtime/NativeFeatures.cpp modules/runtime/ModuleApi.cpp
  "${V}/src/common/Log.cpp" "${V}/src/common/Config.cpp")
 wxl_module(WxlStorage Storage modules/storage/NativeStorage.cpp)
+wxl_module(WxlSpellVisuals SpellVisuals modules/spell-visuals/RetailSpellVisual.cpp modules/spell-visuals/RetailSpellCatalog.cpp)
+target_compile_definitions(WxlSpellVisuals PRIVATE WXL_ENABLE_RETAIL_SPELL_VISUALS=$<BOOL:${WXL_ENABLE_RETAIL_SPELL_VISUALS}>)
 wxl_module(WxlDB2 DB2 modules/db2/FdidCompat.cpp
  modules/db2/items/RetailItemIndex.cpp modules/db2/items/RetailItemCatalog.cpp
  modules/db2/items/ItemDisplayIndex.cpp modules/db2/items/NativeItemRows.cpp
@@ -52,11 +56,12 @@ wxl_module(WxlMaterials Materials modules/materials/MaterialCompat.cpp modules/m
 target_compile_definitions(WxlMaterials PRIVATE WXL_ENABLE_DND_MATERIALS=$<BOOL:${WXL_ENABLE_DND_MATERIALS}>)
 wxl_module(WxlParticles Particles modules/particles/ParticleCompat.cpp modules/particles/ParticleCutoff.cpp modules/particles/ParticleLayerCapture.cpp modules/particles/ParticleLayers.cpp modules/particles/ParticleRefraction.cpp
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeParticles.cpp")
-wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
+wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp modules/m2/DonorMaterialFallback.cpp
  "${V}/src/platform/waystone/M2Bytes.cpp" "${V}/src/platform/waystone/SkeletonIndex.cpp"
  "${V}/src/platform/waystone/SkeletonEmbed.cpp" "${V}/src/platform/waystone/SkinPartition.cpp"
  "${V}/src/platform/waystone/SkinRebuild.cpp" "${V}/extensions/wxl-modern-m2/src/load/M2Normalize.cpp"
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeCameras.cpp")
+target_compile_definitions(WxlM2 PRIVATE WXL_ENABLE_DONOR_MATERIAL_FALLBACK=$<BOOL:${WXL_ENABLE_DONOR_MATERIAL_FALLBACK}>)
 wxl_module(WxlAppearances Appearances modules/private-appearances/PrivateAppearances.cpp modules/barber-preview/BarberAppearance.cpp modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
  "${V}/src/platform/waystone/CharacterAtlas.cpp")
 target_compile_definitions(WxlAppearances PRIVATE WXL_ENABLE_PRIVATE_APPEARANCES=$<BOOL:${WXL_ENABLE_PRIVATE_APPEARANCES}>)
@@ -90,7 +95,9 @@ add_dependencies(WxlParticles WxlRuntime)
 add_dependencies(WxlM2 WxlStorage WxlDB2 WxlBlp WxlMaterials WxlParticles)
 add_dependencies(WxlAppearances WxlM2 WxlDB2 WxlBlp)
 add_dependencies(WxlProtocol WxlRuntime)
+add_dependencies(WxlSpellVisuals WxlRuntime WxlStorage WxlDB2 WxlM2 WxlProtocol)
 add_library(WxlNative STATIC
+ $<TARGET_OBJECTS:WxlSpellVisuals>
  $<TARGET_OBJECTS:WxlEquipmentAttachments>
  $<TARGET_OBJECTS:WxlRuntime> $<TARGET_OBJECTS:WxlStorage> $<TARGET_OBJECTS:WxlDB2>
  $<TARGET_OBJECTS:WxlBlp> $<TARGET_OBJECTS:WxlMaterials> $<TARGET_OBJECTS:WxlParticles>

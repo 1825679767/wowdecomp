@@ -12,5 +12,6 @@ bool PrepareModel(CM2Shared&);
 void SelectSkin(CM2Shared&,uint32_t);
 bool PrepareSkin(CM2Shared&,uint32_t&);
 void ReleaseModel(CM2Shared&) noexcept;
+bool IsExactRiftSource(const CM2Shared&) noexcept;
 const mesh_materials::Source* MeshSourceFor(const CM2Shared&) noexcept;
 }

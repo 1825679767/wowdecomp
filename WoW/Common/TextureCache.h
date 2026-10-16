@@ -14,13 +14,13 @@ class CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_NONE> {
     public:
     /* 0018 */ CAsyncObject* m_asyncObject;
     /* 001C */ TCTEXTUREINFO m_info;
-    /* 0024 */ char m_fileName [128];
-    /* 00A4 */ int32_t m_refCount;
-    /* 00A8 */ uint32_t m_memHandle;
-    /* 00AC */ BLPHeader* m_data;
-    /* 00B0 */ uint32_t m_size : 20;
-    /* 00B0 */ uint32_t m_loadFailed : 1;
-    /* 00B0 */ uint32_t m_unused : 11;
+    /* 0024 */ char m_fileName [260];
+    int32_t m_refCount;
+    uint32_t m_memHandle;
+    BLPHeader* m_data;
+    uint32_t m_size;
+    uint32_t m_loadFailed : 1;
+    uint32_t m_unused : 31;
 
     CACHEENTRY();
     ~CACHEENTRY();

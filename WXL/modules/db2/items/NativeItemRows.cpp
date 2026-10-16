@@ -92,6 +92,22 @@ bool MissingItemDisplayRecord(int32_t id,ItemDisplayInfoRec* output) noexcept {
   auto inserted=store.displays.emplace(id,row);*output=inserted.first->second;return true;
  }catch(...){return false;}
 }
+bool ItemGraphHelmetData(uint32_t id,uint32_t sex,uint32_t modelRace,ItemGraphHelmet& output) noexcept {
+ output={};if(sex>1||!ItemGraphOwnsDisplay(id))return false;
+ try {auto index=display::Current();if(!index||!index->resolvedDisplays.contains(id)){display::Request(id);return false;}
+  const auto row=index->displayRecords.find(id);if(row==index->displayRecords.end()||!index->helmetData)return false;
+  ItemGraphHelmet result;result.visibilityId=row->second.helmetVis[sex];
+  if(result.visibilityId){
+   if(const auto rules=index->helmetData->geosetsByVis.find(result.visibilityId);rules!=index->helmetData->geosetsByVis.end()){
+    if(rules->second.size()>256)return false;result.rules.reserve(rules->second.size());
+    for(const auto& rule:rules->second)result.rules.push_back({rule.raceId,rule.hideGroup,rule.raceBitSelection,rule.flags});
+   }
+   const uint64_t key=(uint64_t(result.visibilityId)<<32)|modelRace;
+   if(const auto scale=index->helmetData->animScaleByVisRace.find(key);scale!=index->helmetData->animScaleByVisRace.end()){result.hasAnimScale=true;result.animScale=scale->second;}
+  }
+  output=std::move(result);return true;
+ }catch(...){return false;}
+}
 bool ItemGraphInventoryType(uint32_t id,uint32_t& inventoryType) noexcept {
  inventoryType=0;if(!ItemGraphOwnsDisplay(id))return false;
  try {auto index=display::Current();if(!index||!index->resolvedDisplays.contains(id)){display::Request(id);return false;}
@@ -113,7 +129,7 @@ bool ItemGraphMaterials(uint32_t id,std::vector<ItemGraphMaterial>& output) noex
  try {auto index=display::Current();if(!index||!index->resolvedDisplays.contains(id)){display::Request(id);return false;}
   auto found=index->materials.find(id);if(found==index->materials.end())return true;if(found->second.size()>256)return false;
   std::vector<ItemGraphMaterial> result;result.reserve(found->second.size());
-  for(const auto& value:found->second){ItemGraphMaterial row;row.modelIndex=value.modelIndex;row.modelColumn=value.modelColumn;row.layer=value.layer;row.textureType=value.textureType;row.raceId=value.raceId;row.genderId=value.genderId;row.folder=Text(value.folder);row.model=Text(value.model);row.texture=Text(value.texture);row.skinSectionIds=Text(value.skinSectionIds);row.batchIndexes=Text(value.batchIndexes);row.targetSkinSectionIds=Text(value.targetSkinSectionIds);row.targetBatchIndexes=Text(value.targetBatchIndexes);row.targetMode=Text(value.targetMode);result.push_back(std::move(row));}
+  for(const auto& value:found->second){ItemGraphMaterial row;row.modelIndex=value.modelIndex;row.modelColumn=value.modelColumn;row.layer=value.layer;row.textureType=value.textureType;row.raceId=value.raceId;row.genderId=value.genderId;row.folder=Text(value.folder);row.model=Text(value.model);row.texture=Text(value.texture);row.texturePath=Text(value.texturePath);row.skinSectionIds=Text(value.skinSectionIds);row.batchIndexes=Text(value.batchIndexes);row.targetSkinSectionIds=Text(value.targetSkinSectionIds);row.targetBatchIndexes=Text(value.targetBatchIndexes);row.targetMode=Text(value.targetMode);result.push_back(std::move(row));}
   output.swap(result);return true;
  }catch(...){return false;}
 }

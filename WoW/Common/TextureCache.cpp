@@ -1,6 +1,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <new>
+#include <cstring>
+#include <vector>
+#include "WXL/BlpCompat.hpp"
 #include "WoW/Common/TextureCache.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/BLPFile/blp.h"
@@ -34,50 +37,66 @@ static void FreeRequest(CAsyncObject* object) {
 // OFFSET: 0x004F2B70
 static void LoadSuccessCallback(void* param) {
     CACHEENTRY* entry = static_cast<CACHEENTRY*>(param);
-
+    // The async owner must retire before its SMem buffer can be replaced/freed.
     AsyncFileReadDestroyObject(entry->m_asyncObject);
-    BLPHeader* header = entry->m_data;
     entry->m_asyncObject = nullptr;
-    CBLPFile::ValidateHeader(*header);
-
-    entry->m_info.m_alphaSize = header->m_alphaSize;
-    entry->m_info.m_opaque = header->m_alphaSize == 0;
-    entry->m_info.m_width = header->m_width;
-    entry->m_info.m_height = header->m_height;
-    entry->m_info.m_mipCount = TextureCalcMipCount(entry->m_info.m_width, entry->m_info.m_height);
+    wxl::native::ComponentBlpInfo info;
+    std::vector<uint8_t> converted;
+    bool valid=wxl::native::PrepareComponentBlp(entry->m_data,entry->m_size,converted,info);
+    if (valid && !converted.empty()) {
+        auto* replacement=static_cast<BLPHeader*>(SMemAlloc(converted.size(),__FILE__,__LINE__,0));
+        if (!replacement) valid=false;
+        else {
+            std::memcpy(replacement,converted.data(),converted.size());
+            SMemFree(entry->m_data,__FILE__,__LINE__,0);
+            entry->m_data=replacement;
+            entry->m_size=static_cast<uint32_t>(converted.size());
+        }
+    }
+    if (!valid) {
+        if(entry->m_data)SMemFree(entry->m_data,__FILE__,__LINE__,0);
+        entry->m_data=nullptr;entry->m_size=0;entry->m_loadFailed=1;entry->m_info={};entry->m_info.m_opaque=1;
+        return;
+    }
+    entry->m_info.m_alphaSize=info.alphaSize;
+    entry->m_info.m_opaque=info.alphaSize==0;
+    entry->m_info.m_mipCount=info.mipCount;
+    entry->m_info.m_height=info.height;
+    entry->m_info.m_width=info.width; // Publish only completely validated palette data.
 }
 
-// VERIFY: ca8c7168 manual
-// OFFSET: 0x004F2BE0
+// VERIFY: native typed bounded replacement of legacy async allocation.
 int32_t CACHEENTRY::LoadTexture() {
+    if (this->m_loadFailed) return 0;
+    if (this->m_asyncObject || this->m_data) return 1;
     SFileImpl* file = nullptr;
-
     if (!SFile::OpenEx(nullptr, this->m_fileName, 0, &file)) {
-        char alternate[260];
+        char alternate[sizeof(this->m_fileName)]{};
         TEXFILETYPE type = TextureDiscoverFileType(this->m_fileName);
         TexturePickAlternateFilename(this->m_fileName, type, alternate, sizeof(alternate));
-        SFile::OpenEx(nullptr, alternate, 0, &file);
+        if(alternate[0])SFile::OpenEx(nullptr, alternate, 0, &file);
     }
-
-    if (!file) {
-        this->m_loadFailed = 1;
-        return 0;
+    if (!file) {this->m_loadFailed=1;return 0;}
+    uint32_t high=0;
+    const uint32_t size=SFileGetFileSize(file,&high);
+    constexpr uint32_t limit=64u*1024u*1024u;
+    if(high || size<offsetof(BLPHeader,m_extended) || size>limit){
+        SFileCloseFile(file);this->m_loadFailed=1;return 0;
     }
-
-    this->m_asyncObject = AsyncFileReadAllocObject();
-    this->m_asyncObject->m_userArg = this;
-    this->m_asyncObject->m_userPostloadCallback = reinterpret_cast<void*>(&LoadSuccessCallback);
-    this->m_asyncObject->m_file = file;
-    this->m_asyncObject->m_size = SFileGetFileSize(file, nullptr);
-    this->m_asyncObject->m_priority = 130;
-    this->m_size = this->m_asyncObject->m_size;
-    this->m_data = static_cast<BLPHeader*>(SMemAlloc(this->m_size, __FILE__, __LINE__, 0));
-    this->m_asyncObject->m_buffer = this->m_data;
-    AsyncFileReadObject(this->m_asyncObject, 0);
-
+    auto* buffer=static_cast<BLPHeader*>(SMemAlloc(size,__FILE__,__LINE__,0));
+    if(!buffer){SFileCloseFile(file);this->m_loadFailed=1;return 0;}
+    // The legacy queue has no byte-count/error result in its postload callback.
+    // A failed/partial read must not expose uninitialized allocation contents.
+    std::memset(buffer,0,size);
+    auto* object=AsyncFileReadAllocObject();
+    if(!object){SMemFree(buffer,__FILE__,__LINE__,0);SFileCloseFile(file);this->m_loadFailed=1;return 0;}
+    this->m_size=size;this->m_data=buffer;this->m_asyncObject=object;
+    object->m_userArg=this;
+    object->m_userPostloadCallback=reinterpret_cast<void*>(&LoadSuccessCallback);
+    object->m_file=file;object->m_size=size;object->m_priority=130;object->m_buffer=buffer;
+    AsyncFileReadObject(object,0);
     return 1;
 }
-
 // VERIFY: 70cae207 manual
 // OFFSET: 0x004F2CE0
 void* TextureCacheCopyTexture(void* handle) {
@@ -95,11 +114,13 @@ void* TextureCacheCopyTexture(void* handle) {
 void* TextureCacheGetMip(void* handle, uint32_t mipLevel) {
     CACHEENTRY* entry = static_cast<CACHEENTRY*>(handle);
 
-    if (!entry || entry->m_loadFailed || !entry->m_data || mipLevel >= entry->m_info.m_mipCount) {
+    if (!entry || entry->m_loadFailed || entry->m_asyncObject || !entry->m_data || mipLevel >= entry->m_info.m_mipCount) {
         return nullptr;
     }
 
-    return reinterpret_cast<uint8_t*>(entry->m_data) + entry->m_data->m_mipOffsets[mipLevel];
+    const uint32_t offset=entry->m_data->m_mipOffsets[mipLevel],size=entry->m_data->m_mipSizes[mipLevel];
+    if(offset<sizeof(BLPHeader)||offset>entry->m_size||!size||size>entry->m_size-offset)return nullptr;
+    return reinterpret_cast<uint8_t*>(entry->m_data)+offset;
 }
 
 // VERIFY: 0bb1b277 manual
@@ -107,7 +128,7 @@ void* TextureCacheGetMip(void* handle, uint32_t mipLevel) {
 BlpPalPixel* TextureCacheGetPal(void* handle) {
     CACHEENTRY* entry = static_cast<CACHEENTRY*>(handle);
 
-    if (!entry || entry->m_loadFailed || !entry->m_data || entry->m_data->m_colorEncoding != 1) {
+    if (!entry || entry->m_loadFailed || entry->m_asyncObject || !entry->m_info.m_mipCount || !entry->m_data || entry->m_size<sizeof(BLPHeader) || entry->m_data->m_colorEncoding != 1) {
         return nullptr;
     }
 
@@ -119,7 +140,7 @@ BlpPalPixel* TextureCacheGetPal(void* handle) {
 int32_t TextureCacheHasMips(void* handle) {
     CACHEENTRY* entry = static_cast<CACHEENTRY*>(handle);
 
-    return entry && entry->m_data && !entry->m_loadFailed;
+    return entry && entry->m_data && !entry->m_asyncObject && !entry->m_loadFailed && entry->m_info.m_width && entry->m_info.m_mipCount;
 }
 
 // VERIFY: 195da797 auto
@@ -159,6 +180,7 @@ void TextureCacheDestroy() {
 // VERIFY: 65c3dd55 auto
 // OFFSET: 0x004F2E50
 int32_t TextureCacheGetInfo(void* handle, TCTEXTUREINFO& info, int32_t wait) {
+    info={};info.m_opaque=1;
     CACHEENTRY* entry = static_cast<CACHEENTRY*>(handle);
 
     if (!entry) {
@@ -217,6 +239,7 @@ CACHEENTRY::~CACHEENTRY() {
 // VERIFY: 26c07029 manual
 // OFFSET: 0x004F2F60
 CACHEENTRY::CACHEENTRY() {
+    this->m_info={};this->m_unused=0;
     this->m_info.m_mipCount = 0;
     this->m_info.m_opaque = 1;
     this->m_info.m_width = 0;
@@ -241,7 +264,7 @@ static CACHEENTRY* TextureCacheAllocEntry() {
     uint32_t memHandle;
     void* object = nullptr;
 
-    if (!ObjectAlloc(*s_entryHeap, &memHandle, &object, false)) {
+    if (!s_entryHeap || !ObjectAlloc(*s_entryHeap, &memHandle, &object, false) || !object) {
         return nullptr;
     }
 
@@ -271,6 +294,8 @@ void TextureCacheDestroyTexture(void* handle) {
 // VERIFY: 1e1d17fd auto
 // OFFSET: 0x004F3930
 void* TextureCacheCreateTexture(const char* fileName) {
+    constexpr size_t capacity=sizeof(CACHEENTRY::m_fileName);
+    if(!fileName || !*fileName || strnlen_s(fileName,capacity)>=capacity)return nullptr;
     uint32_t hashval = SStrHash(fileName, 0, 0);
     CACHEENTRY* entry = s_cacheTable.Ptr(hashval, s_cacheKey);
 
@@ -280,6 +305,7 @@ void* TextureCacheCreateTexture(const char* fileName) {
     }
 
     entry = TextureCacheAllocEntry();
+    if(!entry)return nullptr;
     s_cacheTable.Insert(entry, hashval, s_cacheKey);
     SStrCopy(entry->m_fileName, fileName, sizeof(entry->m_fileName));
     entry->m_refCount++;

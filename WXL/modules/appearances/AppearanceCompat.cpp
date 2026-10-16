@@ -1,3 +1,4 @@
+#include "WXL/EquipmentAttachments.hpp"
 #include "WXL/PrivateAppearances.hpp"
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 // Direct native component integration; portable recipes never inspect host offsets.
@@ -117,6 +118,17 @@ std::vector<uint32_t> Signature(const CCharacterComponent& component) {
     for (const auto& section : component.m_section) {
         values.push_back(section.m_layerMask);
         for (auto id : section.m_layerItemDisplayId) values.push_back(id);
+        // Display IDs can stay identical when the actor's component variant
+        // changes. Preserve exact loaded cache identity in this immutable atlas key.
+        for (auto handle:section.m_layerTex) {
+            const auto* entry=static_cast<const CACHEENTRY*>(handle);
+            const char* path=entry?entry->m_fileName:"";
+            const auto length=std::strlen(path);values.push_back(uint32_t(length));
+            for (size_t offset=0;offset<length;offset+=4) {
+                uint32_t word=0;for(size_t byte=0;byte<4&&offset+byte<length;++byte)word|=uint32_t(uint8_t(path[offset+byte]))<<(byte*8);
+                values.push_back(word);
+            }
+        }
     }
     values.push_back(RetailChoiceRevision(component));
     return values;
@@ -284,7 +296,11 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
 }
 
 void Bind(CCharacterComponent& component, AppearanceAssets& state) {
+    wxl::native::equipment_attachments::BeginGeometry(component);
     if (component.m_flags & 4) component.GeosRenderPrep();
+    // The nested native geoset post-pass may have reapplied helmet visibility.
+    // Restore that owned mask before the recipe publishes its own base choices.
+    wxl::native::equipment_attachments::BeginGeometry(component);
     for (uint16_t geoset : state.ownedGeosets) component.m_data.m_model->SetGeometryVisible(geoset,geoset,0);
     for (uint16_t geoset : state.selectedGeosets) component.m_data.m_model->SetGeometryVisible(geoset,geoset,1);
     component.m_data.m_model->OptimizeVisibleGeometry();
@@ -318,6 +334,10 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
         if (component.m_request) return false; // existing worker retains its ownership
         // A context outage is transient; do not memoize it as a failed recipe.
         if (!g_theGxDevicePtr || !g_theGxDevicePtr->CapsHasContext(-1)) return false;
+        // Native section priority has already selected the owning item. Load
+        // its exact actor-selected component paths before composing the retail
+        // atlas; an async cache miss is transient, never an immutable recipe failure.
+        if (!component.ItemsLoaded(0)) return false;
         const auto signature = Signature(component);
         auto* current = component.m_wxlAppearance;
         if (current && current->model == model && current->signature == signature) {

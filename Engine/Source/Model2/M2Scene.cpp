@@ -16,6 +16,7 @@
 #include "Engine/Source/Services/GfxSingletonManager.h"
 #include "Engine/Source/Services/ParticleSystem2.h"
 #include "Engine/Source/Services/RibbonEmitter.h"
+#include "WXL/RetailSpellVisual.hpp"
 #include "Engine/Source/ShaderEffect/ShaderEffect.h"
 #include "Engine/Source/ShaderEffect/ShadowCache.h"
 #include "Engine/Source/Storm/H/storm.h"
@@ -1647,6 +1648,7 @@ CM2Scene::CM2Scene(CM2Cache* cache) {
 // VERIFY: aa195899 manual
 // OFFSET: 0x00821850
 CM2Scene::~CM2Scene() {
+    wxl::native::spell_visuals::ReleaseScene(this);
     for (CM2Model* model = this->m_modelList; model; model = this->m_modelList) {
         while (model->Release()) {
         }

@@ -16,8 +16,16 @@ struct ItemGraphModel {
 };
 struct ItemGraphMaterial {
  uint32_t modelIndex=UINT32_MAX,modelColumn=UINT32_MAX,layer=UINT32_MAX,textureType=UINT32_MAX,raceId=0,genderId=UINT32_MAX;
- std::string folder,model,texture,skinSectionIds,batchIndexes,targetSkinSectionIds,targetBatchIndexes,targetMode;
+ std::string folder,model,texture,texturePath,skinSectionIds,batchIndexes,targetSkinSectionIds,targetBatchIndexes,targetMode;
 };
+struct ItemGraphHelmetRule {uint32_t raceId=0,hideGroup=0,raceBitSelection=0,flags=0;};
+struct ItemGraphHelmet {
+ uint32_t visibilityId=0;std::vector<ItemGraphHelmetRule> rules;
+ // Retained metadata only. The donor has no HelmetAnimScaling consumer;
+ // Amount is not permission to scale an actor or an attached helmet model.
+ bool hasAnimScale=false;float animScale=0;
+};
+bool ItemGraphHelmetData(uint32_t display,uint32_t sex,uint32_t modelRace,ItemGraphHelmet&) noexcept;
 // Existing native DBC presentation always wins. Queries copy bounded owned data.
 bool ItemGraphOwnsDisplay(uint32_t displayId) noexcept;
 bool ItemGraphInventoryType(uint32_t displayId,uint32_t& inventoryType) noexcept;

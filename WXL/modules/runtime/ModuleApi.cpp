@@ -1,3 +1,4 @@
+#include "WXL/RetailSpellVisual.hpp"
 #include "WXL/EquipmentAttachments.hpp"
 #include "WXL/PrivateAppearances.hpp"
 #include "WXL/BarberAppearance.hpp"
@@ -11,6 +12,7 @@ namespace wxl::native {
 namespace {
 struct Entry {const char* id;const char* dependencies;bool(*enabled)() noexcept;};
 const Entry entries[]{
+ {"retail-spell-visuals","runtime,storage,db2,m2,protocol",&spell_visuals::Enabled},
  {"equipment-attachments","m2,db2,blp,appearances",&equipment_attachments::Enabled},
  {"private-appearances","appearances,appearance-session",&private_appearances::Enabled},
  {"barber-preview","appearances,appearance-session",&barber_appearance::Enabled},

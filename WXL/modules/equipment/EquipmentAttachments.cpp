@@ -13,6 +13,7 @@
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Services/Texture.h"
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
+#include "WoW/Common/TextureCache.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/ChrRacesRec.h"
 #include "WoW/Source/DB/Rec/ItemVisualsRec.h"
@@ -99,12 +100,53 @@ uint32_t Fallback(uint32_t race,uint32_t nativeRace){
 }
 bool SameOwner(const CCharacterComponent& c,const EquipmentAttachmentState& state);
 }
+struct HelmetSection {uint32_t index=0,id=0,visible=0;};
 struct EquipmentAttachmentState {
  CM2Model* model=nullptr;uint32_t handle=0,race=0,fallback=0,sex=0;uint64_t serial=0;uint32_t lastWork=0;bool worked=false;
  std::array<Slot,11> slots;
+ uint32_t helmetDisplay=0;uint64_t helmetGeneration=0;bool helmetMetadataReady=false;
+ ItemGraphHelmet helmet;const M2SkinProfile* helmetSkin=nullptr;
+ std::vector<HelmetSection> helmetSections;std::vector<uint8_t> helmetCaptured;
 };
 namespace {
 bool SameOwner(const CCharacterComponent& c,const EquipmentAttachmentState& s){auto* model=c.m_data.m_model;return model&&model==s.model&&model->m_handle==s.handle&&c.m_wxlSerial==s.serial;}
+bool HelmetActor(const CCharacterComponent& c,const EquipmentAttachmentState& owner){
+ const auto wire=c.m_data.m_preferences.m_raceID;
+ if(!owner.race||wire==16||wire==23||(c.m_data.m_flags&1u))return false;
+ auto path=Key(owner.model->m_shared->m_fileName);
+ if(path.find("eredar")!=std::string::npos||path.find("broken")!=std::string::npos)return false;
+ if(path.starts_with("hd\\"))path.erase(0,3);
+ if(wire<=11&&!owner.model->m_shared->m_wxlAssets&&!path.ends_with("_hd.m2"))return false;
+ return path.starts_with("character\\")||path.starts_with("creature\\");
+}
+bool HelmetRuleMatches(const ItemGraphHelmetRule& rule,uint32_t race){
+ return rule.raceId?rule.raceId==race:race&&(rule.raceBitSelection&3u)==3u;
+}
+void ApplyHelmet(CCharacterComponent& c,EquipmentAttachmentState& owner){
+ const auto display=c.m_itemDisplayID[ITEMSLOT_HEAD];const auto generation=ItemGraphGeneration();
+ if(owner.helmetDisplay!=display||owner.helmetGeneration!=generation){
+  equipment_attachments::BeginGeometry(c);owner.helmetDisplay=display;owner.helmetGeneration=generation;owner.helmetMetadataReady=false;owner.helmet={};
+ }
+ if(!display||!ItemGraphOwnsDisplay(display)||!HelmetActor(c,owner)) {equipment_attachments::BeginGeometry(c);return;}
+ // A model-less/pending head row must not hide the character's hair or ears.
+ const auto& head=owner.slots[ITEMSLOT_HEAD];
+ if(!head.ready||head.display!=display||head.children.empty()){equipment_attachments::BeginGeometry(c);return;}
+ if(!owner.helmetMetadataReady){if(!ItemGraphHelmetData(display,owner.sex,owner.race,owner.helmet))return;owner.helmetMetadataReady=true;}
+ auto* model=owner.model;const auto* skin=model->m_shared->m_skinData;
+ if(!skin||!model->m_skinSections||skin->m_skinSections.m_count>16384)return;
+ if(owner.helmetSkin!=skin){owner.helmetSections.clear();owner.helmetCaptured.clear();owner.helmetSkin=skin;}
+ if(owner.helmetCaptured.size()!=skin->m_skinSections.m_count)owner.helmetCaptured.assign(skin->m_skinSections.m_count,0);
+ std::array<bool,100> hidden{};
+ for(const auto& rule:owner.helmet.rules)if(rule.hideGroup<hidden.size()&&HelmetRuleMatches(rule,owner.race))hidden[rule.hideGroup]=true;
+ bool changed=false;
+ for(uint32_t i=0;i<skin->m_skinSections.m_count;++i){const auto id=skin->m_skinSections[i].m_skinSectionId;
+  // N01..N99 only. Mandatory body ID0 and N00 remain untouched.
+  if(!id||id%100==0||id/100>=hidden.size()||!hidden[id/100]||!model->m_skinSections[i])continue;
+  if(!owner.helmetCaptured[i]){owner.helmetSections.push_back({i,id,model->m_skinSections[i]});owner.helmetCaptured[i]=1;}
+  changed=true;
+ }
+ if(changed){for(uint32_t group=0;group<hidden.size();++group)if(hidden[group])model->SetGeometryVisible(group*100+1,group*100+99,0);model->OptimizeVisibleGeometry();}
+}
 bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t slot,uint32_t display,Slot& output){
  std::vector<ItemGraphModel> models;std::vector<ItemGraphMaterial> materials;
  if(!ItemGraphModels(display,models)||!ItemGraphMaterials(display,materials))return false;
@@ -141,11 +183,46 @@ bool SuppressNativeArmor(const CCharacterComponent& c,uint32_t slot) noexcept{
  if(!Enabled()||slot>=11||(c.m_data.m_flags&1u))return false;
  const auto race=RetailRecipeRace(c);return c.m_data.m_preferences.m_raceID==28||race==52||race==70;
 }
+void BeginGeometry(CCharacterComponent& c) noexcept{try{
+ auto* state=c.m_wxlEquipmentAttachments;if(!state)return;
+ if(SameOwner(c,*state)&&state->helmetSkin&&state->model->m_shared&&state->helmetSkin==state->model->m_shared->m_skinData&&state->model->m_skinSections){
+  const auto& sections=state->helmetSkin->m_skinSections;bool changed=false;
+  for(const auto& saved:state->helmetSections)if(saved.index<sections.m_count&&sections[saved.index].m_skinSectionId==saved.id&&!state->model->m_skinSections[saved.index]){
+   state->model->m_skinSections[saved.index]=saved.visible;changed=true;
+  }
+  if(changed){state->model->UnoptimizeVisibleGeometry();state->model->OptimizeVisibleGeometry();}
+ }
+ state->helmetSections.clear();state->helmetCaptured.clear();state->helmetSkin=nullptr;
+ }catch(...){}}
 void InvalidateSlot(CCharacterComponent& c,uint32_t slot) noexcept{
  if(!c.m_wxlEquipmentAttachments||slot>=11)return;
+ if(slot==ITEMSLOT_HEAD)BeginGeometry(c);
  auto& slots=c.m_wxlEquipmentAttachments->slots;slots[slot]=Slot{};
  for(uint32_t next=slot+1;next<11;++next){slots[next].ready=false;slots[next].retryAt=0;}
 }
+bool SelectBodyLayers(const CCharacterComponent& c,uint32_t display,std::array<std::string,8>& paths) noexcept{try{
+ paths={};if(!Enabled()||!ItemGraphOwnsDisplay(display)||(c.m_data.m_flags&1u)||c.m_data.m_preferences.m_sexID>1)return false;
+ // Keep the component-layer identity contract: these are ComponentSection
+ // values, not replaceable model texture types or native compositor priorities.
+ std::vector<ItemGraphMaterial> rows;if(!ItemGraphMaterials(display,rows)||rows.size()>256)return false;
+ if(SuppressNativeArmor(c,0))return true;
+ const auto& prefs=c.m_data.m_preferences;auto race=RetailRecipeRace(c);if(!race)race=RetailRaceId(prefs.m_raceID);
+ const auto fallback=Fallback(prefs.m_raceID,RetailEquipmentRace(c));
+ std::array<const ItemGraphMaterial*,8> selected{};std::array<int,8> ranks;ranks.fill(-1);
+ for(const auto& row:rows){if(row.layer>=8||row.textureType!=Missing||row.modelIndex!=Missing)continue;
+  const auto rank=Rank(row,race,fallback,prefs.m_sexID);if(rank<0||rank<ranks[row.layer])continue;
+  selected[row.layer]=&row;ranks[row.layer]=rank;
+ }
+ std::array<std::string,8> result;
+ for(uint32_t region=0;region<8;++region)if(selected[region]){
+  auto path=Key(selected[region]->texturePath);
+  // CACHEENTRY owns a bounded 128-byte filename. Reject a long authority
+  // path instead of letting its native cache silently truncate to another file.
+  if(!SafePart(path)||path.size()>=sizeof(((CACHEENTRY*)nullptr)->m_fileName)||path.size()<4||path.compare(path.size()-4,4,".blp")||!SFile::FileExists(path.c_str()))return false;
+  result[region]=std::move(path);
+ }
+ paths.swap(result);return true;
+ }catch(...){paths={};return false;}}
 void BindNativeMaterials(CM2Model* model,uint32_t display) noexcept{try{
  if(!Enabled()||!model)return;std::vector<ItemGraphModel> entries;std::vector<ItemGraphMaterial> materials;
  if(!ItemGraphModels(display,entries)||!ItemGraphMaterials(display,materials))return;
@@ -156,7 +233,7 @@ void BindNativeMaterials(CM2Model* model,uint32_t display) noexcept{try{
   Materials(*model,entry,materials,0,0,Missing);return;
  }
  }catch(...){}}
-void Release(CCharacterComponent& c) noexcept{delete c.m_wxlEquipmentAttachments;c.m_wxlEquipmentAttachments=nullptr;}
+void Release(CCharacterComponent& c) noexcept{const bool restore=c.m_wxlEquipmentAttachments&&!c.m_wxlEquipmentAttachments->helmetSections.empty();BeginGeometry(c);delete c.m_wxlEquipmentAttachments;c.m_wxlEquipmentAttachments=nullptr;if(restore)c.m_flags|=4u;}
 void Apply(CCharacterComponent& c) noexcept{try{
  auto* model=c.m_data.m_model;const auto& prefs=c.m_data.m_preferences;
  if(!Enabled()||(c.m_data.m_flags&1u)||prefs.m_sexID>1||!model){Release(c);return;}
@@ -173,6 +250,7 @@ void Apply(CCharacterComponent& c) noexcept{try{
   for(uint32_t higher=slot+1;higher<11;++higher){state->slots[higher].ready=false;state->slots[higher].retryAt=0;}}
  for(auto& slot:state->slots)if(slot.ready)for(const auto& child:slot.children){
   if(child->skinned?child->model->m_skinningSource!=model:child->model->m_attachParent!=model){slot.ready=false;slot.retryAt=0;break;}}
+ ApplyHelmet(c,*state);
  const auto now=OsGetAsyncTimeMs();if(state->worked&&uint32_t(now-state->lastWork)<16)return;state->worked=true;state->lastWork=now;
  uint32_t work=0;
  for(uint32_t slot=0;slot<11&&work<2;++slot){auto& old=state->slots[slot];if(!old.display||old.ready||(old.retryAt&&int32_t(now-old.retryAt)<0))continue;
@@ -180,6 +258,7 @@ void Apply(CCharacterComponent& c) noexcept{try{
   if(id<=uint32_t(INT32_MAX)&&g_itemDisplayInfoDB.m_loaded&&int32_t(id)>=g_itemDisplayInfoDB.m_minID&&int32_t(id)<=g_itemDisplayInfoDB.m_maxID&&g_itemDisplayInfoDB.m_recordsById&&g_itemDisplayInfoDB.m_recordsById[id-g_itemDisplayInfoDB.m_minID]){old.ready=true;continue;}
   ++work;Slot next;next.display=old.display;next.generation=ItemGraphGeneration();
   if(BuildSlot(c,*state,slot,old.display,next)){old=std::move(next);}else{old.children.clear();old.retryAt=now+500;}
+  if(slot==ITEMSLOT_HEAD)ApplyHelmet(c,*state);
  }
  }catch(...){Release(c);}}
 void ApplyItemVisual(CM2Model* parent,int32_t visual) noexcept{try{

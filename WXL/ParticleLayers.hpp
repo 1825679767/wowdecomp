@@ -16,8 +16,11 @@ namespace wxl::native {
 // Complete source record retained before normalization; no borrowed source bytes.
 enum class BloodSpriteFamily : uint8_t {None,BoilSmoke,BoilScreen,PlagueSmoke};
 void RegisterBloodSpriteMaterials();
+void RegisterRiftSpriteMaterials();
+bool MatchExactRiftSource(const char*,const uint8_t*,size_t) noexcept;
 struct ParticleLayerRecipe {
  BloodSpriteFamily bloodFamily=BloodSpriteFamily::None;
+ bool riftNative=false;
  std::array<uint32_t,3> sourceTextureIds{};
  uint32_t sourceFlags{};
  uint8_t sourceBlend{};

@@ -253,6 +253,12 @@ static int32_t CopyStringToBuffer(const char* src, char* dst) {
 // VERIFY: 576ded8c auto
 // OFFSET: 0x004E6FB0
 void* CCharacterComponent::LoadItemComponentTexture(const ItemDisplayInfoRec* displayRec, COMPONENT_SECTIONS section) {
+    if (displayRec && wxl::native::equipment_attachments::Enabled() && wxl::native::ItemGraphOwnsDisplay(uint32_t(displayRec->m_id))) {
+        std::array<std::string,8> paths;
+        if (uint32_t(section)>=paths.size() || !wxl::native::equipment_attachments::SelectBodyLayers(*this,uint32_t(displayRec->m_id),paths) || paths[section].empty()) return nullptr;
+        return TextureCacheCreateTexture(paths[section].c_str());
+    }
+
     SStrPrintf(s_path, sizeof(s_path), "Item\\TextureComponents\\%s\\%s_%s.blp", s_componentSections[section], displayRec->m_texture[section], s_fileDecorations[2]);
 
     if (!SFile::FileExists(s_path)) {
@@ -3462,6 +3468,7 @@ static bool __stdcall ItemDisplayHasGeosetGroup(uint32_t displayID, int32_t grou
 // VERIFY: 197cf0f7 manual
 // OFFSET: 0x004ED900
 void CCharacterComponent::GeosRenderPrep() {
+    wxl::native::equipment_attachments::BeginGeometry(*this);
     struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);wxl::native::equipment_attachments::Apply(c);} } privatePost{*this};
     bool eyeGlow = false;
 
@@ -3674,7 +3681,11 @@ int32_t CCharacterComponent::UpdateTextureSlot(COMPONENT_SECTIONS section, const
     if (sectionData.m_layerItemDisplayId[layer]) {
         ItemDisplayInfoRec rec;
 
-        if (g_itemDisplayInfoDB.GetRecord(sectionData.m_layerItemDisplayId[layer], &rec) && rec.m_texture[section] == displayRec->m_texture[section]) {
+        if (wxl::native::equipment_attachments::Enabled() && wxl::native::ItemGraphOwnsDisplay(uint32_t(displayRec->m_id))) {
+            std::array<std::string,8> paths;
+            const auto* cached=static_cast<const CACHEENTRY*>(sectionData.m_layerTex[layer]);
+            if (cached && uint32_t(section)<paths.size() && wxl::native::equipment_attachments::SelectBodyLayers(*this,uint32_t(displayRec->m_id),paths) && paths[section]==cached->m_fileName) {sectionData.m_layerItemDisplayId[layer]=displayRec->m_id;return 0;}
+        } else if (g_itemDisplayInfoDB.GetRecord(sectionData.m_layerItemDisplayId[layer], &rec) && rec.m_texture[section] == displayRec->m_texture[section]) {
             return 0;
         }
     }
@@ -3899,6 +3910,7 @@ void CCharacterComponent::AddHelm(int32_t itemVisual) {
 
     CCharacterComponent::AddLink(this->m_data.m_model, ATTACH_HELM, s_path, s_path2, itemVisual, displayRec);
 
+    if (wxl::native::equipment_attachments::Enabled() && wxl::native::ItemGraphOwnsDisplay(uint32_t(displayRec->m_id))) return; // Modern graph IDs are not legacy visibility IDs.
     HelmetGeosetVisDataRec* visRec = g_helmetGeosetVisDataDB.GetRecord(displayRec->m_helmetGeosetVisID[this->m_data.m_preferences.m_sexID]);
 
     if (!visRec) {
@@ -5635,6 +5647,19 @@ void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, const ItemDisplayInfoRec* 
         return;
     }
     if (uint32_t(itemSlot)<12) { m_wxlPendingItemDisplay[uint32_t(itemSlot)]=0; m_wxlPendingItemVisual[uint32_t(itemSlot)]=0; }
+    std::array<std::string,8> actorLayers;
+    ItemDisplayInfoRec actorDisplay;
+    const bool actorBody = displayRec && !(this->m_data.m_flags&1u)
+        && wxl::native::equipment_attachments::Enabled() && wxl::native::ItemGraphOwnsDisplay(uint32_t(displayRec->m_id));
+    if (actorBody) {
+        if (!wxl::native::equipment_attachments::SelectBodyLayers(*this,uint32_t(displayRec->m_id),actorLayers)) {
+            if (uint32_t(itemSlot)<12) {m_wxlPendingItemDisplay[itemSlot]=uint32_t(displayRec->m_id);m_wxlPendingItemVisual[itemSlot]=itemVisual;}
+            return; // An unresolved/invalid actor resource never selects a generic body variant.
+        }
+        actorDisplay=*displayRec;
+        for (uint32_t region=0;region<8;++region) actorDisplay.m_texture[region]=actorLayers[region].c_str();
+        displayRec=&actorDisplay; // Only synchronous native dispatch borrows these owned strings.
+    }
     this->m_flags |= 0x4;
     this->m_itemDisplayID[itemSlot] = displayRec->m_id;
 
@@ -5687,8 +5712,8 @@ void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, const ItemDisplayInfoRec* 
             }
 
             for (int32_t section = 0; section < 8; section++) {
-                if (*displayRec->m_texture[section] && s_itemPriority[itemSlot][section] != -1) {
-                    (this->*CCharacterComponent::m_itemFunc[section])(itemSlot, displayRec, true);
+                if (s_itemPriority[itemSlot][section] != -1 && (actorBody || *displayRec->m_texture[section])) {
+                    (this->*CCharacterComponent::m_itemFunc[section])(itemSlot, displayRec, *displayRec->m_texture[section]!=0);
                 }
             }
 

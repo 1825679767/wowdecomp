@@ -47,6 +47,7 @@ namespace wxl::runtime::db2::itemdisplay
         const char* folder = "";
         const char* model = "";
         const char* texture = "";
+        const char* texturePath = ""; // Exact resolved mounted path; never rebuild from a basename.
         const char* skinSectionIds = "";
         const char* batchIndexes = "";
         const char* targetSkinSectionIds = "";

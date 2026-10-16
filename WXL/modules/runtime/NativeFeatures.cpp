@@ -1,3 +1,4 @@
+#include "WXL/DonorMaterialFallback.hpp"
 #include "WXL/EquipmentAttachments.hpp"
 #include "WXL/PrivateAppearances.hpp"
 #include "WXL/BarberAppearance.hpp"
@@ -6,6 +7,7 @@
 #include "NativeFeatures.hpp"
 #include "MeshMaterials.hpp"
 #include "ParticleRefraction.hpp"
+#include "RetailSpellVisual.hpp"
 #include "ParticleLayers.hpp"
 #include "CreationEffects.hpp"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
@@ -25,9 +27,12 @@ bool Changed(CVar*,const char*,const char* value,void* arg){
 bool On(uint32_t bit) noexcept{return (enabled.load(std::memory_order_acquire)&Compiled&bit)!=0;}
 }
 void RegisterFeatures(){
+ RegisterDonorMaterialFallback();
  equipment_attachments::Register();
  mesh_materials::RegisterDndMaterials();
  RegisterParticleRefraction();
+ spell_visuals::Register();
+ RegisterRiftSpriteMaterials();
  RegisterBloodSpriteMaterials();
  private_appearances::Register();
  barber_appearance::Register();

@@ -1,5 +1,6 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "AssetCompat.hpp"
+#include "DonorMaterialFallback.hpp"
 #include "NativeFeatures.hpp"
 #include "FdidCompat.hpp"
 #include "ParticleCompat.hpp"
@@ -24,14 +25,28 @@ namespace wxl::native {
 namespace {
 constexpr uint32_t Limit=64u*1024*1024;
 std::string Key(const char* path){std::string key=path?path:"";for(auto& c:key){if(c=='/')c='\\';if(c>='A' && c<='Z')c=char(c-'A'+'a');}return key;}
-struct Skin {std::vector<uint8_t> original,prepared,converted;std::shared_ptr<const mesh_materials::Source> mesh;};
+struct Skin {std::vector<uint8_t> original,prepared,converted;std::shared_ptr<const mesh_materials::Source> mesh;std::shared_ptr<const DonorMaterialRecipe> donor;};
 }
-struct ModelAssets {std::string meshPath;const uint8_t* meshInput=nullptr;size_t meshInputSize=0;std::shared_ptr<const mesh_materials::Source> selectedMesh;std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;ParticleLayerSet layers;std::shared_ptr<const ParticleRefractionRecipe> refraction;};
+struct ModelAssets {bool donorFallback=false;std::vector<uint8_t> donorSourceModel;std::string meshPath;const uint8_t* meshInput=nullptr;size_t meshInputSize=0;std::shared_ptr<const mesh_materials::Source> selectedMesh;std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;ParticleLayerSet layers;bool riftSource=false;std::shared_ptr<const ParticleRefractionRecipe> refraction;};
 namespace {
 thread_local ModelAssets* loading{};
 bool ReadCompanion(const char* path,std::vector<uint8_t>& output){
  if(!ReadAsset(path,output))return false;
- const auto key=Key(path);if(loading && key.ends_with(".skin")){auto& skin=loading->skins[key];skin.original=output;skin.mesh=mesh_materials::Prepare(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);if(!skin.mesh)mesh_materials::PrepareNativeCompatibilitySkin(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);if(!skin.prepared.empty())output=skin.prepared;}
+ const auto key=Key(path);
+ if(loading && key.ends_with(".skin")){
+  auto& skin=loading->skins[key];skin.original=output;
+  skin.mesh=mesh_materials::Prepare(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);
+  if(!skin.mesh)mesh_materials::PrepareNativeCompatibilitySkin(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);
+  // Exact renderer-owned prepared skins have priority. Sample the optional
+  // approximation policy once per model, never per batch or asynchronous read.
+  if(skin.prepared.empty() && loading->donorFallback){
+   std::string reason;
+   if(!PrepareDonorMaterialSkin(loading->meshInput,loading->meshInputSize,skin.original,skin.prepared,skin.donor,reason)){
+    WLOG_WARN("native-donor-material: refused model=%s skin=%s reason=%s",loading->meshPath.c_str(),path,reason.c_str());return false;
+   }
+  }
+  if(!skin.prepared.empty())output=skin.prepared;
+ }
  return true;
 }
 
@@ -41,8 +56,9 @@ bool PrepareModel(CM2Shared& shared){
  const auto* raw=reinterpret_cast<const uint8_t*>(shared.m_data);
  if(std::memcmp(raw,"MD21",4))return true;
  if(!AssetsEnabled())return true; // Native unsupported-format handling remains authoritative.
- try{auto assets=std::make_unique<ModelAssets>();assets->meshPath=shared.m_fileName;assets->meshInput=raw;assets->meshInputSize=shared.m_fileSize;std::vector<uint8_t> converted;wxl::waystone::m2bytes::Stats stats;
+ try{auto assets=std::make_unique<ModelAssets>();assets->donorFallback=DonorMaterialFallbackEnabled();assets->meshPath=shared.m_fileName;assets->meshInput=raw;assets->meshInputSize=shared.m_fileSize;std::vector<uint8_t> converted;wxl::waystone::m2bytes::Stats stats;
   assets->refraction=CaptureParticleRefraction(shared.m_fileName,raw,shared.m_fileSize);
+  assets->riftSource=MatchExactRiftSource(shared.m_fileName,raw,shared.m_fileSize);
   std::string layerReason;
   if(!CaptureParticleLayers(shared.m_fileName,raw,shared.m_fileSize,assets->layers,layerReason)){
    WLOG_WARN("native-modern-layers: refused path=%s reason=%s",shared.m_fileName,layerReason.c_str());return false;
@@ -67,12 +83,27 @@ bool PrepareModel(CM2Shared& shared){
    std::memcpy(&count,converted.data()+offsetof(M2Data,m_particles),sizeof(count));
    if(count!=assets->layers.size())return false;
   }
-  if(!ApplyParticleExtensions({raw,shared.m_fileSize},converted,particleReason,&assets->cutoffs,&assets->layers)){
+  if(!assets->riftSource && !ApplyParticleExtensions({raw,shared.m_fileSize},converted,particleReason,&assets->cutoffs,&assets->layers)){
    WLOG_WARN("native-modern-particles: refused path=%s reason=%s",shared.m_fileName,particleReason.c_str());return false;
   }
   PreserveMaterials({raw,shared.m_fileSize},converted);
   for(const auto& [name,skin]:assets->skins)if(skin.mesh&&!mesh_materials::ApplyPreparedMaterials(*skin.mesh,converted))return false;
-  for(auto& [name,skin]:assets->skins){if(!wxl::waystone::m2bytes::ConvertSkin(!skin.prepared.empty()?skin.prepared:skin.original,skin.converted,true))return false;if(skin.mesh&&!mesh_materials::ConvertedMatches(*skin.mesh,skin.converted))return false;}
+  for(auto& [name,skin]:assets->skins){
+   const auto& prepared=!skin.prepared.empty()?skin.prepared:skin.original;
+   if(skin.donor && wxl::waystone::m2bytes::Fingerprint(prepared)!=skin.donor->preparedSkinFingerprint)return false;
+   if(!wxl::waystone::m2bytes::ConvertSkin(prepared,skin.converted,true))return false;
+   if(skin.mesh&&!mesh_materials::ConvertedMatches(*skin.mesh,skin.converted))return false;
+   if(skin.donor){
+    std::string reason;
+    if(!FinishDonorMaterialSkin(*skin.donor,converted,skin.converted,reason)){
+     WLOG_WARN("native-donor-material: converted contract refused model=%s skin=%s reason=%s",shared.m_fileName,name.c_str(),reason.c_str());return false;
+    }
+    if(assets->donorSourceModel.empty())assets->donorSourceModel.assign(raw,raw+shared.m_fileSize);
+    uint32_t rules[5]{};for(const auto& batch:skin.donor->batches)++rules[uint32_t(batch.rule)];
+    WLOG_WARN("native-donor-material: donor approximation model=%s skin=%s source-hash=%llx skin-hash=%llx rebase=%u collapse=%u default-diffuse=%u env-split=%u uv1-split=%u; source bytes retained; retail shader parity not provided",shared.m_fileName,name.c_str(),static_cast<unsigned long long>(skin.donor->modelFingerprint),static_cast<unsigned long long>(skin.donor->sourceSkinFingerprint),rules[0],rules[1],rules[2],rules[3],rules[4]);
+    uint32_t logged=0;for(const auto& batch:skin.donor->batches){if(logged++==16)break;WLOG_WARN("native-donor-material: source-batch=%u shader=0x%04x textures=%u rule=%u native-batch=%u",batch.sourceBatch,unsigned(batch.sourceShader),unsigned(batch.sourceTextureCount),unsigned(batch.rule),batch.firstNativeBatch);}
+   }
+  }
   assets->meshInput=nullptr;assets->meshInputSize=0;
   auto* replacement=static_cast<M2Data*>(SIMD::AllocA16(converted.size(),__FILE__,__LINE__));if(!replacement)return false;
   std::memcpy(replacement,converted.data(),converted.size());SIMD::FreeA16(shared.m_data);
@@ -98,6 +129,7 @@ std::shared_ptr<const ParticleCutoffTrack> ParticleCutoffFor(const CM2Shared& sh
 std::shared_ptr<const ParticleRefractionRecipe> ParticleRefractionFor(const CM2Shared& shared,uint32_t index) noexcept {
  return shared.m_wxlAssets && index==0 ? shared.m_wxlAssets->refraction : nullptr;
 }
+bool IsExactRiftSource(const CM2Shared& shared) noexcept {return shared.m_wxlAssets&&shared.m_wxlAssets->riftSource;}
 std::shared_ptr<const ParticleLayerRecipe> ParticleLayersFor(const CM2Shared& shared,uint32_t index) noexcept {
  if(!shared.m_wxlAssets || index>=shared.m_wxlAssets->layers.size())return {};
  return shared.m_wxlAssets->layers[index];

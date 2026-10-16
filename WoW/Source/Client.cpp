@@ -1,5 +1,6 @@
 #include "WXL/ItemGraph.hpp"
 #include "WXL/NativeFeatures.hpp"
+#include "WXL/RetailSpellVisual.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -893,6 +894,7 @@ void StartupReport(bool firstRun) {
 // VERIFY: 2b64aabf manual
 // OFFSET: 0x00403B70
 static int32_t LoadNewWorld(const void* data, void* param) {
+    wxl::native::spell_visuals::WorldLeave();
     ClientServices::Connection()->CharacterSetInGame(0);
     MovementDestroy();
     EventUnregister(EVENT_ID_IDLE, MovementIdleMoveUnits);
@@ -1573,6 +1575,7 @@ void ClientDestroyGame(int32_t charSelect, int32_t resumeGlue, int32_t worldLogi
         StaticSingleton<CommandManager>::m_instance = nullptr;
     }
 
+    wxl::native::spell_visuals::WorldLeave();
     Trade_C_Destroy();
     FriendList::Destroy();
     AreaListShutdown();
@@ -1779,6 +1782,7 @@ bool InitializeGlobal() {
 // VERIFY: 87ba0ad5 manual
 // OFFSET: 0x00406B70
 void BeginCloseGame() {
+    wxl::native::spell_visuals::Shutdown();
     SMemSetDebugFlags(0, 8);
     OsIMEDestroy();
     OsTimeShutdown();
