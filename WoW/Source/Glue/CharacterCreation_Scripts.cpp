@@ -1,3 +1,4 @@
+#include "WXL/CreationEffects.hpp"
 #include <limits>
 #include "CharacterCreation.h"
 #include <cstdint>
@@ -607,6 +608,7 @@ static FrameScript_Method s_scriptFunctions[] = {
 // VERIFY: 88b9bf9d auto
 // OFFSET: 0x004DFD00
 void CharacterCreateRegisterScriptFunctions() {
+    wxl::native::creation_effects::InitializeLua();
     for (uint32_t i = 0; i < sizeof(s_scriptFunctions) / sizeof(s_scriptFunctions[0]); i++) {
         FrameScript_RegisterFunction(s_scriptFunctions[i].m_name, s_scriptFunctions[i].m_method);
     }
@@ -615,6 +617,8 @@ void CharacterCreateRegisterScriptFunctions() {
 // VERIFY: 50e76597 auto
 // OFFSET: 0x004DFD30
 void CharacterCreateUnregisterScriptFunctions() {
+    wxl::native::creation_effects::StopCreation();
+    FrameScript_UnregisterFunction("WXL_SetCreationEffectsCustomizationOpen");
     for (uint32_t i = 0; i < sizeof(s_scriptFunctions) / sizeof(s_scriptFunctions[0]); i++) {
         FrameScript_UnregisterFunction(s_scriptFunctions[i].m_name);
     }

@@ -1,4 +1,5 @@
 #include "WorldFrame.h"
+#include "WXL/QuestMarker.hpp"
 #include "Engine/Source/Base/ConvertUTF.h"
 #include <cstring>
 #include <typeinfo>
@@ -1774,6 +1775,7 @@ void CGWorldFrame::OnWorldRender() {
     SpellVisualsTick();
     SpellVisualsRender();
     CGUnit_C::RenderMissileTrajectoryTargetingTexture();
+    wxl::native::quest_marker::RenderObjectives();
     this->ClearTrackedObjects();
     CWorldScene::RenderParticulate();
     GxuSortDrawList(GxuCat_1, GxuSort_B2F, *World::GetCamPos());

@@ -2,6 +2,7 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ClientExtensions.hpp"
 #include "RadialPing.hpp"
+#include "QuestMarker.hpp"
 #include "WXL/NativeFeatures.hpp"
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -83,7 +84,7 @@ void InstallHelpers(){ParseArguments();
  FrameScript_RegisterFunction("WXL_GetArgument",&GetArgument);FrameScript_RegisterFunction("WXL_ReadClientFileText",&ReadFile);
  FrameScript_Execute(Bootstrap,"WXLNativeClientHelpers",nullptr);
 }
-void Install(){if(!ClientExtensionsEnabled())return;InstallHelpers();radial_ping::Install();InstallPackets();InstallParagon();}
-void UiReady(){if(ClientExtensionsEnabled()){StartPacketPump();radial_ping::UiReady();}}
-void Destroy()noexcept{radial_ping::Destroy();DestroyPackets();DestroyParagon();arguments.clear();}
+void Install(){if(!ClientExtensionsEnabled())return;InstallHelpers();radial_ping::Install();quest_marker::Install();InstallPackets();InstallParagon();}
+void UiReady(){if(ClientExtensionsEnabled()){StartPacketPump();radial_ping::UiReady();quest_marker::UiReady();}}
+void Destroy()noexcept{quest_marker::Destroy();radial_ping::Destroy();DestroyPackets();DestroyParagon();arguments.clear();}
 }

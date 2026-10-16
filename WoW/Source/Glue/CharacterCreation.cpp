@@ -1,3 +1,4 @@
+#include "WXL/CreationEffects.hpp"
 #include "WXL/AlternateAppearances.hpp"
 #include "CharacterCreation.h"
 #include "WXL/RetailChoices.hpp"
@@ -125,6 +126,7 @@ void CCharacterCreation::Initialize() {
 // VERIFY: 3b1595cf manual
 // OFFSET: 0x004E1E20
 void CCharacterCreation::Shutdown() {
+    wxl::native::creation_effects::StopCreation();
     wxl::native::alternate_appearances::ReleaseCreation();
     if (CCharacterCreation::m_character) {
         CCharacterComponent::FreeComponent(CCharacterCreation::m_character);
@@ -150,6 +152,7 @@ int32_t CCharacterCreation::Idle(const void* data, void* param) {
     wxl::native::appearance_session::Tick();
     wxl::native::UpdateRetailChoiceUi();
     CGlueLoading::Idle(CCharacterCreation::m_character);
+    wxl::native::creation_effects::UpdateCreation();
     return 1;
 }
 
@@ -171,6 +174,7 @@ void CCharacterCreation::GetRandomRaceAndSex(ComponentData* data) {
 // VERIFY: 45c27290 auto
 // OFFSET: 0x004DFFC0
 void CCharacterCreation::OnHide() {
+    wxl::native::creation_effects::StopCreation();
     wxl::native::alternate_appearances::ReleaseCreation();
     wxl::native::HideRetailChoiceUi();
     wxl::native::appearance_session::Cancel();
@@ -204,6 +208,7 @@ void CCharacterCreation::SetCharCustomizeModel(const char* modelName) {
     }
 
     wxl::native::alternate_appearances::ReleaseCreation();
+    wxl::native::creation_effects::StopCreation();
     CCharacterCreation::m_charCustomizeFrame->SetModel(modelName);
     CCharacterCreation::m_charCustomizeFrame->m_lightArray1[0].unk_01B5 = 1;
 
@@ -605,6 +610,7 @@ void CCharacterCreation::InitCharacterComponents(ComponentData* data, bool rando
         return; // Preserve the previous actor on unsupported/missing component data.
     }
     if (previous) wxl::native::TransferRetailChoices(*previous,*candidate);
+    wxl::native::creation_effects::StopCreation();
     CCharacterCreation::m_character = candidate;
     if (previous) {
         wxl::native::alternate_appearances::ReleaseCreation();

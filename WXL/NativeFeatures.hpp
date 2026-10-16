@@ -6,6 +6,7 @@ bool NativeEnabled() noexcept;
 bool Db2Enabled() noexcept;
 bool WmoEnabled() noexcept;
 bool ClientExtensionsEnabled() noexcept;
+bool QuestMarkerEnabled() noexcept;
 bool RadialPingEnabled() noexcept;
 bool SplitAdtEnabled() noexcept;
 bool AppearanceSaveEnabled() noexcept;
