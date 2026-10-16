@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdio>
 #include "WXL/ParticleRefraction.hpp"
 #include <cstdint>
 #include <cstring>
@@ -416,6 +417,20 @@ void CGxDeviceD3d::ICursorCreate(const CGxFormat& format) {
 
         this->m_hwCursorDirty = 1;
         this->ICursorDraw();
+
+        char captureFrame[24]{};
+        if(GetEnvironmentVariableA("WXL_DX11_CAPTURE_FRAME",captureFrame,sizeof(captureFrame))&&
+           m_frameCount==std::strtoul(captureFrame,nullptr,10)){
+            TSGrowableArray<CImVector> pixels;CiRect rect(0,0,m_format.m_size.y,m_format.m_size.x);DeviceReadPixels(rect,pixels);
+            if(pixels.Count()==uint32_t(m_format.m_size.x*m_format.m_size.y)){
+                FILE* file=nullptr;fopen_s(&file,"Logs/native-d3d9-frame.bmp","wb");
+                if(file){BITMAPFILEHEADER header{};BITMAPINFOHEADER info{};
+                    header.bfType=0x4d42;header.bfOffBits=sizeof(header)+sizeof(info);header.bfSize=header.bfOffBits+pixels.Count()*4;
+                    info.biSize=sizeof(info);info.biWidth=m_format.m_size.x;info.biHeight=-LONG(m_format.m_size.y);info.biPlanes=1;info.biBitCount=32;
+                    fwrite(&header,sizeof(header),1,file);fwrite(&info,sizeof(info),1,file);fwrite(pixels.Ptr(),4,pixels.Count(),file);fclose(file);
+                }
+            }
+        }
     }
 }
 
