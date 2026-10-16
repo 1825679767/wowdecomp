@@ -1,4 +1,5 @@
 #include "WXL/UnitOutline.hpp"
+#include "WXL/WmoMaterials.hpp"
 #include <cmath>
 #include "WXL/ParticleRefraction.hpp"
 #include <cstdint>
@@ -2637,6 +2638,7 @@ int32_t CGxDeviceD3d9Ex::ICreateD3dDevice(const CGxFormat& format) {
 void CGxDeviceD3d9Ex::IReleaseD3dResources(int32_t freeTextures) {
     wxl::native::ReleaseParticleRefractionCapture(*this);
     wxl::native::unit_outline::Release(*this);
+    wxl::native::wmo_materials::Release(*this);
     this->ITexForceRecreation(freeTextures);
     this->IReleaseD3dShaders(freeTextures);
     this->IReleaseD3dPools(freeTextures);
@@ -3109,7 +3111,8 @@ void CGxDeviceD3d9Ex::Draw(CGxBatch* batch, int32_t count) {
 
     if (count) {
         uint32_t primCount = this->PrimCalcCount(batch->m_primType, batch->m_count);
-        this->m_d3dDevice->DrawIndexedPrimitive(s_primitiveConversion[batch->m_primType], baseVertexIndex, batch->m_minIndex, batch->m_maxIndex - batch->m_minIndex + 1, batch->m_start + (this->m_primIndexBuf->m_index >> 1), primCount);
+        if (!wxl::native::wmo_materials::Draw(this->m_d3dDevice,s_primitiveConversion[batch->m_primType],baseVertexIndex,batch->m_minIndex,batch->m_maxIndex-batch->m_minIndex+1,batch->m_start+(this->m_primIndexBuf->m_index>>1),primCount))
+            this->m_d3dDevice->DrawIndexedPrimitive(s_primitiveConversion[batch->m_primType], baseVertexIndex, batch->m_minIndex, batch->m_maxIndex - batch->m_minIndex + 1, batch->m_start + (this->m_primIndexBuf->m_index >> 1), primCount);
         wxl::native::unit_outline::Stamp(this->m_d3dDevice,s_primitiveConversion[batch->m_primType],baseVertexIndex,batch->m_minIndex,batch->m_maxIndex-batch->m_minIndex+1,batch->m_start+(this->m_primIndexBuf->m_index>>1),primCount);
     } else {
         uint32_t primCount = this->PrimCalcCount(batch->m_primType, batch->m_count);

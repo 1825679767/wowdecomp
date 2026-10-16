@@ -11,5 +11,5 @@ struct RootBytes {
 // Layered materials require a renderer backend and are refused, never flattened.
 // Success owns all strings/bytes. Failure leaves output and input unchanged.
 bool PrepareNamedRoot(std::span<const uint8_t> source,TextureResolver resolve,
-                      bool effects,RootBytes& output,std::string& reason);
+                      bool effects,RootBytes& output,std::string& reason,bool layeredRenderer=false);
 }

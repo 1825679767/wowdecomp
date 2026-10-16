@@ -1,4 +1,5 @@
 #include "WXL/UnitOutline.hpp"
+#include "WXL/WmoMaterials.hpp"
 #include "WXL/Skyriding.hpp"
 #include "WorldFrame.h"
 #include "WXL/QuestMarker.hpp"
@@ -1778,6 +1779,7 @@ void CGWorldFrame::OnWorldRender() {
     SpellVisualsRender();
     CGUnit_C::RenderMissileTrajectoryTargetingTexture();
     wxl::native::quest_marker::RenderObjectives();
+    wxl::native::quest_marker::RenderNavigation();
     this->ClearTrackedObjects();
     CWorldScene::RenderParticulate();
     GxuSortDrawList(GxuCat_1, GxuSort_B2F, *World::GetCamPos());
@@ -2106,6 +2108,7 @@ void CGWorldFrame::RenderWorld(void* param) {
     wxl::native::unit_outline::BeginWorld();
     worldFrame->OnWorldRender();
     wxl::native::unit_outline::EndWorld();
+    wxl::native::wmo_materials::EndWorld();
     WorldTextRenderBatch();
 
     g_theGxDevicePtr->XformSetProjection(projection);

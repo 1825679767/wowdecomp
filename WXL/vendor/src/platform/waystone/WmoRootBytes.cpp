@@ -15,7 +15,7 @@ bool ValidPath(const std::string& path){
 }
 }
 bool PrepareNamedRoot(std::span<const uint8_t> source,TextureResolver resolve,
-                      bool effects,RootBytes& output,std::string& reason){
+                      bool effects,RootBytes& output,std::string& reason,bool layeredRenderer){
     reason.clear();auto fail=[&](const char* why){reason=why;return false;};
     RootIndex index;if(!IndexRoot(source,index) || !index.modern)return fail("modern root required");
     if(index.groupFileIds.present || index.doodadFileIds.present)return fail("FDID child provider required");
@@ -31,7 +31,7 @@ bool PrepareNamedRoot(std::span<const uint8_t> source,TextureResolver resolve,
     }
     RootBytes result;
     if(!PlanMaterials(source,resolve,effects,result.materials,reason))return false;
-    if(result.materials.layered)return fail("layered renderer required");
+    if(result.materials.layered&&!layeredRenderer)return fail("layered renderer required");
     std::array<std::vector<uint8_t>,std::size(RootSlots)> slots;
     for(size_t i=0;i<slots.size();++i){const auto range=index.slots[i];
         if(range.present)slots[i].assign(source.begin()+range.offset,source.begin()+range.offset+range.size);

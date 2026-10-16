@@ -1,6 +1,8 @@
 // Native split terrain bridge. Reuses WXL portable source parsers; native rendering remains owner.
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 #include "WorldCompat.hpp"
+#include "WoW/Source/WorldClient/MapChunk.h"
+#include <cmath>
 #include "NativeFeatures.hpp"
 #include "NativeStorage.hpp"
 #include "FdidCompat.hpp"
@@ -67,7 +69,13 @@ bool Assemble(const a::PreparedByteFamily& family,Blob& output) {
   Blob refs;for(const char* tag:{"MCRD","MCRW"}){auto it=parts.find(Tag(tag));if(it!=parts.end()){refs.insert(refs.end(),it->second.begin(),it->second.end());parts.erase(it);}}
   if(refs.size()!=size_t(Read(chunk.data()+0x10)+Read(chunk.data()+0x38))*4)return false;
   if(!parts.emplace(Tag("MCRF"),std::move(refs)).second)return false;
-  if(auto sound=parts.find(Tag("MCSE"));sound!=parts.end()&&!sound->second.empty())return false;
+  static_assert(sizeof(CWSoundEmitter)==28);
+  Write(chunk.data()+0x5c,0);
+  if(auto sound=parts.find(Tag("MCSE"));sound!=parts.end()){
+   if(sound->second.size()%sizeof(CWSoundEmitter))return false;
+   for(size_t at=0;at<sound->second.size();at+=28)for(unsigned field=4;field<28;field+=4){float v;std::memcpy(&v,sound->second.data()+at+field,4);if(!std::isfinite(v))return false;}
+   Write(chunk.data()+0x5c,uint32_t(sound->second.size()/28));
+  }
   for(unsigned offset:{0x14u,0x18u,0x1cu,0x20u,0x24u,0x2cu,0x58u,0x60u,0x74u})Write(chunk.data()+offset,0);
   const char* ordered[]{"MCVT","MCNR","MCLY","MCRF","MCAL","MCSH","MCCV","MCSE"};
   for(const char* name:ordered){const auto tag=Tag(name);auto it=parts.find(tag);if(it==parts.end())continue;
