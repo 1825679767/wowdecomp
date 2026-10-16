@@ -1,6 +1,7 @@
 // Source21/33/35 WXL donor compatibility, source-indexed one-bone/two-UV batches.
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "MeshMaterials.hpp"
+#include "DndMaterials.hpp"
 #include "AssetCompat.hpp"
 #include "NativeFeatures.hpp"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
@@ -44,6 +45,7 @@ bool RiftPath(const char* name) noexcept {
 }
 bool PrepareNativeCompatibilitySkin(const char* modelPath,const uint8_t* raw,size_t size,const std::vector<uint8_t>& original,std::vector<uint8_t>& prepared){
  prepared.clear();
+
  // Port the exact existing donor RiftMeshPolicy signature, not a global33 map.
  if(!MaterialsEnabled()||!RiftPath(modelPath)||!raw||size<312||size>64u*1024*1024||std::memcmp(raw,"MD21",4)||original.size()<48||original.size()>64u*1024*1024||std::memcmp(original.data(),"SKIN",4))return false;
  const uint32_t bodySize=Read<uint32_t>(raw,4);if(bodySize<304||bodySize>size-8)return false;
@@ -68,6 +70,7 @@ bool PrepareNativeCompatibilitySkin(const char* modelPath,const uint8_t* raw,siz
 }
 std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,size_t size,const std::vector<uint8_t>& skin,std::vector<uint8_t>& prepared){
  prepared.clear();
+ if(auto dnd=PrepareDnd(modelPath,raw,size,skin,prepared))return dnd;
  if(!MaterialsEnabled()||!D3D9()||!modelPath||!raw||size<312||size>64u*1024*1024||skin.size()<48||skin.size()>64u*1024*1024||std::memcmp(raw,"MD21",4)||std::memcmp(skin.data(),"SKIN",4))return {};
  const uint32_t bodySize=Read<uint32_t>(raw,4);if(bodySize<304||bodySize>size-8)return {};
  const auto* body=raw+8;
@@ -123,6 +126,7 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
  return result;
 }
 bool ConvertedMatches(const Source& source,const std::vector<uint8_t>& skin) noexcept {
+ if(source.dnd)return DndConvertedMatches(source,skin);
  if(skin.size()<48||Read<uint32_t>(skin.data(),36)!=source.batches.size()||Read<uint32_t>(skin.data(),28)!=source.sectionCount)return false;
  const auto at=Read<uint32_t>(skin.data(),40);if(!Range(skin.size(),at,uint32_t(source.batches.size()),24))return false;
  for(size_t i=0;i<source.batches.size();++i){
@@ -152,9 +156,18 @@ struct StateScope {
  ~StateScope(){device.RsPop();if(device.m_api==GxApi_D3d9)static_cast<CGxDeviceD3d&>(device).IStateSync();else static_cast<CGxDeviceD3d9Ex&>(device).IStateSync();}
 };
 }
+bool OwnsBatch(const CM2SceneRender& context) noexcept {
+ if(!context.m_curShared)return false;const auto* source=MeshSourceFor(*context.m_curShared);if(!source)return false;
+ if(!source->dnd)return true;
+ if(!context.m_curShared->m_skinData)return true;const auto& skin=*context.m_curShared->m_skinData;
+ if(skin.m_batches.m_count!=3)return true;
+ // Only the donor's first two passes own a custom shader. The third stays native.
+ return context.m_curBatch!=&skin.m_batches[2];
+}
 bool Draw(CM2SceneRender& context,CGxBatch& draw){
  if(!MaterialsEnabled()||!D3D9()||!CShaderEffect::s_enableShaders||context.m_curType!=0||!context.m_curShared||!context.m_curShared->m_data||!context.m_curShared->m_skinData||!context.m_curModel||!context.m_curBatch||!context.m_curSkinSection||!context.m_curMaterial||context.m_pass!=M2PASS_0)return false;
  const auto* source=MeshSourceFor(*context.m_curShared);if(!source)return false;
+ if(source->dnd){const auto& skin=*context.m_curShared->m_skinData;if(skin.m_batches.m_count!=3)return false;for(uint32_t i=0;i<2;++i)if(&skin.m_batches[i]==context.m_curBatch)return DrawDnd(context,draw,*source,i);return false;}
  const auto& data=*context.m_curShared->m_data;const auto& skin=*context.m_curShared->m_skinData;const auto& b=*context.m_curBatch;
  if(source->batches.empty()||skin.m_batches.m_count!=source->batches.size()||skin.m_skinSections.m_count!=source->sectionCount||data.m_textures.m_count!=source->textureCount)return false;
  size_t sourceIndex=source->batches.size();
@@ -177,6 +190,7 @@ bool Draw(CM2SceneRender& context,CGxBatch& draw){
  }catch(...){return false;}
 }
 void DestroyPrograms(CGxDevice& device) noexcept {
+ DestroyDndPrograms(device);
  try{auto* pixel=device.m_shaderList[GxSh_Pixel].Ptr(PixelName);if(pixel)device.ShaderDestroy(pixel);
   auto* vertex=device.m_shaderList[GxSh_Vertex].Ptr(VertexName);if(vertex)device.ShaderDestroy(vertex);
  }catch(...){}

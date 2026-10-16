@@ -5,6 +5,7 @@ option(WXL_ENABLE_ASSETS "Enable modern M2 assets" ON)
 option(WXL_ENABLE_DB2 "Enable retail DB2/FDID data" ON)
 option(WXL_ENABLE_BLP "Enable modern BLP decoding" ON)
 option(WXL_ENABLE_MATERIALS "Enable custom mesh materials" ON)
+option(WXL_ENABLE_DND_MATERIALS "Enable exact-source donor DnD material compatibility" ON)
 option(WXL_ENABLE_PARTICLES "Enable modern particle compatibility" ON)
 option(WXL_ENABLE_APPEARANCES "Enable retail appearance recipes" ON)
 option(WXL_ENABLE_PROTOCOL "Enable native custom opcodes" ON)
@@ -19,6 +20,7 @@ option(WXL_ENABLE_RADIAL_PING "Enable native radial pings" ON)
 option(WXL_ENABLE_CREATION_EFFECTS "Enable native character creation choreography" ON)
 option(WXL_ENABLE_SKYRIDING "Enable native server-authorized Skyriding" ON)
 option(WXL_ENABLE_BARBER_PREVIEW "Enable native barber retail-detail previews" ON)
+option(WXL_ENABLE_PRIVATE_APPEARANCES "Enable authored private creature appearance profiles" ON)
 foreach(feature BARBER_PREVIEW SKYRIDING CREATION_EFFECTS NATIVE ASSETS DB2 BLP MATERIALS PARTICLES APPEARANCES PROTOCOL APPEARANCE_SAVE WMO SPLIT_ADT CLIENT_EXTENSIONS RADIAL_PING QUEST_MARKER CHALLENGE_MODE MYTHIC_DIFFICULTY)
  if(WXL_ENABLE_${feature})
   add_compile_definitions(WXL_ENABLE_${feature}=1)
@@ -42,7 +44,8 @@ wxl_module(WxlDB2 DB2 modules/db2/FdidCompat.cpp
  "${V}/extensions/wxl-db2/src/decode/Wdc5.cpp" "${V}/extensions/wxl-db2/src/decode/Wdc5Table.cpp"
  "${V}/extensions/wxl-db2/src/api/Db2.cpp" "${V}/extensions/wxl-db2/src/schemas/AppearanceStore.cpp")
 wxl_module(WxlBlp BLP modules/blp/BlpCompat.cpp "${V}/src/engine/assets/shared/textures/blp/BlpTranscode.cpp")
-wxl_module(WxlMaterials Materials modules/materials/MaterialCompat.cpp modules/materials/MeshMaterials.cpp)
+wxl_module(WxlMaterials Materials modules/materials/MaterialCompat.cpp modules/materials/MeshMaterials.cpp modules/materials/DndMaterials.cpp)
+target_compile_definitions(WxlMaterials PRIVATE WXL_ENABLE_DND_MATERIALS=$<BOOL:${WXL_ENABLE_DND_MATERIALS}>)
 wxl_module(WxlParticles Particles modules/particles/ParticleCompat.cpp modules/particles/ParticleCutoff.cpp modules/particles/ParticleLayerCapture.cpp modules/particles/ParticleLayers.cpp
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeParticles.cpp")
 wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
@@ -50,8 +53,9 @@ wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
  "${V}/src/platform/waystone/SkeletonEmbed.cpp" "${V}/src/platform/waystone/SkinPartition.cpp"
  "${V}/src/platform/waystone/SkinRebuild.cpp" "${V}/extensions/wxl-modern-m2/src/load/M2Normalize.cpp"
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeCameras.cpp")
-wxl_module(WxlAppearances Appearances modules/barber-preview/BarberAppearance.cpp modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
+wxl_module(WxlAppearances Appearances modules/private-appearances/PrivateAppearances.cpp modules/barber-preview/BarberAppearance.cpp modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
  "${V}/src/platform/waystone/CharacterAtlas.cpp")
+target_compile_definitions(WxlAppearances PRIVATE WXL_ENABLE_PRIVATE_APPEARANCES=$<BOOL:${WXL_ENABLE_PRIVATE_APPEARANCES}>)
 wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
 wxl_module(WxlAppearanceSession AppearanceSession modules/appearance-session/AppearanceSession.cpp)
 wxl_module(WxlWorld World modules/world/WmoNative.cpp modules/world/SplitAdtNative.cpp

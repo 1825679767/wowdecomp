@@ -1,3 +1,4 @@
+#include "WXL/PrivateAppearances.hpp"
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 // Direct native component integration; portable recipes never inspect host offsets.
 #include "AppearanceCompat.hpp"
@@ -125,6 +126,8 @@ struct SkinnedChild {
     CM2Model* model = nullptr;
     ~SkinnedChild() {
         if (model) {
+            model->SetEmittersEnabled(0);
+            model->SetRibbonsEnabled(0);
             model->SetSkinningSource(nullptr);
             model->Release();
         }
@@ -304,6 +307,7 @@ void Restore(CCharacterComponent& component) {
 
 bool ApplyAppearance(CCharacterComponent& component) noexcept {
     try {
+        if(private_appearances::Identity(component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID)){if(component.m_wxlAppearance)Restore(component);return false;}
         auto* model = component.m_data.m_model;
         if (!AppearancesEnabled() || !AssetsEnabled() || !model || !(model->m_fFlags & 1)
             || !model->m_shared || !model->m_shared->m_wxlAssets || !RetailRace(component.m_data.m_preferences.m_raceID)
@@ -351,7 +355,7 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
     }
 }
 
-bool AppearanceReady(const CCharacterComponent& component) noexcept {try{const auto* state=component.m_wxlAppearance;return state&&state->ready&&state->model==component.m_data.m_model&&state->signature==Signature(component);}catch(...){return false;}}
+bool AppearanceReady(const CCharacterComponent& component) noexcept {try{if(private_appearances::Identity(component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID))return private_appearances::Ready(component);const auto* state=component.m_wxlAppearance;return state&&state->ready&&state->model==component.m_data.m_model&&state->signature==Signature(component);}catch(...){return false;}}
 void ReleaseAppearance(CCharacterComponent& component) noexcept {
     delete component.m_wxlAppearance;
     component.m_wxlAppearance = nullptr;

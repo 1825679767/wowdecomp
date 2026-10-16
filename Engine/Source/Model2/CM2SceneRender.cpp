@@ -468,7 +468,7 @@ void CM2SceneRender::DrawBatch() {
     batch.m_start = this->m_curSkinSection->IndexStart();
     batch.m_count = this->m_curSkinSection->m_indexCount;
 
-    if (wxl::native::MeshSourceFor(*this->m_curShared)) {
+    if (wxl::native::mesh_materials::OwnsBatch(*this)) {
         batch.m_minIndex = this->m_curSkinSection->m_vertexStart;
         batch.m_maxIndex = this->m_curSkinSection->m_vertexCount + batch.m_minIndex - 1;
         // A privately prepared custom family must not silently fall back to a

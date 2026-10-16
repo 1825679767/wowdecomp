@@ -228,6 +228,8 @@ class CM2Model {
     CM2Model* m_skinningSource = nullptr;
     std::vector<uint16_t> m_skinningBoneMap; // dependent index -> source index
     std::vector<CM2Model*> m_skinnedDependents;
+    // Native user-level effects controls follow owned appearance dependents.
+    bool m_wxlEmittersEnabled = true, m_wxlRibbonsEnabled = true;
     bool SetSkinningSource(CM2Model* source);
     void SynchronizeSkinnedDependentsMT(const C44Matrix* view);
 

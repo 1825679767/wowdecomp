@@ -69,6 +69,7 @@ bool PrepareModel(CM2Shared& shared){
    WLOG_WARN("native-modern-particles: refused path=%s reason=%s",shared.m_fileName,particleReason.c_str());return false;
   }
   PreserveMaterials({raw,shared.m_fileSize},converted);
+  for(const auto& [name,skin]:assets->skins)if(skin.mesh&&!mesh_materials::ApplyPreparedMaterials(*skin.mesh,converted))return false;
   for(auto& [name,skin]:assets->skins){if(!wxl::waystone::m2bytes::ConvertSkin(!skin.prepared.empty()?skin.prepared:skin.original,skin.converted,true))return false;if(skin.mesh&&!mesh_materials::ConvertedMatches(*skin.mesh,skin.converted))return false;}
   assets->meshInput=nullptr;assets->meshInputSize=0;
   auto* replacement=static_cast<M2Data*>(SIMD::AllocA16(converted.size(),__FILE__,__LINE__));if(!replacement)return false;

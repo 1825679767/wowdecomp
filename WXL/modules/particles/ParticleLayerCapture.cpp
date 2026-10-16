@@ -56,9 +56,10 @@ bool CaptureParticleLayers(const uint8_t* raw,size_t size,ParticleLayerSet& outp
   // Capture their original identity before the native emitter is constructed.
   ParticleLayerMaterial material{};
   if(!ResolveParticleLayerMaterial(Read<uint8_t>(p,offsetof(M2Particle,m_blendMode)),material))return fail("layer source blend has no native layer material contract");
-  // Supported family: unlit alpha/additive/Screen, head-only quads.
+  // Native shaded/unshaded flags remain intact. Runtime selects the exact
+  // retained donor VS for native sunlight plus zero, one or two point lights.
   // Modx4/depth/refraction/TXAC shader variants are not guessed from firsttex.
-  if(!(flags&1) || !(flags&0x20000u) || (flags&(0x80100000u|0x20000000u|0x40000u)))return fail("layer source requires unlit head sprites without modx4/depth variants");
+  if(!(flags&0x20000u) || (flags&(0x80100000u|0x20000000u|0x40000u)))return fail("layer source requires head sprites without modx4/depth variants");
   for(const auto field:{offsetof(M2Particle,m_geometryMdl),offsetof(M2Particle,m_recursionMdl)}){
    const auto n=Read<uint32_t>(p,field),at=Read<uint32_t>(p,field+4);
    if(n && (n!=1 || !at || at>=bodySize || body[at]))return fail("layer source model/child particles are unsupported");

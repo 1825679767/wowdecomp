@@ -1,3 +1,4 @@
+#include "WXL/PrivateAppearances.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <cmath>
@@ -3455,6 +3456,7 @@ static bool __stdcall ItemDisplayHasGeosetGroup(uint32_t displayID, int32_t grou
 // VERIFY: 197cf0f7 manual
 // OFFSET: 0x004ED900
 void CCharacterComponent::GeosRenderPrep() {
+    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);} } privatePost{*this};
     bool eyeGlow = false;
 
     if (this->m_data.m_preferences.m_classId == 6) {
@@ -4251,6 +4253,7 @@ CCharacterComponent::CCharacterComponent() {
 // VERIFY: 4f3c1a66 manual
 // OFFSET: 0x004EFCA0
 CCharacterComponent::~CCharacterComponent() {
+    wxl::native::private_appearances::Release(*this);
     wxl::native::ReleaseAppearance(*this);
     wxl::native::ReleaseRetailChoices(*this);
     if (this->m_request) {
@@ -4959,6 +4962,7 @@ void CCharacterComponent::RenderPrepFO() {
 // VERIFY: 3f0fe5f0 auto
 // OFFSET: 0x004F0E80
 void CCharacterComponent::ProcessFinishedRequest() {
+    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);} } privatePost{*this};
     CCharacterComponent::s_bInRenderPrep = 1;
 
     if (this->m_flags & 0x4) {
@@ -5135,6 +5139,7 @@ uint32_t STORMAPI CCharacterComponent::ThreadProc(void* param) {
 // VERIFY: 39b04695 auto
 // OFFSET: 0x004F14A0
 void CCharacterComponent::RenderPrepSections() {
+    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);} } privatePost{*this};
     CCharacterComponent::s_bInRenderPrep = 1;
 
     if (this->m_flags & 0x4) {
@@ -5156,6 +5161,7 @@ void CCharacterComponent::RenderPrepSections() {
 // VERIFY: e78118c6 manual
 // OFFSET: 0x004F1520
 bool CCharacterComponent::RenderPrep(int32_t wait) {
+    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);} } privatePost{*this};
     if (wxl::native::ApplyAppearance(*this)) {
         this->m_link.Unlink();
         return true;

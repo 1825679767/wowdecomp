@@ -2300,7 +2300,8 @@ void CParticleEmitter2::BuildParticleVertices(ParticleVertex& vertex, uint32_t c
     this->m_wxlRenderedCutoffs.clear();
     this->m_wxlLayerVertices.clear();this->m_wxlLayerValid=true;
     if(this->m_params.m_wxlLayerRecipe){
-        try{this->m_wxlLayerVertices.reserve(size_t(count)*4*40);}catch(...){this->m_wxlLayerValid=false;this->m_renderedParticles=0;return;}
+        const uint32_t stride=(this->m_params.m_wxlLayerRecipe->sourceFlags&1)?40u:52u;
+        try{this->m_wxlLayerVertices.reserve(size_t(count)*4*stride);}catch(...){this->m_wxlLayerValid=false;this->m_renderedParticles=0;return;}
     }
     if(this->m_params.m_wxlCutoff){
         try{this->m_wxlRenderedCutoffs.reserve(count);}catch(...){this->m_renderedParticles=0;return;}

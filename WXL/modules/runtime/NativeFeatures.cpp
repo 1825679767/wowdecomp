@@ -1,7 +1,9 @@
+#include "WXL/PrivateAppearances.hpp"
 #include "WXL/BarberAppearance.hpp"
 #include "WXL/Skyriding.hpp"
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "NativeFeatures.hpp"
+#include "MeshMaterials.hpp"
 #include "CreationEffects.hpp"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include <atomic>
@@ -20,6 +22,8 @@ bool Changed(CVar*,const char*,const char* value,void* arg){
 bool On(uint32_t bit) noexcept{return (enabled.load(std::memory_order_acquire)&Compiled&bit)!=0;}
 }
 void RegisterFeatures(){
+ mesh_materials::RegisterDndMaterials();
+ private_appearances::Register();
  barber_appearance::Register();
  skyriding::Register();
  creation_effects::Register();

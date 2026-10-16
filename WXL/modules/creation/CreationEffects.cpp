@@ -1190,7 +1190,7 @@ constexpr Step deathKnight[]={{0,54,1},{1350,33,2},{2750,18,3},{3900,58,4},{5050
 constexpr Step shaman[]={{0,54,1,-1},{2000,54,2,1},{2500,33,3},{4050,58,4},{5450,18,5},{6900,52,6},{7750,53,7},{8950,52,8},{9800,53,9},{11500,26,0,1}};
 constexpr Step mage[]={{0,51,1},{1450,53,2},{2450,51,3},{3750,53,4},{4750,52,5},{6200,54,6},{8000,52,7},{9300,125,8},{12500,54,9},{13650,26,0}};
 constexpr Step warlock[]={{0,54,1},{1250,52,2},{2350,53,3},{2800,28,255},{3850,52,4},{5350,53,5},{5800,52,255},{6850,124,6},{10400,28,0}};
-constexpr Step druid[]={{0,NoAnimation,16},{450,NoAnimation,1},{1600,NoAnimation,2},{2900,NoAnimation,3},{4300,NoAnimation,16},{4750,NoAnimation,4},{5800,NoAnimation,5},{7000,NoAnimation,6},{8400,NoAnimation,16},{8850,NoAnimation,7},{9900,NoAnimation,8},{11000,NoAnimation,9},{12600,NoAnimation,10},{14800,NoAnimation,16},{15250,NoAnimation,11},{16300,NoAnimation,12},{17300,NoAnimation,13},{19000,NoAnimation,14},{20000,NoAnimation,15},{28000,NoAnimation,17},{29900,0,0,1}};
+constexpr Step druid[]={{0,53,16},{450,NoAnimation,1},{1600,NoAnimation,2},{2900,NoAnimation,3},{4300,NoAnimation,16},{4750,NoAnimation,4},{5800,NoAnimation,5},{7000,NoAnimation,6},{8400,NoAnimation,16},{8850,NoAnimation,7},{9900,NoAnimation,8},{11000,NoAnimation,9},{12600,NoAnimation,10},{14800,NoAnimation,16},{15250,NoAnimation,11},{16300,NoAnimation,12},{17300,NoAnimation,13},{19000,NoAnimation,14},{20000,NoAnimation,15},{28000,NoAnimation,17},{29900,0,0,1}};
 struct Timeline {const Step* data=nullptr;size_t count=0;};
 template<size_t N> Timeline Line(const Step (&steps)[N]) {return {steps,N};}
 Timeline GetTimeline(uint32_t id) {

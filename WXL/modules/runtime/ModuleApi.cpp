@@ -1,3 +1,4 @@
+#include "WXL/PrivateAppearances.hpp"
 #include "WXL/BarberAppearance.hpp"
 #include "WXL/Skyriding.hpp"
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
@@ -9,6 +10,7 @@ namespace wxl::native {
 namespace {
 struct Entry {const char* id;const char* dependencies;bool(*enabled)() noexcept;};
 const Entry entries[]{
+ {"private-appearances","appearances,appearance-session",&private_appearances::Enabled},
  {"barber-preview","appearances,appearance-session",&barber_appearance::Enabled},
  {"skyriding","runtime,protocol,m2,client-extensions",&skyriding::Enabled},
  {"runtime","",&NativeEnabled},{"storage","runtime",&NativeEnabled},

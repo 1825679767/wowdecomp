@@ -118,3 +118,13 @@ Layered particles now retain source blend identities2/3/4/7 and verify both nati
 ## Barber extra-detail preview
 
 Default-on WXL_ENABLE_BARBER_PREVIEW/wxlBarberPreview adds exact-session/component/model-owned retail extras under the native barber UI, with authenticated snapshot baseline, extra-only Reset/cancel restoration, disguise exclusion and deferred rollback. A local extra delta blocks stock Apply instead of pretending it can be persisted; matching-server extra barber saving is not implemented in its current Glue-only prepare wire. Existing baseline extras alone allow native stock edits. Native axes and the existing server permissions/cost/send path remain authoritative. Private synthetic profiles remain unfinished.
+
+## Native skinned appendage effects
+
+Appearance children can now retain native particles, ribbons and lights: their source-verified bone map feeds existing child AnimateST simulation/draw/light positioning after pose synchronization. Initial resource/bone validation precedes ownership publication. Root emitter/ribbon controls and per-frame native visibility/particle flags propagate; native child destruction retains resource retirement. Attached descendants/cameras remain refused because they require a deeper pose or view authority. This adds simulation ownership; each asset still needs the ordinary particle/material converter and broad visual acceptance.
+
+## Extended native source integration
+
+Lit three-layer sprites now use exact donor Directional/one-point/two-point programs with native normals and light constants; unsupported shadow/light permutations remain explicit. DnD has source-bound Fade/Colour/Mask/Detail native passes with mode4 Detail enabled by default (mode0 rollback), privately corrected material blend and an unchanged third native pass. This is donor compatibility, not full retail TXAC parity.
+
+Default-on WXL_ENABLE_PRIVATE_APPEARANCES/wxlPrivateAppearances adds authored female Tuskarr (wire14) and Murloc/Maria (wire28) resources, post-compositor texture/geoset ownership, exact path/choice validation and existing authenticated prepare/snapshot integration. Readiness includes the selected native textures and geometry. Unchanged masks and textures are not rebuilt/rebound on ordinary frames. Broken's complete body/horn/equipment policy remains unfinished; no Naga wire identity is invented. See modules/private-appearances/INTEGRATION.md.

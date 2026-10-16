@@ -11,6 +11,7 @@ class CM2SceneRender;
 class CGxDevice;
 struct CGxBatch;
 namespace wxl::native::mesh_materials {
+struct DndSource;
 // Immutable source contract owned by one converted companion/model family.
 struct BatchSource {
  std::array<uint8_t,24> batch{};
@@ -23,6 +24,7 @@ struct Source {
  std::string modelPath;
  uint32_t sectionCount=0,textureCount=0;
  std::vector<BatchSource> batches;
+ std::shared_ptr<const DndSource> dnd;
 };
 std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* model,size_t modelBytes,
  const std::vector<uint8_t>& original,std::vector<uint8_t>& prepared);
@@ -31,5 +33,8 @@ bool PrepareNativeCompatibilitySkin(const char* modelPath,const uint8_t* model,s
  const std::vector<uint8_t>& original,std::vector<uint8_t>& prepared);
 bool ConvertedMatches(const Source&,const std::vector<uint8_t>& converted) noexcept;
 bool Draw(CM2SceneRender&,CGxBatch&); // true only when the native draw was issued.
+bool OwnsBatch(const CM2SceneRender&) noexcept;
+bool ApplyPreparedMaterials(const Source&,std::vector<uint8_t>&);
+void RegisterDndMaterials();
 void DestroyPrograms(CGxDevice&) noexcept; // GxDevDestroy, before backend destruction.
 }

@@ -141,8 +141,21 @@ bool CM2Model::SetSkinningSource(CM2Model* source) {
             || !source->m_shared || !this->m_shared || !source->m_boneMatrices || !this->m_boneMatrices) return false;
         const auto& from = *source->m_shared->m_data;
         const auto& to = *this->m_shared->m_data;
-        if (to.m_particles.m_count || to.m_ribbons.m_count || to.m_lights.m_count || to.m_attachments.m_count
+        // Effects run through the child's existing native AnimateMT/AnimateST
+        // owner after its matrices are replaced by the verified source pose.
+        // Attached descendants need another pose-propagation level; cameras
+        // must not acquire view authority merely by being a customization mesh.
+        if (to.m_attachments.m_count || to.m_cameras.m_count
             || !BuildBoneMap(from.m_bones,to.m_bones,boneMap)) return false;
+        if ((to.m_particles.m_count && !this->m_particleEmitters)
+            || (to.m_ribbons.m_count && !this->m_ribbonEmitters)
+            || (to.m_lights.m_count && !this->m_lights)) return false;
+        for (uint32_t i=0;i<to.m_particles.m_count;++i)
+            if (to.m_particles[i].m_boneIndex>=boneMap.size() || !this->m_particleEmitters[i]) return false;
+        for (uint32_t i=0;i<to.m_ribbons.m_count;++i)
+            if (to.m_ribbons[i].m_boneIndex>=boneMap.size() || !this->m_ribbonEmitters[i]) return false;
+        for (uint32_t i=0;i<to.m_lights.m_count;++i)
+            if (to.m_lights[i].m_bone>=boneMap.size()) return false;
         // Mutation occurs on the same owning/main thread as native model
         // attach/detach; native scene workers must already be joined there.
         source->m_skinnedDependents.push_back(this);
@@ -157,7 +170,11 @@ bool CM2Model::SetSkinningSource(CM2Model* source) {
         previous->Release();
     }
     this->SetAnimating(0);
-    if (source) source->SetAnimating(1);
+    if (source) {
+        this->SetEmittersEnabled(source->m_wxlEmittersEnabled);
+        this->SetRibbonsEnabled(source->m_wxlRibbonsEnabled);
+        source->SetAnimating(1);
+    }
     return true;
 }
 
@@ -166,6 +183,10 @@ void CM2Model::SynchronizeSkinnedDependentsMT(const C44Matrix* view) {
         // Source completed its pose on this worker. Dependents are excluded
         // from the independent scene animation list, so no worker races this.
         child->m_worldTransform = this->m_worldTransform;
+        // Inherit transform/visibility and particle permission exactly as an
+        // ordinary attached native model, preserving each child's user bit.
+        child->m_fFlags=(child->m_fFlags&~0x18008u)|(this->m_fFlags&0x8008u)
+            | ((this->m_fFlags&0x10000u)&&(child->m_fFlags&0x20000u)?0x10000u:0u);
         child->m_frameOfReference = this->m_frameOfReference;
         child->m_frameOfReferenceMatrix = this->m_frameOfReferenceMatrix;
         if (child->m_fFlags & 0x1000)

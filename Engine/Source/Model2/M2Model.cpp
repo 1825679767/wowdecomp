@@ -43,12 +43,22 @@ namespace {
 // Appearance appendages share the source model coordinate system and bone pose.
 // Their all-animation bounds must participate even when the source's current
 // sequence bounds describe only its original body geometry.
+CAaBox WithSkinnedWorldEffects(const CM2Model& child,CAaBox box) {
+    const auto& data=*child.m_shared->m_data;
+    for(uint32_t i=0;child.m_particleEmitters&&i<data.m_particles.m_count;++i){
+        auto* emitter=child.m_particleEmitters[i];
+        if(emitter&&(emitter->m_flags&0x200u))box|=emitter->WorldBounds();
+    }
+    for(uint32_t i=0;child.m_ribbonEmitters&&i<data.m_ribbons.m_count;++i)
+        if(child.m_ribbonEmitters[i])box|=child.m_ribbonEmitters[i]->m_worldBounds;
+    return box;
+}
 CAaBox WithSkinnedBounds(const CM2Model& source, CAaBox box, const C44Matrix* world=nullptr) {
     for (const auto* child : source.m_skinnedDependents) {
         if (!child || child->m_skinningSource != &source || !child->m_shared || !(child->m_fFlags & 1)) continue;
         const auto& extent=child->m_shared->m_data->m_bounds.m_extent;
         if (!extent.IsValid()) continue;
-        box |= world ? CAaBox::Transform(extent,*world) : extent;
+        box |= world ? WithSkinnedWorldEffects(*child,CAaBox::Transform(extent,*world)) : extent;
     }
     return box;
 }
@@ -58,7 +68,7 @@ CAaSphere WithSkinnedSphere(const CM2Model& source, CAaSphere sphere, const C44M
         const auto& bounds=child->m_shared->m_data->m_bounds;
         const auto& local=bounds.m_extent;
         if (!local.IsValid()) continue;
-        const auto box=world?CAaBox::Transform(local,*world):local;
+        const auto box=world?WithSkinnedWorldEffects(*child,CAaBox::Transform(local,*world)):local;
         const float dx=std::max(std::abs(box.b.x-sphere.c.x),std::abs(box.t.x-sphere.c.x));
         const float dy=std::max(std::abs(box.b.y-sphere.c.y),std::abs(box.t.y-sphere.c.y));
         const float dz=std::max(std::abs(box.b.z-sphere.c.z),std::abs(box.t.z-sphere.c.z));
@@ -326,6 +336,8 @@ int32_t CM2Model::HasLiveRibbons() {
 // VERIFY: fdbbd9d7 manual
 // OFFSET: 0x00824230
 void CM2Model::SetRibbonsEnabled(uint32_t enabled) {
+    this->m_wxlRibbonsEnabled = enabled != 0;
+    for (auto* child : this->m_skinnedDependents) child->SetRibbonsEnabled(enabled);
     if (this->m_fFlags & 1) {
         int32_t count = this->m_shared->m_data->m_ribbons.m_count;
 
@@ -2135,6 +2147,8 @@ CCamera* CM2Model::GetCameraById(uint32_t id) {
 // VERIFY: be32ea2b manual
 // OFFSET: 0x008279F0
 void CM2Model::SetEmittersEnabled(int32_t enabled) {
+    this->m_wxlEmittersEnabled = enabled != 0;
+    for (auto* child : this->m_skinnedDependents) child->SetEmittersEnabled(enabled);
     if (this->m_fFlags & 1) {
         uint32_t count = this->m_shared->m_data->m_particles.m_count;
 

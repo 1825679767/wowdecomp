@@ -1,3 +1,4 @@
+#include "WXL/PrivateAppearances.hpp"
 #include "WXL/BarberAppearance.hpp"
 // Source-native appearance prepare owner. Wire grammar is shared with server.
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
@@ -107,7 +108,7 @@ bool Build(const char* name, Context& out, bool structural = false) {
     const auto& p = c->m_data.m_preferences;
     if (p.m_raceID > 255 || p.m_sexID > 1) return false;
     const auto* race = ap::FindRace(uint8_t(p.m_raceID));
-    if (!race || !race->creatable || ap::PrivateModel(uint8_t(p.m_raceID), uint8_t(p.m_sexID))) return false;
+    if (!race || !race->creatable || (ap::PrivateModel(uint8_t(p.m_raceID),uint8_t(p.m_sexID))&&!private_appearances::Ready(*c)))return false;
     Context next;
     next.session = session; next.component = c; next.root = c->m_data.m_model;
     next.componentSerial = c->m_wxlSerial; next.modelHandle = c->m_data.m_model->m_handle;
@@ -130,7 +131,7 @@ bool Build(const char* name, Context& out, bool structural = false) {
         std::vector<RetailChoicePair> pairs;if(!CaptureRetailChoicePairs(*c,pairs)||pairs.empty()||pairs.size()>ap::MaxChoices)return false;
         for(auto pair:pairs)next.selection.choices.push_back({pair.option,pair.choice});
     }
-    if (!ap::Canonical(next.selection)) return false;
+    if (!ap::Canonical(next.selection)||(ap::PrivateModel(next.selection.race,next.selection.sex)&&!private_appearances::Validate(next.selection)))return false;
     out = std::move(next);
     return true;
 }
@@ -160,7 +161,7 @@ void Receive(uint16_t opcode, const uint8_t* bytes, uint32_t length, uint64_t se
             ap::Snapshot snapshot;
             if (!ap::DecodeSnapshot(bytes, length, snapshot) || snapshot.selection.catalog != ap::ClientCatalogId ||
                 (ap::AlternateRetailRace(snapshot.selection.race)&&snapshot.selection.alternate.empty()) ||
-                ap::PrivateModel(snapshot.selection.race, snapshot.selection.sex)) return;
+                (ap::PrivateModel(snapshot.selection.race,snapshot.selection.sex)&&!private_appearances::Validate(snapshot.selection)))return;
             std::lock_guard lock(mutex);
             if (!ready || readySession != session || !queries.contains(snapshot.guid)) return;
             const auto it = snapshots.find(snapshot.guid);
@@ -376,7 +377,7 @@ void RefreshCharacter(uint64_t guid, CCharacterComponent* component) noexcept {
         if (refresh) QueryCharacter(guid);
         const auto& selection = snapshot.selection;
         const auto& preferences = component->m_data.m_preferences;
-        if (snapshot.guid != guid || selection.catalog != ap::ClientCatalogId || ap::PrivateModel(selection.race, selection.sex) ||
+        if (snapshot.guid != guid || selection.catalog != ap::ClientCatalogId || (ap::PrivateModel(selection.race,selection.sex)&&!private_appearances::Validate(selection)) ||
             selection.race != preferences.m_raceID || selection.sex != preferences.m_sexID ||
             !RetailChoicesReady(preferences, component->m_data.m_model)) return;
         const Applied identity{session, component->m_wxlSerial, component, component->m_data.m_model,
@@ -392,7 +393,7 @@ void RefreshCharacter(uint64_t guid, CCharacterComponent* component) noexcept {
             }
         }
         const auto family=RetailRecipeRace(*component);const auto* race=ap::FindRace(selection.race);
-        if(!race)return;const auto* rows=family==race->retail?&selection.choices:family==ap::AlternateRetailRace(selection.race)?&selection.alternate:nullptr;
+        if(!race)return;const auto* rows=(family==race->retail||family==private_appearances::Identity(selection.race,selection.sex))?&selection.choices:family==ap::AlternateRetailRace(selection.race)?&selection.alternate:nullptr;
         if(!rows||rows->empty()||rows->size()>ap::MaxChoices)return;
         std::array<RetailChoicePair, ap::MaxChoices> pairs{};
         for (size_t i = 0; i < rows->size(); ++i)
