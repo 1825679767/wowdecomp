@@ -52,6 +52,9 @@ struct Pixels {
 static void TextureData(EGxTexCommand cmd,uint32_t,uint32_t,uint32_t,uint32_t,void* arg,uint32_t& stride,const void*& data){
     auto& p=*static_cast<Pixels*>(arg);stride=p.width*4;data=cmd==GxTex_Latch?p.data.data():nullptr;
 }
+static void CompressedData(EGxTexCommand cmd,uint32_t,uint32_t,uint32_t,uint32_t,void*,uint32_t& stride,const void*& data){
+    static const uint8_t redBlock[]={0,248,0,0,0,0,0,0};stride=8;data=cmd==GxTex_Latch?redBlock:nullptr;
+}
 static CGxTex* Texture(CGxDeviceD3d11& device,Pixels& pixels,bool target=false){
     CGxTexFlags flags(GxTex_Nearest,0,0,0,0,target?1:0);CGxTex* tex=nullptr;
     Check(device.TexCreate(GxTex_2d,pixels.width,pixels.height,1,GxTex_Argb8888,GxTex_Argb8888,flags,&pixels,TextureData,"DX11 test texture",tex)!=0,"create native texture");return tex;
@@ -133,6 +136,13 @@ int main(int argc,char** argv) try {
     Pixels data;data.data={CImVector(207,99,17,255)};auto* texture=Texture(device,data);
     device.RsSet(GxRs_Texture0,texture);device.SceneClear(3,clear);Triangle(device,CImVector(255,255,255,255),.25f,true);
     Equal(Center(device),data.data[0],"actual native UI texture/BGRA/indexed draw");
+    for(uint32_t dimension:{1u,2u,4u}){
+        CGxTexFlags flags(GxTex_Nearest,0,0,0,0,0);CGxTex* compressed=nullptr;
+        Check(device.TexCreate(GxTex_2d,dimension,dimension,1,GxTex_Dxt1,GxTex_Dxt1,flags,nullptr,CompressedData,"small DXT1",compressed)!=0,"legacy compressed texture owner");
+        device.RsSet(GxRs_Texture0,compressed);device.SceneClear(3,clear);Triangle(device,CImVector(255,255,255,255));
+        Equal(Center(device),CImVector(0,0,dimension<4?248:255,255),"compressed texture/native CPU decode at sub-block dimensions");device.TexDestroy(compressed);
+    }
+    device.RsSet(GxRs_Texture0,texture);
     auto alt=Load(argv[1],GxSh_Vertex,1);device.RsSet(GxRs_VertexShader,alt.get());
     device.SceneClear(3,clear);Triangle(device,CImVector(255,255,255,255));Equal(Center(device),data.data[0],"second native UI permutation");
     device.RsSet(GxRs_VertexShader,vs.get());data.data[0].a=64;CiRect full(0,0,1,1);device.TexMarkForUpdate(texture,full,1);

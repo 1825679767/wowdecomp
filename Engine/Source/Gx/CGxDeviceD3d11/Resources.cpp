@@ -62,6 +62,11 @@ bool CGxDeviceD3d11::TextureReady(CGxTex* t){
         candidate.mips=end-candidate.baseMip;candidate.faces=t->m_target==GxTex_CubeMap?6:1;candidate.storage=t->m_format;
         candidate.generateMips=t->m_flags.m_generateMipMaps;candidate.renderTarget=t->m_flags.m_renderTarget;
         if(!candidate.mips)return false;
+        // D3D11 requires a block-aligned BC top level and cannot generate BC
+        // mips through a render target. Decode through the native blitter when
+        // mip quality drops a legacy compressed texture below a 4x4 block.
+        if(t->m_format>=GxTex_Dxt1&&t->m_format<=GxTex_Dxt5&&
+            ((candidate.width&3)||(candidate.height&3)||t->m_flags.m_generateMipMaps||t->m_flags.m_renderTarget))candidate.storage=GxTex_Argb8888;
         if((t->m_format==GxTex_Argb4444||t->m_format==GxTex_Argb1555||t->m_format==GxTex_Rgb565)&&!m_caps.m_texFmt[t->m_format])candidate.storage=GxTex_Argb8888;
         D3D11_TEXTURE2D_DESC d{};d.Width=candidate.width;d.Height=candidate.height;d.MipLevels=candidate.mips;d.ArraySize=candidate.faces;
         d.Format=Format(candidate.storage);d.SampleDesc.Count=1;d.Usage=D3D11_USAGE_DEFAULT;d.BindFlags=D3D11_BIND_SHADER_RESOURCE;

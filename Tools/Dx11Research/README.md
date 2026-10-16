@@ -18,10 +18,12 @@ The shader converter consumes the actual mounted Wrath shader bytes. Stock profi
 ## Implementation
 
 - Native hardware/WARP feature-level-11 device, swapchain, fullscreen/window mode, resize, MSAA, gamma save/restore, software cursor and frame-lag fence.
-- Native CPU-owned buffer pools and texture callbacks, mip/face/partial uploads, format conversion, generated mips, render/depth targets, target save/restore, rectangle/scaled copies, float color and multisampled depth readback, occlusion queries and device recreation.
+- Native CPU-owned buffer pools and texture callbacks, mip/face/partial uploads, format conversion (including sub-block compressed textures through the native CPU blitter), generated mips, render/depth targets, target save/restore, rectangle/scaled copies, float color and multisampled depth readback, occlusion queries and device recreation.
 - Exact native vertex layouts and typed/BGRA inputs, indexed/nonindexed primitives and triangle fans, native blend equations/write masks, culling/depth/scissor/viewport/sampler state, alpha rejection, clipping and native shader constants.
 - Microsoft MIT D3D9 shader conversion to SM4 DXBC, signed with Microsoft's official signer. Generated fixed-function adapters cover native texture cascades, texgen/transforms, material/color sources, four directional/point lights, specular and fog.
 - Bounded transactional GXSH v3 and independent compressed GXSH v4 readers. v4 support is a research/parser facility; the native game loader deliberately uses its own v3 shader family.
+
+The native CPU DXT fallback retains the existing blitter color expansion (for example, a maximum RGB565 red becomes 248); ordinary hardware BC sampling retains its standard 255 result. Tiny or generated-mip compressed resources use that existing native CPU behavior.
 
 Stereo and the three undocumented extension slots have the same unavailable/inert boundary exposed by the ordinary native contract. No stereo capability is advertised. D32 polygon bias uses D3D11 floating-depth precision and still needs visual comparison; the normal D24 path maps native normalized bias to fixed-depth units.
 
