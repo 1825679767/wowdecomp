@@ -5,6 +5,10 @@
 #include "Engine/Source/Base/SIMD.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/Model2/M2Shared.h"
+#include "Engine/Source/Model2/M2Cache.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/Gx/Gx.h"
+#include <algorithm>
 #include "platform/waystone/M2Bytes.hpp"
 #include "engine/assets/shared/textures/blp/BlpTranscode.hpp"
 #include "common/Log.hpp"
@@ -56,7 +60,17 @@ bool PrepareModel(CM2Shared& shared){
  if(!AssetsEnabled())return true; // Native unsupported-format handling remains authoritative.
  try{auto assets=std::make_unique<ModelAssets>();std::vector<uint8_t> converted;wxl::waystone::m2bytes::Stats stats;
   struct Scope{ModelAssets* prior{loading};explicit Scope(ModelAssets* value){loading=value;}~Scope(){loading=prior;}} scope(assets.get());
-  if(!wxl::waystone::m2bytes::Convert(shared.m_fileName,{raw,shared.m_fileSize},&ResolveTexture,&ReadCompanion,converted,stats,ParticlesEnabled(),false,75)){
+  uint32_t paletteLimit=75;
+  // Same typed capability calculation as native CM2Shared::Initialize. A D3D9
+  // backend may expose fewer constants than the former15595/DX11 host.
+  if(shared.m_cache && (shared.m_cache->m_flags&8)){
+   if(!g_theGxDevicePtr)return false;
+   const auto constants=g_theGxDevicePtr->Caps().m_shaderConstants[0];
+   if(constants<=32)return false;
+   paletteLimit=(std::min)(75u,(constants-(constants>0xc0?64u:32u))/3u);
+   if(paletteLimit<3)return false;
+  }
+  if(!wxl::waystone::m2bytes::Convert(shared.m_fileName,{raw,shared.m_fileSize},&ResolveTexture,&ReadCompanion,converted,stats,ParticlesEnabled(),false,paletteLimit)){
    WLOG_WARN("native-modern-model: refused path=%s reason=%s",shared.m_fileName,stats.reason.c_str());return false;
   }
   PreserveMaterials({raw,shared.m_fileSize},converted);

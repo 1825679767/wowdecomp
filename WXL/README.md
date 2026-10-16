@@ -14,3 +14,5 @@ Native entry points:
 CMake: WXL_ENABLE_NATIVE (master), WXL_ENABLE_ASSETS, WXL_ENABLE_BLP, WXL_ENABLE_MATERIALS, WXL_ENABLE_PARTICLES (default ON). Runtime CVars: wxlModernAssets, wxlModernBlp, wxlCustomMaterials, wxlParticles. Changes require restart/model reload as indicated by client help; disabled features use existing native paths. The diagnostic build enables WOWDECOMP_DISABLE_SIGNATURE_CHECKS to load custom patch/FrameXML data; no account actions or archive changes are performed.
 
 This is the first native integration batch, not full WXL parity. Existing high-palette/high-index/custom shader restrictions of the byte converter remain. WDC5/material graph/race UI/forms/equipment/persistence/world module porting and hybrid renderer merge remain. Native fog/liquid/weather/postprocess implementations are not imported from WXL. No game test loops or new Downloads folder.
+
+Palette admission follows the active native backend's shader-constant capacity (the same calculation as CM2Shared::Initialize), capped at the existing converter's75-bone limit. D3D9 is not assumed to have the former hybrid DX11 budget.
