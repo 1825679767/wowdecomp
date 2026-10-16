@@ -1,6 +1,7 @@
 // Native source transport adapted from WXL platform/waystone/Network.cpp.
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 #include "NativeProtocol.hpp"
+#include "WXL/RetailUi.hpp"
 #include "ClientExtensions.hpp"
 #include "NativeFeatures.hpp"
 #include "ProtocolConsumers.hpp"
@@ -133,28 +134,40 @@ namespace wxl::native::protocol
         try
         {
             std::lock_guard lock(mutex);
-            return declarations.size() < 64 && declarations.emplace(opcode, outbound).second;
+            return declarations.size() < 128 && declarations.emplace(opcode, outbound).second;
         }
         catch (...) { return false; }
     }
 
     bool Send(uint16_t opcode, const void* payload, uint32_t length) noexcept
     {
+        return SendInSession(opcode, payload, length, 0);
+    }
+
+    bool SendInSession(uint16_t opcode, const void* payload, uint32_t length, uint64_t expectedGeneration) noexcept
+    {
         if (!ProtocolEnabled() || length > MaxPayload || (length && !payload) ||
             !consumers::ValidateSend(opcode, payload, length)) return false;
         try
         {
-            {
-                std::lock_guard lock(mutex);
-                if (!IsOwner() || !declarations.contains({opcode, true})) return false;
-                if (!ObserveSession()) return false;
-            }
-            auto* client = Current();
-            if (!client) return false;
             CDataStore packet;
             packet.Put(static_cast<uint32_t>(opcode));
             if (length) packet.PutData(payload, length);
             packet.Finalize();
+            ClientConnection* client = nullptr;
+            {
+                std::lock_guard lock(mutex);
+                if (!IsOwner() || !declarations.contains({opcode, true})) return false;
+                // A compiled caller may hold its own request-state mutex. Refuse
+                // a changed session here; the next owner entry performs reset
+                // before entering feature state, avoiding reset-lock reentry.
+                if (expectedGeneration) {
+                    client = Current();
+                    if (!client || client != observedClient || client->m_serverConnection != observedTransport) return false;
+                } else client = ObserveSession();
+                if (!client || (expectedGeneration && expectedGeneration != generation)) return false;
+            }
+            if (Current() != client) return false;
             // This is the existing sender and current session. Its suspension
             // queue is deliberately avoided by Current()'s suspended guard.
             client->Send(&packet);
@@ -264,10 +277,12 @@ namespace wxl::native::protocol
         consumers::InitializeLua();
         appearance_session::Install();
         client_extensions::Install();
+        retail_ui::Install();
     }
 
     void DestroyLua() noexcept
     {
+        retail_ui::Destroy();
         client_extensions::Destroy();
         try
         {
@@ -304,6 +319,7 @@ namespace wxl::native::protocol
         }
         consumers::UiReady();
         client_extensions::UiReady();
+        retail_ui::UiReady();
     }
 
     bool RegisterNativeDispatch(const NativeDeclaration* data,uint32_t count) noexcept
@@ -323,12 +339,25 @@ namespace wxl::native::protocol
                 if (!entry.outbound && !nextHandlers.emplace(entry.opcode, entry).second) return false;
                 if (entry.outbound) nextOutbound.insert(entry.opcode);
             }
-            if (nextDeclarations.size() > 64) return false;
+            if (nextDeclarations.size() > 128) return false;
             declarations.swap(nextDeclarations);
             nativeHandlers.swap(nextHandlers);
             nativeOutbound.swap(nextOutbound);
             return true;
         } catch (...) { return false; }
+    }
+    bool ClaimRawDispatch(const NativeDeclaration* data,uint32_t count) noexcept {
+        if(!data||!count||count>64)return false;
+        try{std::lock_guard lock(mutex);if(!IsOwner())return false;
+            auto ds=declarations;auto hs=nativeHandlers;auto os=nativeOutbound;
+            for(uint32_t i=0;i<count;++i){const auto& e=data[i];
+                if(e.opcode<NUM_MSG_TYPES||(e.outbound?(e.handler||e.reset):(!e.handler||consumers::OwnsIncoming(e.opcode))))return false;
+                if(e.outbound){if(!os.insert(e.opcode).second)return false;}
+                else if(!hs.emplace(e.opcode,e).second)return false;
+                ds.emplace(e.opcode,e.outbound);
+            }
+            if(ds.size()>128)return false;declarations.swap(ds);nativeHandlers.swap(hs);nativeOutbound.swap(os);return true;
+        }catch(...){return false;}
     }
     bool CanLegacySend(uint16_t opcode) noexcept {
         try {std::lock_guard lock(mutex);return IsOwner() && ProtocolEnabled() &&
