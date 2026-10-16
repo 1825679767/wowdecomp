@@ -34,8 +34,19 @@ struct ItemGraphVisualEffect {
 struct ItemGraphKitModel {
  uint32_t kitId=0,modelAttachId=0,fileDataId=0,attachmentId=0;
  uint32_t displayWeaponSubclassId=UINT32_MAX,sourceEffectId=0,animationId=0;
- float scale=1,alpha=1,offset[3]{};
+ int32_t startAnimationId=-1,endAnimationId=-1;
+ uint32_t sourceFlags=0;
+ float startDelay=0; // source float, not integer bits
+ float scale=1,alpha=1,offset[3]{},yaw=0,pitch=0,roll=0;
  std::string path;
+};
+// KitEffect1 -> SpellProceduralEffect. Preserve modern identity/raw payload;
+// supported tint/alpha is an explicit compatibility subset, not an enum alias.
+struct ItemGraphProcedural {
+ uint32_t kitId=0,kitEffectId=0,procedureId=0,type=0;
+ uint32_t rawValues[4]{};
+ uint32_t displayWeaponSubclassId=UINT32_MAX,sourceEffectId=0;
+ bool compatible=false;
 };
 struct ItemGraphVisual {
  uint32_t id=0,spellVisualKitId1=0,spellVisualKitId2=0;
@@ -43,9 +54,11 @@ struct ItemGraphVisual {
  // Explicit selectors/kit ownership are retained, not guessed as legacy IDs.
  std::vector<ItemGraphVisualEffect> effects;
  std::vector<ItemGraphKitModel> kitModels;
+ std::vector<ItemGraphProcedural> procedurals;
  uint32_t unsupportedKitRows=0;
 };
 bool ItemGraphVisualData(uint32_t visual,ItemGraphVisual&) noexcept;
+uint64_t ItemGraphVisualGeneration() noexcept;
 bool ItemGraphWeaponSubclass(uint32_t display,uint32_t& subclass) noexcept;
 bool ItemGraphDisplayVisual(uint32_t display,ItemGraphVisual&) noexcept;
 bool ItemGraphHelmetData(uint32_t display,uint32_t sex,uint32_t modelRace,ItemGraphHelmet&) noexcept;

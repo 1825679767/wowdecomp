@@ -14,6 +14,7 @@
 #include <unordered_map>
 namespace wxl::native {
 namespace {
+std::atomic<uint64_t> visualGeneration{0};
 using Catalog=std::unordered_map<uint32_t,ItemGraphVisual>;
 std::shared_ptr<const Catalog>& Slot(){static auto* slot=new std::shared_ptr<const Catalog>;return *slot;}
 std::string ModelPath(uint32_t id){const auto* path=id?ResolveModel(id):nullptr;return path?path:"";}
@@ -39,12 +40,30 @@ void ResolveKits(Catalog& catalog){
  if(Filter(schema::SpellVisualKitModelAttach,db::wdc5::SnapshotFilterSource::ParentId,kits,direct))for(const auto& row:direct.Rows())add(row.parentId,row);
  std::unordered_map<uint32_t,std::vector<uint32_t>> indirectKits;
  std::unordered_map<uint32_t,uint32_t> unsupported;
+ struct ProcedureLink{uint32_t kit,link;};
+ std::unordered_map<uint32_t,std::vector<ProcedureLink>> procedureOwners;
+ std::unordered_map<uint32_t,std::vector<ItemGraphProcedural>> proceduresByKit;
  if(Filter(schema::SpellVisualKitEffect,db::wdc5::SnapshotFilterSource::ParentId,kits,links)){
   for(const auto& row:links.Rows()){
    if(links.Value(row,"EffectType")==2&&links.Value(row,"Effect"))indirectKits[links.Value(row,"Effect")].push_back(row.parentId);
+   else if(links.Value(row,"EffectType")==1&&links.Value(row,"Effect"))procedureOwners[links.Value(row,"Effect")].push_back({row.parentId,row.id});
    else ++unsupported[row.parentId];
   }
  }
+ std::vector<uint32_t> procedureIds;for(const auto& [id,owners]:procedureOwners)procedureIds.push_back(id);Unique(procedureIds);
+ db::Table procedures;
+ const bool proceduresLoaded=!procedureIds.empty()&&Filter(schema::SpellProceduralEffect,db::wdc5::SnapshotFilterSource::RowId,procedureIds,procedures);
+ for(const auto& [id,owners]:procedureOwners)for(const auto& owner:owners){
+  const auto* row=proceduresLoaded?procedures.Find(id):nullptr;if(!row){++unsupported[owner.kit];continue;}
+  ItemGraphProcedural effect;effect.kitId=owner.kit;effect.kitEffectId=owner.link;effect.procedureId=id;effect.type=procedures.Value(*row,"Type");
+  bool zero=true;for(uint32_t value=0;value<4;++value){effect.rawValues[value]=procedures.Value(*row,"Value",value);const auto f=std::bit_cast<float>(effect.rawValues[value]);if(!std::isfinite(f)||(value&&f!=0))zero=false;}
+  const auto first=std::bit_cast<float>(effect.rawValues[0]);
+  effect.compatible=zero&&((effect.type==1&&first>=0&&first<=16777215&&std::trunc(first)==first)||(effect.type==14&&first>=0&&first<=1));
+  if(!effect.compatible)++unsupported[owner.kit];
+  if(proceduresByKit[owner.kit].size()<256)proceduresByKit[owner.kit].push_back(effect);else ++unsupported[owner.kit];
+ }
+ // Stable KitEffect row order for multiple writes to the same field.
+ for(auto& [kit,rows]:proceduresByKit)std::stable_sort(rows.begin(),rows.end(),[](const auto& a,const auto& b){return a.kitEffectId<b.kitEffectId;});
  std::vector<uint32_t> indirectIds;for(const auto& [id,owners]:indirectKits)indirectIds.push_back(id);Unique(indirectIds);
  if(!indirectIds.empty()&&Filter(schema::SpellVisualKitModelAttach,db::wdc5::SnapshotFilterSource::RowId,indirectIds,indirect))for(const auto& row:indirect.Rows())for(auto kit:indirectKits[row.id])add(kit,row);
  std::vector<uint32_t> effectIds;
@@ -59,16 +78,22 @@ void ResolveKits(Catalog& catalog){
   const auto& row=attach.row;const auto effectId=attachTable.Value(row,"SpellVisualEffectNameID");const auto* effect=names.Find(effectId);
   auto refuse=[&]{++unsupported[attach.kit];};
   if(!effect){refuse();continue;}
-  // Positioner/random orientation/animation timeline/flags need their own
-  // playback owner. Do not silently draw a static substitute for those rows.
-  bool supported=!attachTable.Value(row,"PositionerID")&&!attachTable.Value(row,"Flags")&&!attachTable.Value(row,"AnimKitID")&&!attachTable.Value(row,"StartDelay");
-  for(auto field:{"Yaw","Pitch","Roll","YawVariation","PitchVariation","RollVariation","ScaleVariation"})supported&=Float(attachTable,row,field)==0;
+  // Recovered native Euler/sequence ownership admits static transforms and
+  // start/loop/end timing. Positioners/random variation/unknown flags stay refused.
+  bool supported=!attachTable.Value(row,"PositionerID")&&!attachTable.Value(row,"Flags")&&!attachTable.Value(row,"AnimKitID");
+  for(auto field:{"YawVariation","PitchVariation","RollVariation","ScaleVariation"})supported&=Float(attachTable,row,field)==0;
   for(unsigned axis=0;axis<3;++axis)supported&=Float(attachTable,row,"OffsetVariation",axis)==0;
-  for(auto field:{"StartAnimID","EndAnimID"}){auto id=attachTable.Value(row,field);supported&=id==0||id==0xffffu||id==0xffffffffu;}
   // Effect-name substitutions, procedural types, positioners and dissolve
   // pipelines are outside a model-only equipment owner.
   supported&=!names.Value(*effect,"TextureFileDataID")&&!names.Value(*effect,"DissolveEffectID")&&!names.Value(*effect,"Flags")&&!names.Value(*effect,"ModelPosition");
   ItemGraphKitModel model;model.kitId=attach.kit;model.modelAttachId=row.id;model.fileDataId=names.Value(*effect,"ModelFileDataID");model.attachmentId=attachTable.Value(row,"AttachmentID");model.animationId=attachTable.Value(row,"AnimID");
+  auto animation=[](uint32_t value)->int32_t{return value==0xffffu||value==0xffffffffu?-1:int32_t(value);};
+  model.startAnimationId=animation(attachTable.Value(row,"StartAnimID"));model.endAnimationId=animation(attachTable.Value(row,"EndAnimID"));
+  supported&=model.startAnimationId>=-1&&model.endAnimationId>=-1;
+  model.startDelay=Float(attachTable,row,"StartDelay");model.sourceFlags=attachTable.Value(row,"Flags");
+  model.yaw=Float(attachTable,row,"Yaw");model.pitch=Float(attachTable,row,"Pitch");model.roll=Float(attachTable,row,"Roll");
+  supported&=std::isfinite(model.startDelay)&&model.startDelay>=0&&model.startDelay<=float(INT32_MAX)/1000.0f;
+  supported&=std::isfinite(model.yaw)&&std::isfinite(model.pitch)&&std::isfinite(model.roll);
   float first=Float(attachTable,row,"Scale"),second=Float(names,*effect,"Scale");
   // Preserve donor graph's default scale treatment before multiplying rows.
   if(!std::isfinite(first)||first<=0)first=1;if(!std::isfinite(second)||second<=0)second=1;
@@ -81,7 +106,8 @@ void ResolveKits(Catalog& catalog){
  }
  for(auto& [id,visual]:catalog){
   auto append=[&](uint32_t kit,uint32_t selector,uint32_t source){if(!kit)return;visual.unsupportedKitRows+=unsupported[kit];
-   if(!byKit.contains(kit)&&!unsupported[kit])++visual.unsupportedKitRows;
+   if(!byKit.contains(kit)&&!proceduresByKit.contains(kit)&&!unsupported[kit])++visual.unsupportedKitRows;
+   if(const auto rows=proceduresByKit.find(kit);rows!=proceduresByKit.end())for(auto effect:rows->second){if(visual.procedurals.size()>=256){++visual.unsupportedKitRows;break;}effect.displayWeaponSubclassId=selector;effect.sourceEffectId=source;visual.procedurals.push_back(effect);}
    if(const auto rows=byKit.find(kit);rows!=byKit.end())for(auto model:rows->second){if(visual.kitModels.size()>=256){++visual.unsupportedKitRows;break;}model.displayWeaponSubclassId=selector;model.sourceEffectId=source;visual.kitModels.push_back(std::move(model));}
   };
   append(visual.spellVisualKitId1,UINT32_MAX,0);if(visual.spellVisualKitId2!=visual.spellVisualKitId1)append(visual.spellVisualKitId2,UINT32_MAX,0);
@@ -114,12 +140,14 @@ void LoadItemVisualGraph() noexcept {try{
  }
  try{ResolveKits(*next);}catch(...){
   // Optional kit failure must not discard the already resolved direct models.
-  for(auto& [id,visual]:*next){visual.kitModels.clear();++visual.unsupportedKitRows;}
+  for(auto& [id,visual]:*next){visual.kitModels.clear();visual.procedurals.clear();++visual.unsupportedKitRows;}
  }
  std::atomic_store_explicit(&Slot(),std::shared_ptr<const Catalog>(std::move(next)),std::memory_order_release);
+ visualGeneration.fetch_add(1,std::memory_order_release);
  ItemGraphPublished();
  }catch(...){}}
-void ClearItemVisualGraph() noexcept {std::atomic_store_explicit(&Slot(),std::shared_ptr<const Catalog>{},std::memory_order_release);}
+uint64_t ItemGraphVisualGeneration() noexcept {return visualGeneration.load(std::memory_order_acquire);}
+void ClearItemVisualGraph() noexcept {visualGeneration.fetch_add(1,std::memory_order_release);std::atomic_store_explicit(&Slot(),std::shared_ptr<const Catalog>{},std::memory_order_release);}
 bool ItemGraphVisualData(uint32_t id,ItemGraphVisual& output) noexcept {
  output={};if(!id||!Db2Enabled())return false;
  try{auto current=std::atomic_load_explicit(&Slot(),std::memory_order_acquire);if(!current)return false;

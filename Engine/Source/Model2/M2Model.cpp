@@ -1,3 +1,4 @@
+#include "WXL/ProceduralEnchants.hpp"
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -14,6 +15,7 @@
 #include "Engine/Source/Model2/M2Model.h"
 #include "WXL/NativeFeatures.hpp"
 #include "WXL/AssetCompat.hpp"
+#include "WXL/EquipmentAttachments.hpp"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Base/ObjectAlloc.h"
 #include "Engine/Source/Base/SIMD.h"
@@ -1952,6 +1954,8 @@ C3Vector CM2Model::GetAttachmentPivot(uint32_t id) {
 // VERIFY: dca38176 manual
 // OFFSET: 0x008274F0
 void CM2Model::DetachFromParent() {
+    wxl::native::procedural_enchants::Release(this);
+    wxl::native::equipment_attachments::ReleaseItemVisuals(*this);
     if (this->m_attachPrev) {
         *this->m_attachPrev = this->m_attachNext;
     }
@@ -6615,6 +6619,8 @@ void CM2Model::ProcessCallbacksRecursive() {
 // VERIFY: d96ccadd manual
 // OFFSET: 0x00832640
 CM2Model::~CM2Model() {
+    wxl::native::procedural_enchants::Release(this);
+    wxl::native::equipment_attachments::ReleaseItemVisuals(*this);
     this->SetSkinningSource(nullptr);
     CM2Model* model30 = this->m_model30;
 
@@ -7833,7 +7839,10 @@ int32_t CM2Model::Initialize(CM2Scene* scene, CM2Shared* shared, CM2Model* sourc
     this->m_loopOrigin = this->m_scene->m_time;
 
     if (this->m_model30) {
+        wxl::native::procedural_enchants::Clone(*this->m_model30,*this);
+        const bool copiedEnchantOwner=wxl::native::equipment_attachments::CloneItemVisuals(*this->m_model30,*this);
         for (CM2Model* child = this->m_model30->m_attachList; child; child = child->m_attachNext) {
+            if(copiedEnchantOwner&&wxl::native::equipment_attachments::OwnsTimedItemVisual(*this->m_model30,child))continue;
             CM2Model* copy = this->m_scene->DuplicateModel(child, 0);
 
             if (copy) {

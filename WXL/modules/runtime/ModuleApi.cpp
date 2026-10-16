@@ -1,3 +1,4 @@
+#include "WXL/ProceduralEnchants.hpp"
 #include "WXL/CreationBeams.hpp"
 #include "WXL/RetailSpellVisual.hpp"
 #include "WXL/EquipmentAttachments.hpp"
@@ -13,6 +14,7 @@ namespace wxl::native {
 namespace {
 struct Entry {const char* id;const char* dependencies;bool(*enabled)() noexcept;};
 const Entry entries[]{
+ {"procedural-enchants","equipment-attachments,item-visual-graph",&procedural_enchants::Enabled},
  {"creation-beams","creation-effects,blp,native-spell-chain",&creation_beams::Enabled},
  {"retail-spell-visuals","runtime,storage,db2,m2,protocol",&spell_visuals::Enabled},
  {"equipment-attachments","m2,db2,blp,appearances",&equipment_attachments::Enabled},

@@ -1,4 +1,4 @@
-// Source21/33/35 WXL donor compatibility, source-indexed rigid/weighted two-UV batches.
+// Source21/33/35 WXL donor compatibility, source-indexed rigid/GPU/CPU weighted two-UV batches.
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "MeshMaterials.hpp"
 #include "DndMaterials.hpp"
@@ -83,17 +83,15 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
  const uint32_t bodySize=Read<uint32_t>(raw,4);if(bodySize<304||bodySize>size-8)return {};
  const auto* body=raw+8;
   const uint32_t bones=Read<uint32_t>(body,0x2c),profiles=Read<uint32_t>(body,0x44);
- const bool weighted=bones!=1;
+ const bool weighted=bones!=1,cpuSkinning=weighted&&!nativeGpuSkinning;
  if(std::memcmp(body,"MD20",4)||Read<uint32_t>(body,4)!=274||!bones||bones>4096||!profiles||profiles>4)return {};
- if(weighted && (!nativeGpuSkinning||g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256))return {};
+ if(weighted && !cpuSkinning && g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256)return {};
  const uint32_t batches=Read<uint32_t>(skin.data(),36),at=Read<uint32_t>(skin.data(),40),sections=Read<uint32_t>(skin.data(),28),sectionAt=Read<uint32_t>(skin.data(),32);
  if(!batches||batches>32||!sections||sections>32||at<48||sectionAt<48||!Range(skin.size(),at,batches,24)||!Range(skin.size(),sectionAt,sections,48))return {};
  const uint32_t boneCombos=Read<uint32_t>(body,0x78),boneAt=Read<uint32_t>(body,0x7c);
  const uint32_t vertexCount=Read<uint32_t>(body,0x3c),vertexAt=Read<uint32_t>(body,0x40),lookupCount=Read<uint32_t>(skin.data(),4),lookupAt=Read<uint32_t>(skin.data(),8),propsAt=Read<uint32_t>(skin.data(),24);
  if(!Range(bodySize,boneAt,boneCombos,2)||!Range(bodySize,vertexAt,vertexCount,48)||!Range(skin.size(),lookupAt,lookupCount,2)||Read<uint32_t>(skin.data(),20)!=lookupCount||!Range(skin.size(),propsAt,lookupCount,4))return {};
- std::vector<SectionSource> sourceSections;sourceSections.reserve(sections);
- const auto constants=g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex];
- const uint32_t paletteLimit=constants>32?(std::min)(75u,(constants-(constants>0xc0?64u:32u))/3u):0;
+ std::vector<SectionSource> sourceSections;sourceSections.reserve(sections);uint32_t cpuVertexBudget=0;
  for(uint32_t i=0;i<sections;++i){
   const auto* section=skin.data()+sectionAt+48*i;SectionSource captured;
   const uint32_t count=Read<uint16_t>(section,12),palette=Read<uint16_t>(section,14),influences=Read<uint16_t>(section,16),first=Read<uint16_t>(section,4),vertices=Read<uint16_t>(section,6);
@@ -101,13 +99,20 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
   // palettes are partitioned by the native converter before BindTopology.
   if(!count||count>(weighted?256u:1u)||!influences||influences>4||!Read<uint16_t>(section,10)||palette>boneCombos||count>boneCombos-palette||first>lookupCount||vertices>lookupCount-first)return {};
   captured.firstVertex=uint16_t(first);captured.vertexCount=uint16_t(vertices);captured.paletteOffset=uint16_t(palette);captured.influences=uint16_t(influences);
-  for(uint32_t bone=0;bone<count;++bone){const auto global=Read<uint16_t>(body,boneAt+2*(palette+bone));if(global>=bones)return {};captured.palette.push_back(global);}
+  for(uint32_t bone=0;bone<count;++bone){const auto global=Read<uint16_t>(body,boneAt+2*(palette+bone));if(global>=bones||(cpuSkinning&&global>255))return {};captured.palette.push_back(global);}
+  if(cpuSkinning){if(vertices>65535-cpuVertexBudget)return {};cpuVertexBudget+=vertices;captured.cpuVertices.reserve(vertices);}
   for(uint32_t vertex=first;vertex<first+vertices;++vertex){
    const auto index=Read<uint16_t>(skin.data(),lookupAt+2*vertex);if(index>=vertexCount)return {};
    const auto* source=body+vertexAt+48*index;const auto* local=skin.data()+propsAt+4*vertex;
    uint32_t sum=0;bool ended=false;
    for(uint32_t lane=0;lane<4;++lane){const auto weight=source[12+lane];if(!weight){ended=true;continue;}if(ended||lane>=influences||local[lane]>=count)return {};sum+=weight;}
    if(sum!=255)return {};
+   if(cpuSkinning){std::array<uint8_t,48> value;std::memcpy(value.data(),source,48);for(uint32_t lane=0;lane<4;++lane)value[16+lane]=source[12+lane]?uint8_t(captured.palette[local[lane]]):0;captured.cpuVertices.push_back(value);}
+  }
+  if(cpuSkinning){
+   const uint32_t indexCount=Read<uint32_t>(skin.data(),12),indexAt=Read<uint32_t>(skin.data(),16),start=uint32_t(Read<uint16_t>(section,8))|(uint32_t(Read<uint16_t>(section,2))<<16),n=Read<uint16_t>(section,10);
+   if(!Range(skin.size(),indexAt,indexCount,2)||start>indexCount||n>indexCount-start)return {};
+   captured.cpuIndices.reserve(n);for(uint32_t index=0;index<n;++index){const auto value=Read<uint16_t>(skin.data(),indexAt+2*(start+index));if(value<first||uint32_t(value)-first>=vertices)return {};captured.cpuIndices.push_back(uint16_t(value-first));}
   }
   sourceSections.push_back(std::move(captured));
  } const uint32_t materials=Read<uint32_t>(body,0x70),materialAt=Read<uint32_t>(body,0x74);
@@ -119,7 +124,7 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
   if(!std::memcmp(raw+off,"TXID",4)){if(!txid.empty()||n!=textures*4)return {};txid={raw+off+8,n};}off+=8+n;
  }
  if(txid.size()!=textures*4)return {};
- auto result=std::make_shared<Source>();result->weighted=weighted;result->boneCount=bones;result->sections=std::move(sourceSections);result->modelPath=modelPath;result->sectionCount=sections;result->textureCount=textures;result->batches.reserve(batches);
+ auto result=std::make_shared<Source>();result->weighted=weighted;result->cpuSkinning=cpuSkinning;result->boneCount=bones;result->sections=std::move(sourceSections);result->modelPath=modelPath;result->sectionCount=sections;result->textureCount=textures;result->batches.reserve(batches);
  for(uint32_t b=0;b<batches;++b){
   const auto* batch=skin.data()+at+24*b;const uint16_t shader=Read<uint16_t>(batch,2);
   // The donor's exact named Rift33 correction has a different pixel equation.
@@ -149,7 +154,7 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
 std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,const std::vector<uint8_t>& prepared,
  const std::vector<uint8_t>& model,const std::vector<uint8_t>& rebuilt,const std::vector<uint32_t>& origins,
  uint32_t paletteLimit,bool nativeGpuSkinning){
- if(!source||!source->weighted||source->dnd||source->topologyParent||!nativeGpuSkinning||!paletteLimit||paletteLimit>75||prepared.size()<48||model.size()<304||rebuilt.size()<48)return {};
+ if(!source||!source->weighted||source->dnd||source->topologyParent||(!nativeGpuSkinning&&!source->cpuSkinning)||!paletteLimit||paletteLimit>75||prepared.size()<48||model.size()<304||rebuilt.size()<48)return {};
  if(std::memcmp(model.data(),"MD20",4)||Read<uint32_t>(model.data(),4)!=264||std::memcmp(rebuilt.data(),"SKIN",4))return {};
  const auto sourceN=Read<uint32_t>(prepared.data(),36),sourceAt=Read<uint32_t>(prepared.data(),40);
  if(sourceN!=source->batches.size()||!sourceN||sourceAt<48||!Range(prepared.size(),sourceAt,sourceN,24))return {};
@@ -163,16 +168,24 @@ std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source> source,
  const auto batchN=Read<uint32_t>(rebuilt.data(),36),batchAt=Read<uint32_t>(rebuilt.data(),40),sectionN=Read<uint32_t>(rebuilt.data(),28),sectionAt=Read<uint32_t>(rebuilt.data(),32);
  const auto bones=Read<uint32_t>(model.data(),0x2c),comboN=Read<uint32_t>(model.data(),0x78),comboAt=Read<uint32_t>(model.data(),0x7c),vertexN=Read<uint32_t>(model.data(),0x3c),vertexAt=Read<uint32_t>(model.data(),0x40);
  const auto lookupN=Read<uint32_t>(rebuilt.data(),4),lookupAt=Read<uint32_t>(rebuilt.data(),8),propsN=Read<uint32_t>(rebuilt.data(),20),propsAt=Read<uint32_t>(rebuilt.data(),24);
+ const auto indexN=Read<uint32_t>(rebuilt.data(),12),indexAt=Read<uint32_t>(rebuilt.data(),16);
  if(canonicalN!=sourceN||origins.size()!=batchN||!batchN||batchN>16384||!sectionN||sectionN>16384||bones!=source->boneCount||lookupN!=propsN||
     !Range(canonical.size(),canonicalAt,canonicalN,24)||!Range(rebuilt.size(),batchAt,batchN,24)||!Range(rebuilt.size(),sectionAt,sectionN,48)||
-    !Range(model.size(),comboAt,comboN,2)||!Range(model.size(),vertexAt,vertexN,48)||!Range(rebuilt.size(),lookupAt,lookupN,2)||!Range(rebuilt.size(),propsAt,propsN,4))return {};
+    !Range(model.size(),comboAt,comboN,2)||!Range(model.size(),vertexAt,vertexN,48)||!Range(rebuilt.size(),lookupAt,lookupN,2)||!Range(rebuilt.size(),propsAt,propsN,4)||!Range(rebuilt.size(),indexAt,indexN,2))return {};
  auto next=std::make_shared<Source>(*source);next->topologyParent=source;next->nativeBatchOrigins=origins;next->sectionCount=sectionN;next->sections.clear();next->batches.clear();
+ uint32_t cpuVertexBudget=0;
  for(uint32_t index=0;index<sectionN;++index){const auto* section=rebuilt.data()+sectionAt+index*48;SectionSource captured;
   captured.firstVertex=Read<uint16_t>(section,4);captured.vertexCount=Read<uint16_t>(section,6);captured.paletteOffset=Read<uint16_t>(section,14);captured.influences=Read<uint16_t>(section,16);const auto count=Read<uint16_t>(section,12);
   if(!count||count>paletteLimit||!captured.influences||captured.influences>4||captured.paletteOffset>comboN||count>comboN-captured.paletteOffset||uint32_t(captured.firstVertex)+captured.vertexCount>lookupN)return {};
-  for(uint32_t bone=0;bone<count;++bone){const auto global=Read<uint16_t>(model.data(),comboAt+2*(captured.paletteOffset+bone));if(global>=bones)return {};captured.palette.push_back(global);}
+  for(uint32_t bone=0;bone<count;++bone){const auto global=Read<uint16_t>(model.data(),comboAt+2*(captured.paletteOffset+bone));if(global>=bones||(source->cpuSkinning&&global>255))return {};captured.palette.push_back(global);}
+  if(source->cpuSkinning){if(captured.vertexCount>65535-cpuVertexBudget)return {};cpuVertexBudget+=captured.vertexCount;captured.cpuVertices.reserve(captured.vertexCount);}
   for(uint32_t vertex=captured.firstVertex;vertex<uint32_t(captured.firstVertex)+captured.vertexCount;++vertex){const auto origin=Read<uint16_t>(rebuilt.data(),lookupAt+vertex*2);if(origin>=vertexN)return {};const auto* raw=model.data()+vertexAt+size_t(origin)*48;const auto* props=rebuilt.data()+propsAt+size_t(vertex)*4;uint32_t sum=0;bool ended=false;
    for(uint32_t lane=0;lane<4;++lane){if(!raw[12+lane]){ended=true;continue;}if(ended||lane>=captured.influences||props[lane]>=count)return {};sum+=raw[12+lane];}if(sum!=255)return {};
+   if(source->cpuSkinning){std::array<uint8_t,48> value;std::memcpy(value.data(),raw,48);for(uint32_t lane=0;lane<4;++lane)value[16+lane]=raw[12+lane]?uint8_t(captured.palette[props[lane]]):0;captured.cpuVertices.push_back(value);}
+  }
+  if(source->cpuSkinning){const uint32_t first=uint32_t(Read<uint16_t>(section,8))|(uint32_t(Read<uint16_t>(section,2))<<16),number=Read<uint16_t>(section,10);
+   if(first>indexN||number>indexN-first||number%3)return {};captured.cpuIndices.reserve(number);
+   for(uint32_t triangle=0;triangle<number;++triangle){const auto vertex=Read<uint16_t>(rebuilt.data(),indexAt+2*(first+triangle));if(vertex<captured.firstVertex||uint32_t(vertex)>=uint32_t(captured.firstVertex)+captured.vertexCount)return {};captured.cpuIndices.push_back(uint16_t(vertex-captured.firstVertex));}
   }
   next->sections.push_back(std::move(captured));
  }
@@ -257,6 +270,49 @@ void UploadPalette(CGxDevice& device,const CM2Model& model,const SectionSource& 
  }
  device.ShaderConstantsUnlock(GxSh_Vertex,31,uint32_t(section.palette.size())*3);
 }
+void SyncCpuState(CGxDevice& device){SyncMaterialState(device);}
+struct CpuState {
+ CGxDevice& device;CGxVertexAttrib attributes[14];CGxBuf* buffers[14];uint32_t mask,size;EGxVertexBufferFormat format;CGxBuf* vertices;CGxBuf* indices;float rows[12];
+ explicit CpuState(CGxDevice& value):device(value),mask(value.m_primVertexMask),size(value.m_primVertexSize),format(value.m_primVertexFormat),vertices(value.m_primVertexBuf),indices(value.m_primIndexBuf){
+  std::memcpy(attributes,value.m_primVertexFormatAttrib,sizeof(attributes));std::memcpy(buffers,value.m_primVertexFormatBuf,sizeof(buffers));std::memcpy(rows,CGxDevice::s_shadowConstants[1].constants+31*4,sizeof(rows));device.RsPush();
+ }
+ ~CpuState(){
+  device.ShaderConstantsSet(GxSh_Vertex,31,rows,3);
+  for(uint32_t slot=0;slot<14;++slot)if((mask&(1u<<slot))&&buffers[slot])device.PrimVertexFormat(buffers[slot],attributes+slot,1);
+  std::memcpy(device.m_primVertexFormatAttrib,attributes,sizeof(attributes));std::memcpy(device.m_primVertexFormatBuf,buffers,sizeof(buffers));device.PrimVertexMask(mask);
+  device.m_primVertexFormat=format;device.m_primVertexBuf=vertices;device.m_primVertexSize=size;device.PrimIndexPtr(indices);
+  device.RsPop();SyncCpuState(device);
+ }
+};
+static_assert(sizeof(M2Vertex)==48&&sizeof(M2VertexPNT2)==40,"native captured CPU vertex ABI" );
+bool DrawCpu(CM2SceneRender& context,const CGxBatch& draw,const SectionSource& section,CGxShader* vertex,CGxShader* pixel){
+ auto& device=*g_theGxDevicePtr;
+ if(section.cpuVertices.empty()||section.cpuVertices.size()>65535||section.cpuIndices.empty()||draw.m_count!=section.cpuIndices.size())return false;
+ // Synchronize the current native binding before taking its typed restore image.
+ SyncCpuState(device);
+ if(device.m_primVertexFormat<GxVertexBufferFormats_Last&&!device.m_primVertexBuf)return false;
+ for(uint32_t slot=0;slot<14;++slot)if((device.m_primVertexMask&(1u<<slot))&&!device.m_primVertexFormatBuf[slot])return false;
+ auto* vb=device.BufStream(GxPoolTarget_Vertex,sizeof(M2VertexPNT2),uint32_t(section.cpuVertices.size()));if(!vb)return false;
+ auto* out=static_cast<M2VertexPNT2*>(device.BufLock(vb));if(!out)return false;
+ for(size_t index=0;index<section.cpuVertices.size();++index){
+  M2Vertex source;std::memcpy(&source,section.cpuVertices[index].data(),sizeof(source));C44Matrix matrix;
+  M2BlendBoneMatrices(context.m_curModel->m_boneMatrices,source.m_weights,source.m_indices,&matrix);
+  auto& target=out[index];target.m_position=source.m_position*matrix;
+  target.m_normal.x=source.m_normal.z*matrix.c0+source.m_normal.x*matrix.a0+matrix.b0*source.m_normal.y;
+  target.m_normal.y=source.m_normal.z*matrix.c1+source.m_normal.x*matrix.a1+matrix.b1*source.m_normal.y;
+  target.m_normal.z=source.m_normal.z*matrix.c2+source.m_normal.x*matrix.a2+matrix.b2*source.m_normal.y;
+  target.m_texcoord[0]=source.m_texcoord[0];target.m_texcoord[1]=source.m_texcoord[1];
+ }
+ device.BufUnlock(vb,0);vb->m_hasData=1;
+ auto* ib=device.BufStream(GxPoolTarget_Index,sizeof(uint16_t),uint32_t(section.cpuIndices.size()));if(!ib)return false;
+ void* indices=device.BufLock(ib);if(!indices)return false;std::memcpy(indices,section.cpuIndices.data(),section.cpuIndices.size()*sizeof(uint16_t));device.BufUnlock(ib,0);ib->m_hasData=1;
+ CpuState state(device);
+ // Native CPU positions/normals are already in view space. Preserve donor
+ // projection/UV/light/colour/grazing using identity for its single affine row.
+ const float identity[]={1,0,0,0,0,1,0,0,0,0,1,0};device.ShaderConstantsSet(GxSh_Vertex,31,identity,3);
+ device.PrimVertexPtr(vb,GxVBF_PNT2);device.PrimIndexPtr(ib);device.RsSet(GxRs_VertexShader,vertex);device.RsSet(GxRs_PixelShader,pixel);
+ CGxBatch local=draw;local.m_start=0;local.m_minIndex=0;local.m_maxIndex=uint32_t(section.cpuVertices.size()-1);device.Draw(&local,1);return true;
+}
 struct StateScope {
  CGxDevice& device;explicit StateScope(CGxDevice& d):device(d){device.RsPush();}
  ~StateScope(){device.RsPop();SyncMaterialState(device);}
@@ -280,22 +336,25 @@ bool Draw(CM2SceneRender& context,CGxBatch& draw){
  for(uint32_t i=0;i<skin.m_batches.m_count;++i)if(&skin.m_batches[i]==context.m_curBatch){sourceIndex=i;break;}
  if(sourceIndex>=source->batches.size())return false;
  const auto& record=source->batches[sourceIndex];const auto* raw=record.batch.data();
- if(!AddAlphaFamily(Read<uint16_t>(raw,2))||(Read<uint16_t>(raw,2)==0x8021&&RiftPath(source->modelPath.c_str()))||b.m_skinSectionIndex!=Read<uint16_t>(raw,4)||b.m_skinSectionIndex>=skin.m_skinSections.m_count||&skin.m_skinSections[b.m_skinSectionIndex]!=context.m_curSkinSection)return false;
+ if(!AddAlphaFamily(Read<uint16_t>(raw,2))||(Read<uint16_t>(raw,2)==0x8021&&RiftPath(source->modelPath.c_str()))||b.m_skinSectionIndex!=Read<uint16_t>(raw,4)||b.m_skinSectionIndex>=skin.m_skinSections.m_count||!context.m_curShared->m_skinSections||&context.m_curShared->m_skinSections[b.m_skinSectionIndex]!=context.m_curSkinSection)return false;
  if(!context.m_curModel->m_boneMatrices||data.m_bones.m_count!=source->boneCount||b.m_skinSectionIndex>=source->sections.size())return false;
  const auto& captured=source->sections[b.m_skinSectionIndex];const auto& section=*context.m_curSkinSection;
- if(source->weighted){
+ if(source->cpuSkinning){
+  if(!context.m_curShared->m_cache||(context.m_curShared->m_cache->m_flags&8)||(context.m_curElement->m_flags&5)||section.m_vertexStart!=captured.firstVertex||section.m_vertexCount!=captured.vertexCount||section.m_boneInfluences!=captured.influences||captured.cpuVertices.size()!=section.m_vertexCount||captured.cpuIndices.size()!=section.m_indexCount)return false;
+ }else if(source->weighted){
   if(section.m_vertexStart!=captured.firstVertex||section.m_vertexCount!=captured.vertexCount||section.m_boneInfluences!=captured.influences||section.m_boneComboIndex!=captured.paletteOffset||section.m_boneCount!=captured.palette.size()||uint32_t(section.m_boneComboIndex)+section.m_boneCount>data.m_boneCombos.m_count)return false;
   for(uint32_t bone=0;bone<section.m_boneCount;++bone)if(data.m_boneCombos[section.m_boneComboIndex+bone]!=captured.palette[bone])return false;
-  if(!context.m_curShared->m_cache||!(context.m_curShared->m_cache->m_flags&8)||g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256||!WeightedDeclaration(*g_theGxDevicePtr)||!g_theGxDevicePtr->m_primVertexBuf||!g_theGxDevicePtr->m_primVertexBuf->m_hasData||g_theGxDevicePtr->m_primVertexBuf!=context.m_curShared->m_vertexBuf)return false;
- }else if(section.m_boneCount!=1||section.m_boneComboIndex>=data.m_boneCombos.m_count||data.m_boneCombos[section.m_boneComboIndex]!=0)return false; if(b.m_shader!=0x11||b.m_textureCount!=2||b.m_textureCoordComboIndex!=4||b.m_materialLayer||context.m_curElement->m_flags&1)return false;
+  if(!context.m_curShared->m_cache||!(context.m_curShared->m_cache->m_flags&8)||g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256||!WeightedDeclaration(*g_theGxDevicePtr)||!g_theGxDevicePtr->m_primVertexBuf||!g_theGxDevicePtr->m_primVertexBuf->m_hasData||g_theGxDevicePtr->m_primVertexBuf!=context.m_curShared->m_vertexBuf)return false; }else if(section.m_boneCount!=1||section.m_boneComboIndex>=data.m_boneCombos.m_count||data.m_boneCombos[section.m_boneComboIndex]!=0)return false; if(b.m_shader!=0x11||b.m_textureCount!=2||b.m_textureCoordComboIndex!=4||b.m_materialLayer||context.m_curElement->m_flags&1)return false;
  if(b.m_materialIndex!=Read<uint16_t>(raw,10)||b.m_textureComboIndex!=Read<uint16_t>(raw,16)||b.m_colorIndex!=Read<uint16_t>(raw,8)||b.m_textureWeightComboIndex!=Read<uint16_t>(raw,20)||b.m_textureTransformComboIndex!=Read<uint16_t>(raw,22)||context.m_curMaterial->m_blendMode!=record.blend||context.m_curMaterial->m_flags!=record.flags)return false;
  for(uint32_t i=0;i<2;++i){
   if(b.m_textureComboIndex+i>=data.m_textureCombos.m_count||data.m_textureCombos[b.m_textureComboIndex+i]!=record.textureIndices[i]||!context.m_curModel->m_textures[record.textureIndices[i]])return false;
   if(b.m_textureWeightComboIndex+i>=data.m_textureWeightCombos.m_count||data.m_textureWeightCombos[b.m_textureWeightComboIndex+i]!=record.weightIndices[i]||b.m_textureTransformComboIndex+i>=data.m_textureTransformCombos.m_count||data.m_textureTransformCombos[b.m_textureTransformComboIndex+i]!=record.transformIndices[i])return false;
  }
- try{auto* vertex=source->weighted?WeightedProgram(*g_theGxDevicePtr):Program(*g_theGxDevicePtr,GxSh_Vertex,VertexName,kCombinersModAddAlphaVs,sizeof(kCombinersModAddAlphaVs));
+ try{auto* vertex=source->weighted&&!source->cpuSkinning?WeightedProgram(*g_theGxDevicePtr):Program(*g_theGxDevicePtr,GxSh_Vertex,VertexName,kCombinersModAddAlphaVs,sizeof(kCombinersModAddAlphaVs));
   auto* pixel=Program(*g_theGxDevicePtr,GxSh_Pixel,PixelName,kCombinersModAddAlphaPs,sizeof(kCombinersModAddAlphaPs));
-  if(!vertex||!pixel)return false;StateScope state(*g_theGxDevicePtr);
+  if(!vertex||!pixel)return false;
+  if(source->cpuSkinning)return DrawCpu(context,draw,captured,vertex,pixel);
+  StateScope state(*g_theGxDevicePtr);
   if(source->weighted)UploadPalette(*g_theGxDevicePtr,*context.m_curModel,captured);
   g_theGxDevicePtr->RsSet(GxRs_VertexShader,vertex);g_theGxDevicePtr->RsSet(GxRs_PixelShader,pixel);
   g_theGxDevicePtr->Draw(&draw,1);return true;

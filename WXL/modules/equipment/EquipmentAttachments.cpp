@@ -1,6 +1,8 @@
+#include "WXL/ProceduralEnchants.hpp"
 // Typed native consumer of the owned retail item graph. No renderer hooks.
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "WXL/EquipmentAttachments.hpp"
+#include "EnchantModelTimeline.hpp"
 #include "WXL/ItemGraph.hpp"
 #include "WXL/RetailChoices.hpp"
 #include "WXL/NativeFeatures.hpp"
@@ -180,7 +182,7 @@ bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t s
 }
 }
 namespace equipment_attachments {
-void Register(){enabled=CVar::Register("wxlEquipmentAttachments","WXL native retail armor models and native item visual validation",2,WXL_ENABLE_EQUIPMENT_ATTACHMENTS?"1":"0",nullptr,0,false,nullptr,false);}
+void Register(){procedural_enchants::Register();RegisterTimedItemVisuals();enabled=CVar::Register("wxlEquipmentAttachments","WXL native retail armor models and native item visual validation",2,WXL_ENABLE_EQUIPMENT_ATTACHMENTS?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept{return WXL_ENABLE_EQUIPMENT_ATTACHMENTS&&NativeEnabled()&&AssetsEnabled()&&Db2Enabled()&&BlpEnabled()&&enabled&&enabled->m_intValue;}
 bool SuppressNativeArmor(const CCharacterComponent& c,uint32_t slot) noexcept{
  if(!Enabled()||slot>=11||(c.m_data.m_flags&1u))return false;
@@ -266,30 +268,32 @@ void Apply(CCharacterComponent& c) noexcept{try{
  }catch(...){Release(c);}}
 void ApplyItemVisual(CM2Model* parent,int32_t visual,uint32_t display,uint32_t weaponSubclass) noexcept{try{
  if(!parent)return;
- // Preserve the native owner contract: this item owns its visual children.
- while(parent->m_attachList){auto* child=parent->m_attachList;child->SetEmittersEnabled(0);child->SetRibbonsEnabled(0);child->DetachFromParent();}
- if(!parent->m_scene)return;
+ if(!parent->m_scene){procedural_enchants::Release(parent);ReleaseItemVisuals(*parent);return;}
  auto* record=visual>0?g_itemVisualsDB.GetRecord(visual):nullptr;
+ ItemGraphVisual modern;uint32_t subclass=weaponSubclass;
+ if(subclass==UINT32_MAX)ItemGraphWeaponSubclass(display,subclass);
+ const bool resolved=!record&&Enabled()&&(visual>0?ItemGraphVisualData(uint32_t(visual),modern):ItemGraphDisplayVisual(display,modern));
+ procedural_enchants::Release(parent);
+ if(resolved)procedural_enchants::Apply(parent,modern,subclass);
+ if(resolved&&SameTimedItemVisual(*parent,visual,display,subclass))return;
+ RetireTimedItemVisuals(*parent);
+ // The item owns its visual children. Retiring timeline children keep their
+ // own source end animation; unrelated old native visual children are cleared.
+ for(auto* child=parent->m_attachList;child;){auto* next=child->m_attachNext;
+  if(!OwnsTimedItemVisual(*parent,child)){child->SetEmittersEnabled(0);child->SetRibbonsEnabled(0);child->DetachFromParent();}child=next;
+ }
  if(!record){
-  if(!Enabled())return;
-  ItemGraphVisual modern;
-  const bool resolved=visual>0?ItemGraphVisualData(uint32_t(visual),modern):ItemGraphDisplayVisual(display,modern);
   if(!resolved)return;
   struct Choice {uint32_t point;std::string path;float scale;float alpha=1,offset[3]{};uint32_t animation=0;};
   std::vector<Choice> choices;choices.reserve(modern.models.size()+modern.effects.size()+modern.kitModels.size());
   for(const auto& effect:modern.models)choices.push_back({effect.attachmentId,effect.path,1.0f});
-  uint32_t subclass=weaponSubclass;
-  if(subclass!=UINT32_MAX||ItemGraphWeaponSubclass(display,subclass))for(const auto& effect:modern.effects){
+  if(subclass!=UINT32_MAX)for(const auto& effect:modern.effects){
    if(effect.displayWeaponSubclassId!=subclass||!effect.fileDataId||effect.path.empty()||!std::isfinite(effect.scale)||effect.scale<=0)continue;
    // Kit-only rows have no model. A separately named direct attachment model
    // remains usable without interpreting its kit ID as a WotLK visual ID.
    choices.push_back({effect.attachmentId,effect.path,effect.scale});
   }
-  for(const auto& model:modern.kitModels){
-   if(model.displayWeaponSubclassId!=UINT32_MAX&&model.displayWeaponSubclassId!=subclass)continue;
-   Choice choice{model.attachmentId,model.path,model.scale};choice.alpha=model.alpha;choice.animation=model.animationId;
-   std::copy_n(model.offset,3,choice.offset);choices.push_back(std::move(choice));
-  }
+  InstallTimedItemVisuals(*parent,visual,display,subclass,modern.kitModels);
   for(const auto& effect:choices){
    if(!parent->IsLoaded(1,0)||!parent->HasAttachment(effect.point))continue;
    const auto path=Key(effect.path);if(!SafePart(path)||path.size()>=260||!SFile::FileExists(path.c_str()))continue;

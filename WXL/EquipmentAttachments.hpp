@@ -5,9 +5,15 @@
 #include <string>
 class CCharacterComponent;
 class CM2Model;
+class CM2Scene;
 namespace wxl::native {
 struct EquipmentAttachmentState;
 namespace equipment_attachments {
+bool CloneItemVisuals(const CM2Model& source,CM2Model& destination) noexcept;
+bool OwnsTimedItemVisual(const CM2Model& parent,const CM2Model* child) noexcept;
+void TickItemVisuals(CM2Scene&) noexcept; // scene owner before animation workers
+void ReleaseItemVisuals(CM2Model&) noexcept; // parent teardown/detachment
+void ReleaseSceneItemVisuals(CM2Scene&) noexcept;
 void Register();
 bool Enabled() noexcept;
 void Apply(CCharacterComponent&) noexcept;
