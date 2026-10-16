@@ -3189,7 +3189,7 @@ void CGMinimapFrame::MinimapTextureCallback(EGxTexCommand command, uint32_t widt
         alpha = 0xFF;
     }
 
-    GxSceneClear(1, CImVector(0, 0, 0, alpha));
+    GxSceneClear(GxBufferBit_Color, CImVector(0, 0, 0, alpha));
     CImVector color(0xFF, 0xFF, 0xFF, alpha);
     CGMinimapFrame::RenderInsideTexture(&color);
     GxRsSet(GxRs_ScissorTest, 0);
