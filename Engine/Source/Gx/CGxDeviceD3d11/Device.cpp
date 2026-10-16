@@ -244,6 +244,23 @@ void CGxDeviceD3d11::ScenePresent(){
     if(!m_context)return;
     if(m_scrShotClick){CiRect r(0,0,m->height,m->width);DeviceReadPixels(r,m_scrShotPixels);m_scrShotWidth=m->width;m_scrShotHeight=m->height;}
     ICursorDraw();
+    // Opt-in, bounded capture of this renderer's own framebuffer for offline
+    // visual regression work. Never captures the desktop or account data.
+    char captureFrame[24]{};
+    if(GetEnvironmentVariableA("WXL_DX11_CAPTURE_FRAME",captureFrame,sizeof(captureFrame))&&
+       m->presentedFrames==std::strtoul(captureFrame,nullptr,10)){
+        TSGrowableArray<CImVector> pixels;CiRect rect(0,0,m->height,m->width);
+        ReadTargetPixels(rect,pixels);
+        if(pixels.Count()==m->width*m->height){
+            FILE* file=nullptr;fopen_s(&file,"Logs/native-dx11-frame.bmp","wb");
+            if(file){BITMAPFILEHEADER header{};BITMAPINFOHEADER info{};
+                header.bfType=0x4d42;header.bfOffBits=sizeof(header)+sizeof(info);header.bfSize=header.bfOffBits+pixels.Count()*4;
+                info.biSize=sizeof(info);info.biWidth=m->width;info.biHeight=-LONG(m->height);info.biPlanes=1;info.biBitCount=32;
+                fwrite(&header,sizeof(header),1,file);fwrite(&info,sizeof(info),1,file);fwrite(pixels.Ptr(),4,pixels.Count(),file);fclose(file);
+                Log("DX11 diagnostic framebuffer captured at frame %llu",m->presentedFrames);
+            }
+        }
+    }
     if(m_format.m_fixLag){
         if(!m->frameFence){D3D11_QUERY_DESC d{D3D11_QUERY_EVENT,0};Check(m->device->CreateQuery(&d,&m->frameFence),"frame fence");}
         if(m->frameFence){m->context->End(m->frameFence.Get());m->context->Flush();const ULONGLONG begin=GetTickCount64();
