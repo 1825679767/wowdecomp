@@ -30,7 +30,7 @@ std::mutex mutex;
 std::map<CMapObj*,std::shared_ptr<const Family>> families;
 size_t residentBytes=0;
 bool DonorAux(uint32_t tag){for(const char* name:{"MGI2","MDDI","MNLD","MFED","MAVG","MAVD","MDDL","MPVD","MOSI","MOUV","MOGX","MOBS","MOPB","MNLR","MDAL","MFVR","MPVR","MAVR","MPY2","MOQG"})if(tag==Tag(name))return true;return false;}
-bool Group(const Blob& raw,uint32_t materials,const uint8_t* groupNames,uint32_t groupNameBytes,uint32_t lights,uint32_t doodads,Blob& output,wmo_materials::GroupSource& render,bool layeredReady) {
+bool Group(const Blob& raw,uint32_t materials,const uint8_t* groupNames,uint32_t groupNameBytes,uint32_t lights,uint32_t doodads,uint32_t portalRefs,uint32_t fogs,Blob& output,wmo_materials::GroupSource& render,bool layeredReady) {
  w::GroupIndex index;if(!w::IndexGroup(raw,index) || !w::ValidateGroupGeometry(raw,index,materials))return false;
  // Additional index/strip ownership remains unsupported; layered UV/weights
  // are retained in the immutable renderer side stream below. Refuse instead
@@ -48,6 +48,14 @@ bool Group(const Blob& raw,uint32_t materials,const uint8_t* groupNames,uint32_t
  if(index.bspNodes.present||index.bspFaces.present){if(!index.bspNodes.present||!index.bspFaces.present)return false;flags|=1;}
  if(index.colors[0].present)flags|=4;if(index.liquid.present)flags|=0x1000;if(index.uv[1].present)flags|=0x2000000;if(index.colors[1].present)flags|=0x1000000;
  const auto* header=raw.data()+index.header.offset;const auto name=Read(header);
+ auto word=[&](unsigned at){uint16_t value;std::memcpy(&value,header+at,2);return uint32_t(value);};
+ const auto batchCount=uint32_t(index.batches.size/24),transparent=word(0x28),interior=word(0x2a),exterior=word(0x2c);
+ // Native Create can consume these counters before the adapter gets control
+ // back. Geometry validation alone does not validate header-driven subranges.
+ if(transparent>batchCount||interior>batchCount||exterior>batchCount||transparent+interior+exterior>batchCount)return false;
+ const auto portalStart=word(0x24),portalCount=word(0x26);
+ if(portalCount&&(portalStart>portalRefs||portalCount>portalRefs-portalStart))return false;
+ for(unsigned i=0;i<4;++i)if(header[0x30+i]&&header[0x30+i]>=fogs)return false;
  render.vertices=index.vertices.size/12;
  bool needsLayers=false;for(size_t at=0;at<index.batches.size;at+=24){const auto* b=raw.data()+index.batches.offset+at;uint16_t material=b[23];if(b[22]&2)std::memcpy(&material,b+10,2);if(material>=render.materials->records.size())return false;needsLayers|=render.materials->records[material].layered;}
  if(needsLayers){if(!layeredReady||index.uvSets!=4||!index.layerWeights.present||index.layerWeights.size!=render.vertices*4)return false;
@@ -91,6 +99,18 @@ bool PrepareWmo(CMapObj& object) noexcept {
   w::RootIndex root;if(!w::IndexRoot(prepared.root.bytes,root))return false;
   const auto groups=Read(prepared.root.bytes.data()+root.slots[0].offset+4);
   if(groups>512 || prepared.groups.size()!=groups)return false;
+  const auto portalRefs=root.slots[8].size/8,portals=root.slots[7].size/20,portalVertices=root.slots[6].size/12,fogs=root.slots[15].size/48;
+  // Native interior lookup reads its authored entry0 even if no group selects
+  // another entry. Refuse a missing native table; do not synthesize fog data.
+  if(groups&&!fogs)return false;
+  auto word=[](const uint8_t* at){uint16_t value;std::memcpy(&value,at,2);return uint32_t(value);};
+  for(uint32_t i=0;i<portals;++i){const auto* row=prepared.root.bytes.data()+root.slots[7].offset+20*i;
+   const auto first=word(row),count=word(row+2);if(first>portalVertices||count>portalVertices-first)return false;
+  }
+  for(uint32_t i=0;i<portalRefs;++i){const auto* row=prepared.root.bytes.data()+root.slots[8].offset+8*i;
+   const auto portal=word(row),group=word(row+2);if(portal>=portals||group>=groups)return false;
+   if(word(prepared.root.bytes.data()+root.slots[7].offset+20*portal+2)<3)return false;
+  }
   auto materials=std::make_shared<const w::MaterialPlan>(std::move(prepared.root.materials));
   auto family=std::make_shared<Family>();family->auxiliary=std::move(rootAuxiliary);family->groups.reserve(groups);size_t total=prepared.root.bytes.size()+family->auxiliary.size()+materials->records.size()*sizeof(w::MaterialRecord);for(const auto& material:materials->records)for(const auto& name:material.paths)total+=name.size()+1;if(total>128u*1024u*1024u)return false;
   std::string stem=object.m_wmoName;if(stem.size()<4)return false;stem.resize(stem.size()-4);
@@ -99,7 +119,7 @@ bool PrepareWmo(CMapObj& object) noexcept {
    // its explicit GFID/named provider value is opened; no storage alias exists.
    auto path=prepared.groups.find(stem+suffix);if(path==prepared.groups.end())return false;
    auto render=std::make_shared<wmo_materials::GroupSource>();render->materials=materials;
-   Blob raw,group;if(!ReadAsset(path->second.c_str(),raw) || !Group(raw,root.slots[2].size/64,prepared.root.bytes.data()+root.slots[3].offset,root.slots[3].size,root.slots[11].size/48,root.slots[14].size/40,group,*render,wmo_materials::LayeredReady()))return false;
+   Blob raw,group;if(!ReadAsset(path->second.c_str(),raw) || !Group(raw,root.slots[2].size/64,prepared.root.bytes.data()+root.slots[3].offset,root.slots[3].size,root.slots[11].size/48,root.slots[14].size/40,portalRefs,fogs,group,*render,wmo_materials::LayeredReady()))return false;
    total+=group.size()+render->stream.size()+render->auxiliary.size();family->render.push_back(std::move(render));if(total>128u*1024u*1024u)return false;family->groups.push_back(std::move(group));
   }
   family->bytes=total;

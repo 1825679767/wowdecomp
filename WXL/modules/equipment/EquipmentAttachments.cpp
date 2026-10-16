@@ -41,8 +41,17 @@ std::string ObjectPath(const std::string& folder,const std::string& name,bool te
  if(texture&&(path.size()<4||path.compare(path.size()-4,4,".blp")))path+=".blp";return path.size()<260?path:std::string{};
 }
 struct Child {
- CM2Model* model=nullptr;bool skinned=false;std::string path,variant;
- ~Child(){if(model){model->SetEmittersEnabled(0);model->SetRibbonsEnabled(0);if(skinned)model->SetSkinningSource(nullptr);else model->DetachFromParent();model->Release();}}
+ CM2Model* model=nullptr;CM2Model* parent=nullptr;uint32_t parentHandle=0;bool skinned=false;std::string path,variant;
+ ~Child(){if(model){
+  auto* actual=skinned?model->m_skinningSource:model->m_attachParent;
+  // DetachFromParent consumes an attachment reference even when unbound.
+  // Failed validation owns creation only; a moved child belongs to its new owner.
+  if(actual&&actual==parent&&actual->m_handle==parentHandle){
+   model->SetEmittersEnabled(0);model->SetRibbonsEnabled(0);
+   if(skinned)model->SetSkinningSource(nullptr);else model->DetachFromParent();
+  }
+  model->Release(); // exactly the creation reference held by this Child
+ }}
 };
 struct Slot {
  uint32_t display=0,retryAt=0;uint64_t generation=0;bool ready=false;
@@ -168,7 +177,7 @@ bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t s
   const auto variant=skinned?path+"|"+std::to_string(inventory):path;
   if(skinned&&std::find(claimed.begin(),claimed.end(),variant)!=claimed.end())continue;
   if(!skinned&&!owner.model->HasAttachment(row.attachId))return false;
-  auto child=std::make_unique<Child>();child->path=path;child->variant=variant;child->skinned=skinned;child->model=owner.model->m_scene->CreateModel(path.c_str(),0);
+  auto child=std::make_unique<Child>();child->parent=owner.model;child->parentHandle=owner.handle;child->path=path;child->variant=variant;child->skinned=skinned;child->model=owner.model->m_scene->CreateModel(path.c_str(),0);
   auto* model=child->model;
   if(!model||!model->IsLoaded(1,0)||!model->m_shared||!model->m_shared->m_data||!model->m_textures||Key(model->m_shared->m_fileName)!=path)return false;
   if(!Materials(*model,row,materials,owner.race,owner.fallback,owner.sex)||!Filter(*model,row,inventory,skinned))return false;
