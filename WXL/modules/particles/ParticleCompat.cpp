@@ -9,6 +9,54 @@ namespace wxl::native {
 namespace {
 constexpr uint32_t Limit=64u*1024*1024;
 template<class T>T Read(const uint8_t* p,size_t at){T v;std::memcpy(&v,p+at,sizeof(v));return v;}
+template<class T>void Write(std::vector<uint8_t>& bytes,size_t at,const T& value){std::memcpy(bytes.data()+at,&value,sizeof(value));}
+// A modern extension supplies a constant source point, whereas the native M2
+// stores that same parameter as an ordinary float animation track. Own a new
+// constant track in the converted M2 allocation; relocation, model creation,
+// emitter cloning and simulation then use the native path without a registry.
+bool BakeZSource(std::vector<uint8_t>& bytes,size_t particle,float value,std::string& reason){
+ auto fail=[&](const char* text){reason=text;return false;};
+ if(!std::isfinite(value) || value<0)return fail("particle extension zSource requires a finite nonnegative value");
+ if(value==0)return true; // Preserve the existing source track for neutral extensions.
+ // Native SetZsource snaps smaller magnitudes to zero. Do not claim support for
+ // a source point that would silently turn back into the angular emitter path.
+ if(value<0.001f)return fail("particle extension zSource is below native directional epsilon");
+ const auto track=particle+offsetof(M2Particle,m_zsourceTrack);
+ if(Read<uint16_t>(bytes.data(),track+offsetof(M2TrackBase,m_loopIndex))!=uint16_t(-1))return fail("particle extension zSource conflicts with native global track");
+ auto fits=[&](uint32_t at,uint32_t count,size_t stride){return at<=bytes.size() && count<=(bytes.size()-at)/stride;};
+ // Native M2Init relocates a non-global slot against the model only when its
+ // matching sequence is inline. Never leave an appended key as an external
+ // .anim offset, or permit a later sequence load to relocate it a second time.
+ const auto sequences=Read<uint32_t>(bytes.data(),offsetof(M2Data,m_sequences));
+ const auto sequencesAt=Read<uint32_t>(bytes.data(),offsetof(M2Data,m_sequences)+4);
+ if(!sequences || !fits(sequencesAt,sequences,sizeof(M2Sequence)) ||
+    !(Read<uint32_t>(bytes.data(),sequencesAt+offsetof(M2Sequence,m_flags))&0x20u))return fail("particle extension zSource needs an inline native sequence zero");
+ // Never replace source animation, including external sequence slots. Only an
+ // empty or neutral constant track can receive the extension's constant value.
+ for(const auto field:{offsetof(M2TrackBase,m_sequenceTimes),offsetof(M2Track<float>,m_sequenceKeys)}){
+  const auto count=Read<uint32_t>(bytes.data(),track+field),at=Read<uint32_t>(bytes.data(),track+field+4);
+  if(count>1 || !fits(at,count,sizeof(M2Array<uint32_t>)))return fail("particle extension zSource conflicts with native sequence track");
+  if(!count)continue;
+  const auto keys=Read<uint32_t>(bytes.data(),at),keysAt=Read<uint32_t>(bytes.data(),at+4);
+  if(keys>1 || !fits(keysAt,keys,4))return fail("particle extension zSource native constant bounds");
+  if(keys && Read<uint32_t>(bytes.data(),keysAt)!=0)return fail("particle extension zSource conflicts with nonneutral native constant");
+ }
+ const auto aligned=(bytes.size()+3)&~size_t(3);
+ // Two native array descriptors plus one uint32 timestamp and float key.
+ constexpr size_t ownedBytes=2*sizeof(M2Array<uint32_t>)+sizeof(uint32_t)+sizeof(float);
+ if(aligned>Limit || ownedBytes>Limit-aligned)return fail("particle extension zSource ownership byte budget");
+ bytes.resize(aligned+ownedBytes,0);
+ const uint32_t times=uint32_t(aligned),keys=times+uint32_t(sizeof(M2Array<uint32_t>));
+ const uint32_t timeValue=keys+uint32_t(sizeof(M2Array<float>)),keyValue=timeValue+uint32_t(sizeof(uint32_t));
+ Write(bytes,times,M2Array<uint32_t>{1,timeValue});
+ Write(bytes,keys,M2Array<float>{1,keyValue});
+ Write(bytes,keyValue,value);
+ Write(bytes,track+offsetof(M2TrackBase,m_trackType),uint16_t(0));
+ Write(bytes,track+offsetof(M2TrackBase,m_loopIndex),uint16_t(-1));
+ Write(bytes,track+offsetof(M2TrackBase,m_sequenceTimes),M2Array<M2Array<uint32_t>>{1,times});
+ Write(bytes,track+offsetof(M2Track<float>,m_sequenceKeys),M2Array<M2Array<float>>{1,keys});
+ return true;
+}
 }
 // EXPT and EXP2 share constant RGB/alpha multiplier semantics.
 // EXPT has emitter-indexed float triples; EXP2 additionally carries cutoff tracks.
@@ -76,7 +124,7 @@ bool ApplyParticleExtensions(std::span<const uint8_t> raw,std::vector<uint8_t>& 
  for(uint32_t i=0;i<count;++i){
   const auto rec=offset+i*recordStride;
   const float extra=Read<float>(extension.data(),rec),rgb=Read<float>(extension.data(),rec+4),alpha=Read<float>(extension.data(),rec+8);
-  if(!std::isfinite(extra) || extra!=0)return fail("particle extension nonzero zSource is not supported");
+  if(!BakeZSource(native,particlesAt+i*sizeof(M2Particle),extra,reason))return false;
   if(!std::isfinite(rgb) || !std::isfinite(alpha) || rgb<0 || rgb>16 || alpha<0 || alpha>16)return fail("particle extension multiplier range");
   if(seenExp2){
    const auto times=Read<uint32_t>(exp2.data(),rec+12),timesAt=Read<uint32_t>(exp2.data(),rec+16);

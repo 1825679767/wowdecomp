@@ -7,7 +7,10 @@
 #include "ParticleCutoff.hpp"
 namespace wxl::native {
 // Bake constant EXPT/EXP2 RGB and alpha multipliers into private native keys.
-// Requires neutral zSource/TXAC and native-representable key values. EXP2
+// Requires neutral TXAC and native-representable key values. Nonnegative
+// zSource constants >= the native 0.001 directional epsilon are owned as native
+// constant float tracks when the original track is empty/neutral; conflicting
+// native animation and negative/sub-epsilon source points remain refused. EXP2
 // takes precedence over EXPT. A supplied source-owned cutoff set admits nonzero
 // linear UNORM16 lifetime ramps for single-texture sprites with strictly ordered
 // timestamps. Zero ramps retain existing native rendering without a sidecar.
