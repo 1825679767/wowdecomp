@@ -82,6 +82,8 @@ struct CGxDeviceD3d11::Impl {
     std::map<std::string,ComPtr<ID3D11DepthStencilState>> depths;
     std::map<std::string,ComPtr<ID3D11RasterizerState>> rasters;
     std::map<std::string,ComPtr<ID3D11SamplerState>> samplers;
+    SamplerOverride samplerOverrides[16];
+    CGxTex* sceneCapture=nullptr;
     ComPtr<ID3D11VertexShader> blitVs;
     ComPtr<ID3D11PixelShader> blitPs,depthCopyPs;
     ComPtr<ID3D11Buffer> blitConstants;

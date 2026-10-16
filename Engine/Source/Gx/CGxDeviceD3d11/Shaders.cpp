@@ -214,10 +214,10 @@ bool CGxDeviceD3d11::SyncDraw(EGxPrim primitive){
     return true;
 }
 
+uint64_t CGxDeviceD3d11::SubmittedDraws() const{return m->drawCalls;}
 void CGxDeviceD3d11::Draw(CGxBatch* batch,int32_t indexed){
     // Wrath's second argument is an indexed/non-indexed flag, not an array count.
     if(!batch||!batch->m_count||batch->m_primType>=GxPrims_Last||!SyncDraw(batch->m_primType))return;
-    ++m->drawCalls;
     static const D3D11_PRIMITIVE_TOPOLOGY topology[]={D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,D3D11_PRIMITIVE_TOPOLOGY_LINELIST,
         D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST};
     m->context->IASetPrimitiveTopology(topology[batch->m_primType]);
@@ -240,5 +240,6 @@ void CGxDeviceD3d11::Draw(CGxBatch* batch,int32_t indexed){
         m->context->IASetIndexBuffer(m->pools[m_primIndexBuf->m_pool].gpu.Get(),DXGI_FORMAT_R16_UINT,m_primIndexBuf->m_index);
         m->context->DrawIndexed(batch->m_count,batch->m_start,0);
     }else m->context->Draw(batch->m_count,batch->m_start);
+    ++m->drawCalls;
     if(auto* target=m_textureTarget[GxBuffers_Color].m_texture)m->textures[target].mipGenerationDirty=true;
 }

@@ -70,6 +70,12 @@ public:
     bool CreateOffscreen(uint32_t width,uint32_t height,bool warp);
     void ReadTargetPixels(CiRect& rect,TSGrowableArray<CImVector>& pixels);
     bool RecoverDevice();
+    // Draw-local donor sampler policy; leaves shared CGxTex flags untouched.
+    struct SamplerOverride { bool enabled=false,mipLinear=false; };
+    SamplerOverride ExchangeSamplerOverride(uint32_t stage,SamplerOverride value);
+    // Capture active RT0 (including MSAA), preserving native target ownership.
+    CGxTex* CaptureCurrentColor();
+    uint64_t SubmittedDraws() const;
     static bool Available();
     static int32_t AdapterFormats(TSGrowableArray<CGxFormat>& formats);
 private:

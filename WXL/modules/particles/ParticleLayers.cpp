@@ -1,6 +1,7 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ParticleLayers.hpp"
 #include "ParticleLayerMaterial.hpp"
+#include "MaterialBackend.hpp"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
@@ -79,8 +80,7 @@ struct DrawScope {
   device.PrimVertexMask(mask);device.PrimIndexPtr(indices);
   device.RsPop();
   for(unsigned i=0;i<3;++i)device.IRsForceUpdate(static_cast<EGxRenderState>(GxRs_Texture0+i));
-  if(device.DeviceApi()==GxApi_D3d9)static_cast<CGxDeviceD3d&>(device).IStateSync();
-  else static_cast<CGxDeviceD3d9Ex&>(device).IStateSync();
+  SyncMaterialState(device);
  }
 };
 }
@@ -133,7 +133,7 @@ bool AppendParticleLayerQuad(const ParticleLayerRecipe& recipe,const CParticle2&
 }
 bool DrawParticleLayers(CParticleEmitter2& emitter){
  auto* device=g_theGxDevicePtr;const auto& binding=emitter.m_params.m_wxlLayers;
- if(!device || (device->DeviceApi()!=GxApi_D3d9 && device->DeviceApi()!=GxApi_D3d9Ex) ||
+ if(!LegacyMaterialBackend(device,3) ||
     device->Caps().m_shaderTargets[GxSh_Vertex]<3 || device->Caps().m_shaderTargets[GxSh_Pixel]<4 ||
     !CShaderEffect::s_enableShaders || !CShaderEffect::s_curEffect || !emitter.m_wxlLayerValid ||
     !binding || binding->recipe!=emitter.m_params.m_wxlLayerRecipe || emitter.m_params.m_hasModel)return false;

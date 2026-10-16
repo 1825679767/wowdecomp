@@ -2,6 +2,10 @@
 using namespace gx11;
 
 void CGxDeviceD3d11::IRsSendToHw(EGxRenderState){m->stateDirty=true;}
+CGxDeviceD3d11::SamplerOverride CGxDeviceD3d11::ExchangeSamplerOverride(uint32_t stage,SamplerOverride value){
+    if(stage>=16)return {};
+    const auto old=m->samplerOverrides[stage];m->samplerOverrides[stage]=value;m->stateDirty=true;return old;
+}
 
 bool CGxDeviceD3d11::Impl::States(){
     self->IRsSync(0);
@@ -66,6 +70,12 @@ bool CGxDeviceD3d11::Impl::States(){
         sd.MaxAnisotropy=t?std::max(1u,std::min(uint32_t(t->m_flags.m_maxAnisotropy),16u)):1;
         sd.ComparisonFunc=D3D11_COMPARISON_LESS_EQUAL;sd.MaxLOD=t&&t->m_flags.m_filter>=GxTex_NearestMipNearest?D3D11_FLOAT32_MAX:0;
         if(t&&t->m_format==GxTex_D24X8)sd.Filter=D3D11_FILTER(sd.Filter|0x80);
+        if(m->samplerOverrides[i].enabled){
+            sd.Filter=m->samplerOverrides[i].mipLinear?D3D11_FILTER_MIN_MAG_MIP_LINEAR:D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+            sd.AddressU=sd.AddressV=sd.AddressW=D3D11_TEXTURE_ADDRESS_CLAMP;
+            sd.MipLODBias=0;sd.MinLOD=0;sd.MaxLOD=m->samplerOverrides[i].mipLinear?D3D11_FLOAT32_MAX:0;
+            sd.MaxAnisotropy=1;
+        }
         const auto key=Key(sd);auto si=samplers.find(key);
         if(si==samplers.end()){ComPtr<ID3D11SamplerState> value;if(!Check(device->CreateSamplerState(&sd,&value),"sampler state"))return false;
             if(samplers.size()>=512)samplers.clear();si=samplers.emplace(key,std::move(value)).first;}

@@ -84,6 +84,7 @@ static void Equal(CImVector actual,CImVector expected,const char* name,int toler
                  <<" expected="<<int(expected.r)<<','<<int(expected.g)<<','<<int(expected.b)<<','<<int(expected.a)<<'\n';Check(false,name);}
     Check(true,name);
 }
+#include "WxlMaterialChecks.h"
 int main(int argc,char** argv) try {
     SetUnhandledExceptionFilter(TraceCrash);
     std::cerr<<"native DX11 backend tests: initialize\n"<<std::flush;
@@ -220,6 +221,7 @@ int main(int argc,char** argv) try {
         Equal(Center(device,8,8),clear,"MSAA color resolve/readback");CiRect r(0,0,8,8);TSGrowableArray<float> depths;
         device.DeviceReadDepths(r,depths);Check(depths.Count()==64&&depths[32]==1.f,"MSAA depth clear/readback");
     }
+    WxlMaterialChecks(device,vs.get(),ps.get());
     device.DeviceDestroy();g_theGxDevicePtr=nullptr;
     if(argc==4&&!std::strcmp(argv[3],"window")){
         SFile::EnableDirectAccess(1);CGxDeviceD3d11 window;g_theGxDevicePtr=&window;

@@ -2,6 +2,10 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "DndMaterials.hpp"
 #include "NativeFeatures.hpp"
+#include "MaterialBackend.hpp"
+#ifdef WXL_ENABLE_DX11
+#include "Engine/Source/Gx/CGxDeviceD3d11/CGxDeviceD3d11.h"
+#endif
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDeviceD3d/CGxDeviceD3d.h"
@@ -35,7 +39,7 @@ bool Path(const char* name){
  if(!name)return false;constexpr std::string_view target="spells\\cfx_deathknight_deathanddecay_state.m2";const std::string_view p(name);if(p.size()!=target.size())return false;
  for(size_t i=0;i<p.size();++i){char c=p[i];if(c=='/')c='\\';if(c>='A'&&c<='Z')c=char(c+'a'-'A');if(c!=target[i])return false;}return true;
 }
-bool Backend(){if(!g_theGxDevicePtr||(g_theGxDevicePtr->m_api!=GxApi_D3d9&&g_theGxDevicePtr->m_api!=GxApi_D3d9Ex))return false;const auto& c=g_theGxDevicePtr->Caps();return c.m_shaderTargets[GxSh_Vertex]>=3&&c.m_shaderTargets[GxSh_Pixel]>=4;}
+bool Backend(){return LegacyMaterialBackend(g_theGxDevicePtr,3);}
 }
 void RegisterDndMaterials(){auto* cv=CVar::Register("wxlDndMaterialMode","Experimental exact-source DnD donor kernel: 0 off, 1 fade, 2 colour, 3 mask, 4 detail; reload world after changing",2,WXL_ENABLE_DND_MATERIALS?"4":"0",Changed,0,false,nullptr,false);if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
 std::shared_ptr<const Source> PrepareDnd(const char* path,const uint8_t* raw,size_t size,const std::vector<uint8_t>& skin,std::vector<uint8_t>& prepared){
@@ -91,7 +95,7 @@ bool DndConvertedMatches(const Source& source,const std::vector<uint8_t>& skin) 
  }return true;
 }
 namespace {
-void Sync(CGxDevice& device){if(device.m_api==GxApi_D3d9)static_cast<CGxDeviceD3d&>(device).IStateSync();else static_cast<CGxDeviceD3d9Ex&>(device).IStateSync();}
+void Sync(CGxDevice& device){SyncMaterialState(device);}
 IDirect3DDevice9* NativeDevice(CGxDevice& device){return device.m_api==GxApi_D3d9?static_cast<CGxDeviceD3d&>(device).m_d3dDevice:static_cast<CGxDeviceD3d9Ex&>(device).m_d3dDevice;}
 template<class T>struct ComRead {T* value=nullptr;~ComRead(){if(value)value->Release();}};
 template<class T,size_t N>bool Exact(T* shader,const uint32_t(&expected)[N]){if(!shader)return false;UINT bytes=0;if(FAILED(shader->GetFunction(nullptr,&bytes))||bytes!=sizeof(expected))return false;std::array<uint32_t,N> code{};return SUCCEEDED(shader->GetFunction(code.data(),&bytes))&&bytes==sizeof(expected)&&!std::memcmp(code.data(),expected,sizeof(expected));}
@@ -116,6 +120,13 @@ bool NativeContract(CGxDevice& device){
  auto* vs=static_cast<CGxShader*>(device.m_appRenderStates[GxRs_VertexShader].m_value.m_data.p);
  auto* ps=static_cast<CGxShader*>(device.m_appRenderStates[GxRs_PixelShader].m_value.m_data.p);
  if(!vs||!ps||!vs->m_valid||!ps->m_valid||!device.m_appRenderStates[GxRs_Texture0].m_value.m_data.p||!device.m_appRenderStates[GxRs_Texture1].m_value.m_data.p)return false;
+#ifdef WXL_ENABLE_DX11
+ if(device.m_api==GxApi_D3d11)return
+  ExactMaterialProgram(device,GxRs_VertexShader,wxl::modern::materialblend::kDeathDecayNativeVS)&&
+  ExactMaterialProgram(device,GxRs_PixelShader,wxl::modern::materialblend::kDeathDecayNativePS)&&
+  device.m_appRenderStates[GxRs_BlendingMode].m_value.m_data.i[0]==GxBlend_Add&&
+  !device.m_appRenderStates[GxRs_DepthWrite].m_value.m_data.i[0];
+#endif
  auto* native=NativeDevice(device);if(!native)return false;
  ComRead<IDirect3DVertexShader9> liveVS;ComRead<IDirect3DPixelShader9> livePS;
  if(FAILED(native->GetVertexShader(&liveVS.value))||FAILED(native->GetPixelShader(&livePS.value))||!Exact(liveVS.value,wxl::modern::materialblend::kDeathDecayNativeVS)||!Exact(livePS.value,wxl::modern::materialblend::kDeathDecayNativePS))return false;
@@ -142,7 +153,16 @@ bool DrawDnd(CM2SceneRender& context,CGxBatch& draw,const Source& source,uint32_
   CGxShader* vertex=nullptr;CGxTex* mask=nullptr;
   if(selected>=3){vertex=Program(device,GxSh_Vertex,MaskVertexName,kDeathDecayMaskVS,sizeof(kDeathDecayMaskVS));mask=TextureGetGxTex(context.m_curModel->m_textures[record.textures[2]],1,nullptr);if(!vertex||!mask||mask->m_target!=GxTex_2d)return false;}
   State state(device);device.RsSet(GxRs_PixelShader,pixel);
-  if(selected>=3){device.RsSet(GxRs_VertexShader,vertex);device.RsSet(GxRs_Texture2,mask);Sync(device);Sampler sampler(*NativeDevice(device));if(!sampler.Apply())return false;device.Draw(&draw,1);}
+  if(selected>=3){device.RsSet(GxRs_VertexShader,vertex);device.RsSet(GxRs_Texture2,mask);
+#ifdef WXL_ENABLE_DX11
+   if(device.m_api==GxApi_D3d11){
+    auto& dx=static_cast<CGxDeviceD3d11&>(device);
+    struct SamplerScope {CGxDeviceD3d11& d;CGxDeviceD3d11::SamplerOverride old;~SamplerScope(){d.ExchangeSamplerOverride(2,old);}} sampler{dx,dx.ExchangeSamplerOverride(2,{true,true})};
+    device.Draw(&draw,1);
+   }else
+#endif
+   {Sync(device);Sampler sampler(*NativeDevice(device));if(!sampler.Apply())return false;device.Draw(&draw,1);}
+  }
   else device.Draw(&draw,1);
   return true;
  }catch(...){return false;}

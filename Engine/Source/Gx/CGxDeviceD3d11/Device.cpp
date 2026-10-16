@@ -114,6 +114,7 @@ bool CGxDeviceD3d11::Resize(uint32_t width,uint32_t height){
 }
 bool CGxDeviceD3d11::RecoverDevice(){
     if(!m->device)return false;m_context=0;
+    if(m->sceneCapture){auto* capture=m->sceneCapture;m->sceneCapture=nullptr;TexDestroy(capture);}
     const HWND window=m->window;const bool own=m->ownWindow,offscreen=m->offscreen,warp=m->warp;
     const uint32_t width=m->width,height=m->height;
     const auto focused=m_windowFocus,visible=m_windowVisible;
@@ -190,6 +191,7 @@ int32_t CGxDeviceD3d11::DeviceSetFormat(const CGxFormat& format){
 }
 void CGxDeviceD3d11::DeviceDestroy(){
     if(!m)return;
+    if(m->sceneCapture){auto* capture=m->sceneCapture;m->sceneCapture=nullptr;TexDestroy(capture);}
     if(!m->offscreen){
         for(auto& shader:s_uiVertexShader)if(shader)ShaderDestroy(shader);
         if(s_uiPixelShader)ShaderDestroy(s_uiPixelShader);

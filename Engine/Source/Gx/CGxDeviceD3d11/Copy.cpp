@@ -67,6 +67,21 @@ bool CGxDeviceD3d11::Impl::StretchColor(ID3D11Texture2D* source,uint32_t sourceS
     D3D11_BOX region{UINT(dr.minX),UINT(dr.minY),0,UINT(dr.maxX),UINT(dr.maxY),1};
     context->CopySubresourceRegion(destination,destSub,dr.minX,dr.minY,0,target.Get(),0,&region);return true;
 }
+CGxTex* CGxDeviceD3d11::CaptureCurrentColor(){
+    if(!m_context)return nullptr;
+    auto* source=m->CurrentColorResource();if(!source)return nullptr;
+    D3D11_TEXTURE2D_DESC desc{};source->GetDesc(&desc);
+    // The donor screen-space equation only describes a complete RT0 viewport.
+    if(m_viewport.m_x.m_l!=0||m_viewport.m_x.m_h!=1||m_viewport.m_y.m_l!=0||m_viewport.m_y.m_h!=1||
+       m_curWindowRect.minX!=0||m_curWindowRect.minY!=0||m_curWindowRect.maxX!=float(desc.Width)||m_curWindowRect.maxY!=float(desc.Height))return nullptr;
+    if(!m->sceneCapture||m->sceneCapture->m_width!=desc.Width||m->sceneCapture->m_height!=desc.Height){
+        CGxTex* next=nullptr;CGxTexFlags flags(GxTex_Linear,0,0,0,0,1);
+        if(!TexCreate(GxTex_2d,desc.Width,desc.Height,1,GxTex_Argb8888,GxTex_Argb8888,flags,nullptr,nullptr,"native DX11 scene capture",next))return nullptr;
+        if(!TextureReady(next)){TexDestroy(next);return nullptr;}
+        if(m->sceneCapture)TexDestroy(m->sceneCapture);m->sceneCapture=next;
+    }
+    return TexStretch(m->sceneCapture,nullptr,nullptr,0,0)?m->sceneCapture:nullptr;
+}
 int32_t CGxDeviceD3d11::TexStretch(CGxTex* dst,const CiRect* destRect,const CiRect* sourceRect,uint32_t level,uint32_t face){
     if(!m_context||!dst||!TextureReady(dst))return 0;auto& to=m->textures[dst];
     if(level>=to.mips||face>=to.faces||dst->m_format==GxTex_D24X8)return 0;
