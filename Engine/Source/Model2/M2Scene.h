@@ -16,6 +16,7 @@ class CImVector;
 class CM2Cache;
 class CM2Light;
 class CM2Lighting;
+namespace wxl::native {struct EnchantAttachmentOwner;}
 class CM2Model;
 class CParticleEmitter2;
 class CShaderEffect;
@@ -89,6 +90,7 @@ class CM2Scene {
 
     wxl::native::ProceduralEnchantState* m_wxlProceduralEnchantHead = nullptr;
     uint32_t m_wxlProceduralEnchantCount = 0;
+    wxl::native::EnchantAttachmentOwner* m_wxlEnchantOwners = nullptr;
 
     static uint32_t s_optFlags;
 

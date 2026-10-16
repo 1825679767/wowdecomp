@@ -14,6 +14,7 @@
 #include <unordered_map>
 namespace wxl::native {
 namespace {
+std::atomic<uint64_t> visualGeneration{0};
 using Catalog=std::unordered_map<uint32_t,ItemGraphVisual>;
 std::shared_ptr<const Catalog>& Slot(){static auto* slot=new std::shared_ptr<const Catalog>;return *slot;}
 std::string ModelPath(uint32_t id){const auto* path=id?ResolveModel(id):nullptr;return path?path:"";}
@@ -77,16 +78,22 @@ void ResolveKits(Catalog& catalog){
   const auto& row=attach.row;const auto effectId=attachTable.Value(row,"SpellVisualEffectNameID");const auto* effect=names.Find(effectId);
   auto refuse=[&]{++unsupported[attach.kit];};
   if(!effect){refuse();continue;}
-  // Positioner/random orientation/animation timeline/flags need their own
-  // playback owner. Do not silently draw a static substitute for those rows.
-  bool supported=!attachTable.Value(row,"PositionerID")&&!attachTable.Value(row,"Flags")&&!attachTable.Value(row,"AnimKitID")&&!attachTable.Value(row,"StartDelay");
-  for(auto field:{"Yaw","Pitch","Roll","YawVariation","PitchVariation","RollVariation","ScaleVariation"})supported&=Float(attachTable,row,field)==0;
+  // Recovered native Euler/sequence ownership admits static transforms and
+  // start/loop/end timing. Positioners/random variation/unknown flags stay refused.
+  bool supported=!attachTable.Value(row,"PositionerID")&&!attachTable.Value(row,"Flags")&&!attachTable.Value(row,"AnimKitID");
+  for(auto field:{"YawVariation","PitchVariation","RollVariation","ScaleVariation"})supported&=Float(attachTable,row,field)==0;
   for(unsigned axis=0;axis<3;++axis)supported&=Float(attachTable,row,"OffsetVariation",axis)==0;
-  for(auto field:{"StartAnimID","EndAnimID"}){auto id=attachTable.Value(row,field);supported&=id==0||id==0xffffu||id==0xffffffffu;}
   // Effect-name substitutions, procedural types, positioners and dissolve
   // pipelines are outside a model-only equipment owner.
   supported&=!names.Value(*effect,"TextureFileDataID")&&!names.Value(*effect,"DissolveEffectID")&&!names.Value(*effect,"Flags")&&!names.Value(*effect,"ModelPosition");
   ItemGraphKitModel model;model.kitId=attach.kit;model.modelAttachId=row.id;model.fileDataId=names.Value(*effect,"ModelFileDataID");model.attachmentId=attachTable.Value(row,"AttachmentID");model.animationId=attachTable.Value(row,"AnimID");
+  auto animation=[](uint32_t value)->int32_t{return value==0xffffu||value==0xffffffffu?-1:int32_t(value);};
+  model.startAnimationId=animation(attachTable.Value(row,"StartAnimID"));model.endAnimationId=animation(attachTable.Value(row,"EndAnimID"));
+  supported&=model.startAnimationId>=-1&&model.endAnimationId>=-1;
+  model.startDelay=Float(attachTable,row,"StartDelay");model.sourceFlags=attachTable.Value(row,"Flags");
+  model.yaw=Float(attachTable,row,"Yaw");model.pitch=Float(attachTable,row,"Pitch");model.roll=Float(attachTable,row,"Roll");
+  supported&=std::isfinite(model.startDelay)&&model.startDelay>=0&&model.startDelay<=float(INT32_MAX)/1000.0f;
+  supported&=std::isfinite(model.yaw)&&std::isfinite(model.pitch)&&std::isfinite(model.roll);
   float first=Float(attachTable,row,"Scale"),second=Float(names,*effect,"Scale");
   // Preserve donor graph's default scale treatment before multiplying rows.
   if(!std::isfinite(first)||first<=0)first=1;if(!std::isfinite(second)||second<=0)second=1;
@@ -136,9 +143,11 @@ void LoadItemVisualGraph() noexcept {try{
   for(auto& [id,visual]:*next){visual.kitModels.clear();visual.procedurals.clear();++visual.unsupportedKitRows;}
  }
  std::atomic_store_explicit(&Slot(),std::shared_ptr<const Catalog>(std::move(next)),std::memory_order_release);
+ visualGeneration.fetch_add(1,std::memory_order_release);
  ItemGraphPublished();
  }catch(...){}}
-void ClearItemVisualGraph() noexcept {std::atomic_store_explicit(&Slot(),std::shared_ptr<const Catalog>{},std::memory_order_release);}
+uint64_t ItemGraphVisualGeneration() noexcept {return visualGeneration.load(std::memory_order_acquire);}
+void ClearItemVisualGraph() noexcept {visualGeneration.fetch_add(1,std::memory_order_release);std::atomic_store_explicit(&Slot(),std::shared_ptr<const Catalog>{},std::memory_order_release);}
 bool ItemGraphVisualData(uint32_t id,ItemGraphVisual& output) noexcept {
  output={};if(!id||!Db2Enabled())return false;
  try{auto current=std::atomic_load_explicit(&Slot(),std::memory_order_acquire);if(!current)return false;

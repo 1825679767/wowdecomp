@@ -7,6 +7,7 @@ namespace wxl::native {
 struct ProceduralEnchantState;
 struct ItemGraphVisual;
 namespace procedural_enchants {
+void Clone(const CM2Model& source,CM2Model& destination) noexcept;
 void Register();
 bool Enabled() noexcept;
 void Apply(CM2Model*,const ItemGraphVisual&,uint32_t weaponSubclass) noexcept;

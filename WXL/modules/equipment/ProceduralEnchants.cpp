@@ -67,6 +67,11 @@ void Apply(CM2Model* model,const ItemGraphVisual& visual,uint32_t subclass) noex
  auto* scene=next->scene;next->next=scene->m_wxlProceduralEnchantHead;if(next->next)next->next->previous=next.get();scene->m_wxlProceduralEnchantHead=next.get();++scene->m_wxlProceduralEnchantCount;
  model->m_wxlProceduralEnchant=next.release();Write(*model->m_wxlProceduralEnchant);
  }catch(...){Release(model);}}
+void Clone(const CM2Model& source,CM2Model& destination) noexcept {try{
+ const auto* state=source.m_wxlProceduralEnchant;if(!state)return;ItemGraphVisual visual;visual.procedurals=state->sources;
+ // Stored rows have already passed the source subclass selector.
+ for(auto& row:visual.procedurals)row.displayWeaponSubclassId=UINT32_MAX;Apply(&destination,visual,UINT32_MAX);
+ }catch(...){Release(&destination);}}
 void TickScene(CM2Scene* scene) noexcept{try{
  if(!scene)return;auto* state=scene->m_wxlProceduralEnchantHead;uint32_t count=0;
  while(state&&count++<MaxOwners){auto* next=state->next;auto* model=state->model;

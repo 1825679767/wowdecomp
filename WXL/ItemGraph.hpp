@@ -34,7 +34,10 @@ struct ItemGraphVisualEffect {
 struct ItemGraphKitModel {
  uint32_t kitId=0,modelAttachId=0,fileDataId=0,attachmentId=0;
  uint32_t displayWeaponSubclassId=UINT32_MAX,sourceEffectId=0,animationId=0;
- float scale=1,alpha=1,offset[3]{};
+ int32_t startAnimationId=-1,endAnimationId=-1;
+ uint32_t sourceFlags=0;
+ float startDelay=0; // source float, not integer bits
+ float scale=1,alpha=1,offset[3]{},yaw=0,pitch=0,roll=0;
  std::string path;
 };
 // KitEffect1 -> SpellProceduralEffect. Preserve modern identity/raw payload;
@@ -55,6 +58,7 @@ struct ItemGraphVisual {
  uint32_t unsupportedKitRows=0;
 };
 bool ItemGraphVisualData(uint32_t visual,ItemGraphVisual&) noexcept;
+uint64_t ItemGraphVisualGeneration() noexcept;
 bool ItemGraphWeaponSubclass(uint32_t display,uint32_t& subclass) noexcept;
 bool ItemGraphDisplayVisual(uint32_t display,ItemGraphVisual&) noexcept;
 bool ItemGraphHelmetData(uint32_t display,uint32_t sex,uint32_t modelRace,ItemGraphHelmet&) noexcept;

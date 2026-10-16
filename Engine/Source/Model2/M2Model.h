@@ -16,6 +16,7 @@
 #include "Engine/Source/Tempest/CRange.h"
 
 namespace wxl::native {struct ProceduralEnchantState;}
+namespace wxl::native {struct EnchantAttachmentOwner;}
 class C3Vector;
 class C44Matrix;
 class C4Quaternion;
@@ -234,6 +235,7 @@ class CM2Model {
     // Native user-level effects controls follow owned appearance dependents.
     bool m_wxlEmittersEnabled = true, m_wxlRibbonsEnabled = true;
     wxl::native::ProceduralEnchantState* m_wxlProceduralEnchant = nullptr;
+    wxl::native::EnchantAttachmentOwner* m_wxlEnchantAttachments = nullptr;
     bool SetSkinningSource(CM2Model* source, bool collection = false, float geometryScaleOverride = 0.0f);
     void SynchronizeSkinnedDependentsMT(const C44Matrix* view);
 
