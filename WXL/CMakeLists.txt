@@ -66,7 +66,7 @@ wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp modules/m2/DonorMaterialFallback.
  "${V}/src/platform/waystone/SkinRebuild.cpp" "${V}/extensions/wxl-modern-m2/src/load/M2Normalize.cpp"
  "${V}/extensions/wxl-modern-m2/src/load/M2NormalizeCameras.cpp")
 target_compile_definitions(WxlM2 PRIVATE WXL_ENABLE_DONOR_MATERIAL_FALLBACK=$<BOOL:${WXL_ENABLE_DONOR_MATERIAL_FALLBACK}>)
-wxl_module(WxlAppearances Appearances modules/private-appearances/PrivateAppearances.cpp modules/barber-preview/BarberAppearance.cpp modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
+wxl_module(WxlAppearances Appearances modules/appearances/CreationEquipment.cpp modules/private-appearances/PrivateAppearances.cpp modules/barber-preview/BarberAppearance.cpp modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
  "${V}/src/platform/waystone/CharacterAtlas.cpp")
 target_compile_definitions(WxlAppearances PRIVATE WXL_ENABLE_PRIVATE_APPEARANCES=$<BOOL:${WXL_ENABLE_PRIVATE_APPEARANCES}>)
 wxl_module(WxlEquipmentAttachments EquipmentAttachments modules/equipment/EquipmentAttachments.cpp modules/equipment/ProceduralEnchants.cpp modules/equipment/EnchantModelTimeline.cpp)

@@ -13,6 +13,11 @@
 #include "Engine/Source/Services/Texture.h"
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
 #include "WoW/Source/Glue/CharacterCreation.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/AnimationDataRec.h"
+#include "common/Log.hpp"
+#include <cmath>
+#include <utility>
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -35,7 +40,8 @@ uint32_t customizationStandAt=0;
 uint32_t classId=0, race=0, sex=0, start=0;
 size_t nextStep=0;
 bool finished=false, hidden=false;
-bool customizationOpen=false;
+bool customizationOpen=false,manualControl=false;
+thread_local bool forceEquipmentSheathed=false;
 uint32_t g_druidMorphStart=0, g_druidTranquilityStart=0;
 const char* g_druidFormPath=nullptr;
 uint32_t g_druidFormAnimation=0;
@@ -119,6 +125,15 @@ void ClearVisuals(bool all=true) {
 bool HasActiveVisual(const char* path) { for(const auto& v:visuals)if(!std::strcmp(path,v.effect.path))return true;return false; }
 void RemoveActiveVisualsByPath(const char* path) {
  for(auto it=visuals.begin();it!=visuals.end();)if(!std::strcmp(path,it->effect.path)){Dispose(*it);it=visuals.erase(it);}else ++it;
+}
+// Donor root choreography resolves the bounded native fallback chain. Child
+// effects retain their exact authored sequence requirement via Animate().
+uint32_t ResolvePreviewAnimation(CM2Model* model,uint32_t requested) {
+ if(!model||!model->IsLoaded(0,0))return UINT32_MAX;
+ auto candidate=requested;
+ for(unsigned depth=0;depth<16;++depth){if(model->HasSequence(candidate))return candidate;if(candidate>505)break;auto* row=g_animationDataDB.GetRecord(int32_t(candidate));if(!row||row->m_fallback<=0||uint32_t(row->m_fallback)==candidate)break;candidate=uint32_t(row->m_fallback);}
+ if(model->m_shared&&Canonical(model->m_shared->m_fileName).find("tuskarr")!=std::string::npos){uint32_t alternate=UINT32_MAX;switch(requested){case 18:case 58:alternate=19;break;case 46:case 47:case 57:case 85:alternate=17;break;case 29:alternate=26;break;case 32:case 33:alternate=54;break;default:break;}if(alternate!=UINT32_MAX&&model->HasSequence(alternate))return alternate;}
+ return model->HasSequence(0)?0u:UINT32_MAX;
 }
 bool Animate(CM2Model* model,uint32_t animation,float speed=1.0f,int blend=1) {
  if(!model->IsLoaded(0,0)||!model->HasSequence(animation))return false;
@@ -1233,10 +1248,42 @@ void PlayPhase(uint32_t phase) {
  ClearVisuals(false);
  switch(classId){case 1:PlayWotlkWarriorVisuals(phase);break;case 2:PlayWotlkPaladinVisuals(phase);break;case 3:PlayWotlkHunterVisuals(phase);break;case 4:PlayWotlkRogueVisuals(phase);break;case 5:PlayWotlkPriestVisuals(phase);break;case 6:PlayWotlkDeathKnightVisuals(phase);break;case 7:PlayWotlkShamanVisuals(phase);break;case 8:PlayWotlkMageVisuals(phase);break;case 9:PlayWotlkWarlockVisuals(phase);break;case 11:PlayWotlkDruidVisuals(phase);break;}
 }
+void UpdateEffectOwners(){
+ UpdateWotlkBlizzardEmitter();UpdateWotlkPriestChannelEmitter();UpdateWotlkWarlockImpEmitter();UpdateWotlkWarlockRainEmitter();
+ if(classId==11){
+  UpdateDruidEffectLifecycle();
+  if(g_druidFormPath)EnsureActiveVisualAnimation(g_druidFormPath,g_druidFormAnimation,1.0f,(g_druidFormAnimation==0||g_druidFormAnimation==52||g_druidFormAnimation==124)?1:0);
+ }
+ UpdateVisuals();
+ if(classId==11){
+  bool loadedForm=false;
+  if(g_druidFormPath)for(const auto& visual:visuals)
+   if(!std::strcmp(visual.effect.path,g_druidFormPath)&&visual.model->IsLoaded(0,0)&&visual.model->m_shared&&Canonical(visual.model->m_shared->m_fileName)==Canonical(g_druidFormPath)&&visual.originCaptured){loadedForm=true;break;}
+  Visible(!loadedForm);
+ }
 }
+bool BindManual(lua_State* L,bool allowCustomization=false){
+ if(L!=FrameScript_GetContext()||!Enabled()||(!allowCustomization&&customizationOpen)||alternate_appearances::IsAlternate()||CCharacterCreation::m_existingCharacterIndex>=0)return false;
+ auto* c=CCharacterCreation::m_character;if(!c||!c->m_data.m_model||!c->m_data.m_model->IsLoaded(0,0))return false;const auto& p=c->m_data.m_preferences;
+ if(actor!=c->m_data.m_model||serial!=c->m_wxlSerial||actorHandle!=c->m_data.m_model->m_handle||classId!=uint32_t(p.m_classId)){StopCreation();actor=c->m_data.m_model;serial=c->m_wxlSerial;actorHandle=actor->m_handle;classId=p.m_classId;race=p.m_raceID;sex=p.m_sexID;}
+ return true;
+}
+bool LuaInteger(lua_State* L,int at,uint32_t max,uint32_t& output){double v=lua_tonumber(L,at);if(lua_type(L,at)!=LUA_TNUMBER||!std::isfinite(v)||v<0||v>max||v!=std::floor(v))return false;output=uint32_t(v);return true;}
+int LuaPlayAnimation(lua_State* L){uint32_t requested=0,resolved=UINT32_MAX;bool ok=LuaInteger(L,1,UINT32_MAX,requested)&&BindManual(L);if(ok){resolved=ResolvePreviewAnimation(actor,requested);ok=resolved!=UINT32_MAX&&Animate(actor,resolved);if(ok)manualControl=true;}lua_pushboolean(L,ok);if(ok){lua_pushnumber(L,resolved);return 2;}return 1;}
+int LuaPlayVisuals(lua_State* L){uint32_t selectedClass=0,phase=0;bool ok=LuaInteger(L,1,255,selectedClass)&&LuaInteger(L,2,selectedClass==11?17:9,phase)&&CCharacterCreation::m_character&&selectedClass==uint32_t(CCharacterCreation::m_character->m_data.m_preferences.m_classId)&&BindManual(L);if(ok){manualControl=true;if(phase)PlayPhase(phase);else ClearVisuals();}lua_pushboolean(L,ok);return 1;}
+int LuaClearVisuals(lua_State* L){if(BindManual(L)){manualControl=true;ClearVisuals();Visible(true);}return 0;}
+int LuaRestoreEquipment(lua_State* L){bool ok=BindManual(L,true);if(ok){manualControl=true;CCharacterCreation::Dress();}lua_pushboolean(L,ok);return 1;}
+int LuaSheathed(lua_State* L){uint32_t value=0;bool ok=LuaInteger(L,1,UINT32_MAX,value)&&BindManual(L,true);if(ok){struct Scope{bool before;explicit Scope(bool value):before(forceEquipmentSheathed){forceEquipmentSheathed=value;}~Scope(){forceEquipmentSheathed=before;}} scope(value!=0);manualControl=true;CCharacterCreation::Dress();}lua_pushboolean(L,ok);return 1;}
+int LuaVisible(lua_State* L){uint32_t value=0;bool ok=LuaInteger(L,1,UINT32_MAX,value)&&BindManual(L);if(ok){manualControl=true;Visible(value!=0);}lua_pushboolean(L,ok);return 1;}
+int LuaTrace(lua_State* L){if(L!=FrameScript_GetContext())return 0;size_t length=0;auto* text=lua_tolstring(L,1,&length);if(text&&length<=2048)WLOG_INFO("creation-preview: %s",text);return 0;}
+int LuaInspect(lua_State* L){if(L==FrameScript_GetContext()){auto* c=CCharacterCreation::m_character;if(c&&c->m_data.m_model)WLOG_INFO("creation-preview: serial=%llu model=%u race=%u sex=%u class=%u effects=%zu",static_cast<unsigned long long>(c->m_wxlSerial),c->m_data.m_model->m_handle,c->m_data.m_preferences.m_raceID,c->m_data.m_preferences.m_sexID,c->m_data.m_preferences.m_classId,visuals.size());}return 0;}
+template<int(*Callback)(lua_State*)>int Control(lua_State* L){if(L!=FrameScript_GetContext())return 0;try{return Callback(L);}catch(...){lua_pushboolean(L,false);return 1;}}
+}
+bool EquipmentSheathed(const CM2Model* model) noexcept {if(!model||!forceEquipmentSheathed)return false;auto* c=CCharacterCreation::m_character;return c&&c->m_data.m_model==model&&actor==model&&serial==c->m_wxlSerial&&actorHandle==model->m_handle;}
 void Register() {enabled=CVar::Register("wxlCreationEffects","WXL native character creation class choreography",2,WXL_ENABLE_CREATION_EFFECTS?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept {return WXL_ENABLE_CREATION_EFFECTS&&NativeEnabled()&&enabled&&enabled->m_intValue;}
-void InitializeLua() {StopCreation();customizationOpen=false;uiTick=0;FrameScript_RegisterFunction("WXL_SetCreationEffectsCustomizationOpen",&LuaCustomizationOpen);}
+void InitializeLua() {StopCreation();customizationOpen=false;uiTick=0;FrameScript_RegisterFunction("WXL_SetCreationEffectsCustomizationOpen",&LuaCustomizationOpen);
+ const std::pair<const char*,lua_CFunction> controls[]={{"_WXL_CC_PREVIEW_PLAY_ANIMATION",Control<LuaPlayAnimation>},{"_WXL_CC_PREVIEW_PLAY_VISUALS",Control<LuaPlayVisuals>},{"_WXL_CC_PREVIEW_CLEAR_VISUALS",Control<LuaClearVisuals>},{"_WXL_CC_PREVIEW_RESTORE_EQUIPMENT",Control<LuaRestoreEquipment>},{"_WXL_CC_PREVIEW_SET_WEAPONS_SHEATHED",Control<LuaSheathed>},{"_WXL_CC_PREVIEW_SET_MODEL_VISIBLE",Control<LuaVisible>},{"_WXL_CC_PREVIEW_TRACE",Control<LuaTrace>},{"_WXL_CC_PREVIEW_INSPECT",Control<LuaInspect>}};for(auto entry:controls)FrameScript_RegisterFunction(entry.first,entry.second);}
 void SetCustomizationOpen(bool value) noexcept {
  if(value&&!customizationOpen){StopCreation();customizationStandAt=Now()+200;}
  if(!value)customizationStandAt=0;
@@ -1244,7 +1291,7 @@ void SetCustomizationOpen(bool value) noexcept {
 }
 void StopCreation() noexcept {
  ClearVisuals();Visible(true);
- actor=nullptr;serial=0;actorHandle=0;start=0;nextStep=0;finished=false;classId=race=sex=0;
+ manualControl=false;actor=nullptr;serial=0;actorHandle=0;start=0;nextStep=0;finished=false;classId=race=sex=0;
 }
 void UpdateCreation() {
  if(Now()-uiTick>=200){uiTick=Now();FrameScript_Execute(CustomizationBridge,"native-creation-effects-customization",nullptr);}
@@ -1258,6 +1305,7 @@ void UpdateCreation() {
  if(actor!=current||serial!=component->m_wxlSerial||actorHandle!=current->m_handle||classId!=uint32_t(p.m_classId)||race!=p.m_raceID||sex!=p.m_sexID){
   StopCreation();actor=current;serial=component->m_wxlSerial;actorHandle=current->m_handle;classId=p.m_classId;race=p.m_raceID;sex=p.m_sexID;
  }
+ if(manualControl){UpdateEffectOwners();return;}
  const auto timeline=GetTimeline(classId);if(!timeline.count||finished)return;
  // Alternate form presentation owns a hidden primary. Wait until it is visible.
  if(!hidden&&actor->m_baseAlpha<=0.0f){if(start){ClearVisuals();start=0;nextStep=0;}return;}
@@ -1267,21 +1315,10 @@ void UpdateCreation() {
  if(elapsed>=3000)while(nextStep<timeline.count&&elapsed-3000>=timeline.data[nextStep].at){
   const auto step=timeline.data[nextStep++];
   if(step.visible)Visible(step.visible>0);
-  if(step.animation!=NoAnimation)Animate(actor,step.animation);
+  if(step.animation!=NoAnimation){const auto resolved=ResolvePreviewAnimation(actor,step.animation);if(resolved!=UINT32_MAX)Animate(actor,resolved);}
   if(!step.phase){ClearVisuals();Visible(true);finished=true;break;}
   if(step.phase!=255)PlayPhase(step.phase);
  }
- UpdateWotlkBlizzardEmitter();UpdateWotlkPriestChannelEmitter();UpdateWotlkWarlockImpEmitter();UpdateWotlkWarlockRainEmitter();
- if(classId==11){
-  UpdateDruidEffectLifecycle();
-  if(g_druidFormPath)EnsureActiveVisualAnimation(g_druidFormPath,g_druidFormAnimation,1.0f,(g_druidFormAnimation==0||g_druidFormAnimation==52||g_druidFormAnimation==124)?1:0);
- }
- UpdateVisuals();
- if(classId==11){
-  bool loadedForm=false;
-  if(g_druidFormPath)for(const auto& visual:visuals)
-   if(!std::strcmp(visual.effect.path,g_druidFormPath)&&visual.model->IsLoaded(0,0)&&visual.model->m_shared&&Canonical(visual.model->m_shared->m_fileName)==Canonical(g_druidFormPath)&&visual.originCaptured){loadedForm=true;break;}
-  Visible(!loadedForm);
- }
+ UpdateEffectOwners();
 }
 }

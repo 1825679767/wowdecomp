@@ -1,3 +1,4 @@
+#include "WXL/CreationEquipment.hpp"
 #include "WXL/PrivateAppearances.hpp"
 #include "WXL/BarberAppearance.hpp"
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
@@ -244,9 +245,9 @@ int LuaContext(lua_State* L){try{auto* c=Current();if(!c)return 0;const auto& p=
  lua_pushlstring(L,key.data(),key.size());return 1;}catch(...){return 0;}}
 int LuaSelection(lua_State* L){static thread_local std::vector<uint32_t> selected;auto* c=Current();if(!c||!CollectRetailChoices(*c,selected))return 0;lua_createtable(L,int(selected.size()),0);for(size_t i=0;i<selected.size();++i){lua_pushinteger(L,selected[i]);lua_rawseti(L,-2,int(i+1));}return 1;}
 }
-void UpdateRetailChoiceUi(){const auto now=OsGetAsyncTimeMs();if(now-uiLastTick<200)return;uiLastTick=now;
+void UpdateRetailChoiceUi(){const auto now=OsGetAsyncTimeMs();if(now-uiLastTick<200)return;uiLastTick=now;creation_equipment::UpdateUi();
  if(!uiInstalled){FrameScript_Execute(RetailChoiceUi,"native-retail-choice-controls",nullptr);uiInstalled=true;}
  FrameScript_Execute("if WXLNativeRetailOptions then WXLNativeRetailOptions:Refresh() end","native-retail-choice-refresh",nullptr);}
 void HideRetailChoiceUi(){FrameScript_Execute("if WXLNativeRetailOptions then WXLNativeRetailOptions:Hide() end","native-retail-choice-hide",nullptr);}
-void InitializeRetailChoiceLua(){barber_appearance::InitializeLua();alternate_appearances::InitializeLua();uiInstalled=false;uiLastTick=0;FrameScript_RegisterFunction("WXL_GetRetailChoiceContext",&LuaContext);FrameScript_RegisterFunction("WXL_RetailSelectionCanSave",&LuaCanSave);FrameScript_RegisterFunction("WXL_GetRetailOptions",&LuaOptions);FrameScript_RegisterFunction("WXL_GetRetailChoices",&LuaChoices);FrameScript_RegisterFunction("WXL_SetRetailChoice",&LuaSelect);FrameScript_RegisterFunction("WXL_GetRetailSelection",&LuaSelection);}
+void InitializeRetailChoiceLua(){creation_equipment::InitializeLua();barber_appearance::InitializeLua();alternate_appearances::InitializeLua();uiInstalled=false;uiLastTick=0;FrameScript_RegisterFunction("WXL_GetRetailChoiceContext",&LuaContext);FrameScript_RegisterFunction("WXL_RetailSelectionCanSave",&LuaCanSave);FrameScript_RegisterFunction("WXL_GetRetailOptions",&LuaOptions);FrameScript_RegisterFunction("WXL_GetRetailChoices",&LuaChoices);FrameScript_RegisterFunction("WXL_SetRetailChoice",&LuaSelect);FrameScript_RegisterFunction("WXL_GetRetailSelection",&LuaSelection);}
 }

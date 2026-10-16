@@ -33,7 +33,9 @@ do
                      insets={left=4,right=4,top=4,bottom=4}})
       f:SetBackdropColor(0,0,0,0.82)
       self.title=f:CreateFontString(nil,"OVERLAY","GameFontNormal")
-      self.title:SetPoint("TOP",f,"TOP",0,-10);self.title:SetText("Retail details")
+      self.title:SetPoint("TOPLEFT",f,"TOPLEFT",12,-10);self.title:SetText("Retail details")
+      self.gear=button(f,"Hide gear",88);self.gear:SetPoint("TOPRIGHT",f,"TOPRIGHT",-8,-6)
+      self.gear:SetScript("OnClick",function() local visible=WXL_IsCreationGearVisible();if visible~=nil then WXL_SetCreationGearVisible(visible and 0 or 1);UI:Refresh(true) end end)
       for i=1,6 do
         local rowIndex=i
         local row={}
@@ -93,6 +95,8 @@ do
       end
       self.pages:SetText(self.page.." / "..math.max(1,math.ceil(#self.options/6)))
     end
+    local gear=not barber and WXL_IsCreationGearVisible()
+    if gear~=nil and not barber then self.gear.text:SetText(gear and "Hide gear" or "Show gear");self.gear:Show() else self.gear:Hide() end
     self.note:SetText(barber and "Preview only; Reset restores saved details" or (WXL_RetailSelectionCanSave() and "" or "Preview only: save support unavailable"))
     if not barber and WXL_HasAlternateAppearance() then self.form:Show() else self.form:Hide() end
     if #self.options>0 or (not barber and WXL_HasAlternateAppearance()) then self.frame:Show() else self:Hide() end
