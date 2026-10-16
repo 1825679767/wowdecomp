@@ -9,12 +9,15 @@
 class CM2Shared;
 class CM2SceneRender;
 class CGxDevice;
+class M2Batch;
 struct CGxBatch;
 namespace wxl::native::mesh_materials {
 struct DndSource;
 // Immutable source contract owned by one converted companion/model family.
 struct BatchSource {
- std::array<uint8_t,24> batch{};
+ // Stock siblings retain their native equation; only custom rows own draw overrides.
+ bool custom=true;
+ std::array<uint8_t,24> batch{},nativeBatch{};
  std::array<uint32_t,2> textureIds{};
  std::array<uint16_t,2> textureIndices{},weightIndices{},transformIndices{};
  uint16_t flags=0,blend=0;
@@ -49,6 +52,7 @@ std::shared_ptr<const Source> BindTopology(std::shared_ptr<const Source>,const s
  uint32_t paletteLimit,bool nativeGpuSkinning);
 bool Draw(CM2SceneRender&,CGxBatch&); // true only when the native draw was issued.
 bool OwnsBatch(const CM2SceneRender&) noexcept;
+bool OwnsBatch(const CM2Shared&,const M2Batch*) noexcept;
 bool ApplyPreparedMaterials(const Source&,std::vector<uint8_t>&);
 void RegisterDndMaterials();
 void DestroyPrograms(CGxDevice&) noexcept; // GxDevDestroy, before backend destruction.

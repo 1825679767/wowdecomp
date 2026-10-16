@@ -22,7 +22,7 @@ float ParticleCutoffTrack::Sample(float age)const noexcept{
 }
 bool DrawParticleCutoffVertices(CGxBuf* buffer,EGxVertexBufferFormat format,uint32_t vertices,
  uint32_t perParticle,uint32_t indices,const std::vector<float>& cutoffs){
- if(!buffer||!vertices||!perParticle||!indices||vertices%perParticle||
+ if(!g_theGxDevicePtr||!CParticleEmitter2::s_indexBuf||!buffer||!vertices||!perParticle||!indices||vertices%perParticle||
     cutoffs.size()!=vertices/perParticle||vertices>16384||
     !CShaderEffect::s_enableShaders||!CShaderEffect::s_curEffect)return false;
  // These are the exact native SetDefaultShaders(0) vertex/light selections.
