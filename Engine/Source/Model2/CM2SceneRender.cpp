@@ -1,3 +1,4 @@
+#include "WXL/UnitOutline.hpp"
 #include "WXL/MeshMaterials.hpp"
 #include "WXL/AssetCompat.hpp"
 #include <cmath>
@@ -416,6 +417,7 @@ void CM2SceneRender::SetupMaterial() {
 // VERIFY: aeedaf63 manual
 // OFFSET: 0x008203B0
 void CM2SceneRender::DrawBatch() {
+    wxl::native::unit_outline::ModelScope outlineModel(this->m_curModel);
     DebugLog("Batch: model=%s index=%d", this->m_curModel->m_shared->m_fileNameWithoutPath, this->m_curElement->m_index);
 
     M2Element* element = this->m_curElement;

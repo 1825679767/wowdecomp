@@ -1,3 +1,4 @@
+#include "WXL/UnitOutline.hpp"
 #include "WXL/Skyriding.hpp"
 #include "WorldFrame.h"
 #include "WXL/QuestMarker.hpp"
@@ -2102,7 +2103,9 @@ void CGWorldFrame::RenderWorld(void* param) {
 
     worldFrame->OnWorldUpdate();
     PlayerNameUpdateWorldText();
+    wxl::native::unit_outline::BeginWorld();
     worldFrame->OnWorldRender();
+    wxl::native::unit_outline::EndWorld();
     WorldTextRenderBatch();
 
     g_theGxDevicePtr->XformSetProjection(projection);

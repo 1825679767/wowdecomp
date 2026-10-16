@@ -11,7 +11,7 @@ struct NativeFdid {const char*(*ResolveTexture)(uint32_t);};
 struct NativeInterfaces {const void*(*GetInterface)(const char*,uint32_t);};
 const NativeFrameScript* FrameScript();const NativeNetwork* Network();const NativeFdid* Fdid();
 extern const NativeInterfaces* g_api;
-bool InstallRetailTransmogPreview();bool InstallRetailUiCompatibility();bool InstallWeeklyRewards();bool InstallRetailTransmog();bool InstallRetailTransmogEquipment();bool InstallRetailTransmogApply();bool InstallRetailTransmogOutfits();bool InstallRetailTransmogCustomSets();bool InstallRetailTransmogSituations();
+bool InstallItemVariants();void ResetItemVariants();bool InstallRetailTransmogPreview();bool InstallRetailUiCompatibility();bool InstallWeeklyRewards();bool InstallRetailTransmog();bool InstallRetailTransmogEquipment();bool InstallRetailTransmogApply();bool InstallRetailTransmogOutfits();bool InstallRetailTransmogCustomSets();bool InstallRetailTransmogSituations();
 void ResetWeeklyRewards();void ResetCollections();void ResetEquipment();void ResetApply();void ResetOutfits();void ResetCustomSets();void ResetSituations();
 }
 using wxl_retail_ui::NativeFrameScript;using wxl_retail_ui::NativeNetwork;using wxl_retail_ui::NativeFdid;

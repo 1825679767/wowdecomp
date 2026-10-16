@@ -72,7 +72,11 @@ target_compile_definitions(WxlAppearances PRIVATE WXL_ENABLE_PRIVATE_APPEARANCES
 wxl_module(WxlEquipmentAttachments EquipmentAttachments modules/equipment/EquipmentAttachments.cpp modules/equipment/ProceduralEnchants.cpp modules/equipment/EnchantModelTimeline.cpp)
 target_compile_definitions(WxlEquipmentAttachments PRIVATE WXL_ENABLE_PROCEDURAL_ENCHANTS=$<BOOL:${WXL_ENABLE_PROCEDURAL_ENCHANTS}>)
 add_dependencies(WxlEquipmentAttachments WxlRuntime WxlM2 WxlDB2 WxlBlp)
-wxl_module(WxlRetailUi RetailUi modules/retail-ui/RetailUiNative.cpp modules/retail-ui/NativeDb2.cpp
+option(WXL_ENABLE_UNIT_OUTLINE "Reaction-colored target/mouseover silhouettes" ON)
+wxl_module(WxlUnitOutline UnitOutline modules/unit-outline/UnitOutline.cpp)
+target_compile_definitions(WxlUnitOutline PRIVATE WXL_ENABLE_UNIT_OUTLINE=$<BOOL:${WXL_ENABLE_UNIT_OUTLINE}>)
+add_dependencies(WxlUnitOutline WxlRuntime WxlM2)
+wxl_module(WxlRetailUi RetailUi modules/retail-ui/RetailUiNative.cpp modules/retail-ui/NativeDb2.cpp modules/retail-ui/ItemVariants.cpp
  modules/retail-ui/RetailTransmogPreview.cpp modules/retail-ui/RetailUi.cpp modules/retail-ui/WeeklyRewards.cpp modules/retail-ui/RetailTransmog.cpp
  modules/retail-ui/RetailTransmogEquipment.cpp modules/retail-ui/RetailTransmogApply.cpp
  modules/retail-ui/RetailTransmogOutfits.cpp modules/retail-ui/RetailTransmogCustomSets.cpp modules/retail-ui/RetailTransmogSituations.cpp)
@@ -112,6 +116,7 @@ add_dependencies(WxlAppearances WxlM2 WxlDB2 WxlBlp)
 add_dependencies(WxlProtocol WxlRuntime)
 add_dependencies(WxlSpellVisuals WxlRuntime WxlStorage WxlDB2 WxlM2 WxlProtocol)
 add_library(WxlNative STATIC
+ $<TARGET_OBJECTS:WxlUnitOutline>
  $<TARGET_OBJECTS:WxlRetailUi>
  $<TARGET_OBJECTS:WxlCreationBeams>
  $<TARGET_OBJECTS:WxlSpellVisuals>
