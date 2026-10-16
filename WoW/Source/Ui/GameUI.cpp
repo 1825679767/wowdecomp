@@ -175,8 +175,8 @@
 
 namespace {
 // User inactivity thresholds in milliseconds; signed to match idleTime arithmetic.
-constexpr int32_t AUTO_SIT_IDLE_TIME = 300000;
-constexpr int32_t AUTO_LOGOUT_IDLE_TIME = 1800000;
+const int32_t AUTO_SIT_IDLE_TIME = 300000;
+const int32_t AUTO_LOGOUT_IDLE_TIME = 1800000;
 }
 
 // STATIC: 0x00ACC3F8
