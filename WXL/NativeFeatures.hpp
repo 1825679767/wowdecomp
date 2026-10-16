@@ -2,6 +2,8 @@
 #pragma once
 namespace wxl::native {
 void RegisterFeatures();
+bool NativeEnabled() noexcept;
+bool Db2Enabled() noexcept;
 bool AppearancesEnabled() noexcept;
 bool ProtocolEnabled() noexcept;
 bool AssetsEnabled() noexcept;

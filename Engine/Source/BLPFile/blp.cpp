@@ -7,7 +7,7 @@
 #include "Engine/Source/Storm/H/storm.h"
 #include "Engine/Source/Storm/H/stpl.h"
 #include "Engine/Source/Tempest/C2iVector.h"
-#include "WXL/AssetCompat.hpp"
+#include "WXL/BlpCompat.hpp"
 #include "WXL/NativeFeatures.hpp"
 
 // STATIC: 0x00AD90B0

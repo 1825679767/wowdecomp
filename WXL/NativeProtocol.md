@@ -31,8 +31,8 @@ transport and reset generation. Disconnect, connection establishment and Lua
 context teardown/recreation invalidate pending records. Saved owners are compared
 without being dereferenced. Returned Lua strings are copied by Lua.
 
-`ProtocolEnabled()` gates captures, sends and dispatch. It must be provided by
-`NativeFeatures`, and `NativeProtocol.cpp` must be added to the WXL CMake sources.
+`ProtocolEnabled()` gates captures, sends and dispatch. It is provided by
+`NativeFeatures`; implementation lives in the WxlProtocol object module.
 Turning the feature off leaves standard protocol handling intact. Lua entry points
 remain registered so UI code can observe false/empty results while disabled.
 
@@ -48,4 +48,4 @@ Source references reviewed: `src/platform/waystone/Network.cpp`,
 `extensions/wxl-modern-m2/src/compat/ServerAppearance.cpp`, and area-loot/garrison
 wire-contract READMEs in the x64-waystone source worktree.
 
-This integration has not been built, tested, connected, installed or accepted.
+The source-native transport has compiled in prior combined x64 builds. Server connection, feature consumers and acceptance remain pending.

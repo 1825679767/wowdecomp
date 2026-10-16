@@ -1,7 +1,7 @@
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 // Direct native component integration; portable recipes never inspect host offsets.
 #include "AppearanceCompat.hpp"
-#include "AssetCompat.hpp"
+#include "NativeStorage.hpp"
 #include "FdidCompat.hpp"
 #include "NativeFeatures.hpp"
 #include "vendor/extensions/wxl-db2/src/schemas/AppearanceStore.hpp"

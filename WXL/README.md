@@ -1,30 +1,50 @@
-# Native WXL integration
+# Native modular WXL for WotLK x64
 
-Base: SatyPardus/wowdecomp main cd29da38b9162419ee0fa29c6b16e07e10f6c4f0, fetched16October2026. This is the WotLK source tree. Cataclysm renderer reference: wowdecomp15595 pinned959b0b85c5f55c565328d7c3ca33027a65e41327. The DX11 migration is authorized, but requires coordinated shared Gx/shader/container/asset changes described in DX11-PORT.md; this build currently contains D3D9/D3D9Ex/OpenGL only. No replacement of the user client is implied.
+Active goal: integrate WXL into the native WotLK x64 source. DX11 is deferred at the human's request. Existing native D3D9/D3D9Ex/OpenGL remain the renderer. Native fog, liquids, weather and postprocessing are not replaced by WXL.
 
-WxlNative is linked statically into the source executable. Portable WXL M2/BLP/DB2 code is vendored with exact original provenance in VENDORED-SOURCE.json and GPL licenses. No old addresses, signature scans, injection, DLL module host or Win32 proxy are part of this source integration.
+WotLK base: SatyPardus/wowdecomp cd29da38b9162419ee0fa29c6b16e07e10f6c4f0. Portable WXL vendor provenance is recorded in VENDORED-SOURCE.json and APPEARANCE-VENDOR-SOURCE.json. No executable addresses, injected host, Win32 proxy or binary signature hooks are used in this integration.
 
-Native entry points:
-- CM2Shared::FinishLoading converts MD21 to native data before M2Init; the native shared object owns converted companions until destruction.
-- CM2Shared::FinishLoadingSkinProfile consumes the exact prepared companion before native fixup/geometry initialization.
-- Existing native material and particle constructors/render passes preserve mesh blend7 ONE/INV_SRC_ALPHA independently of particle Screen INV_DEST_COLOR/ONE. All backend blend tables are extended using native enums.
-- Sized CBLPFile sources transcode encoding3 to BC3; synchronous and asynchronous texture pumps pass actual byte sizes and preserve the existing upload lifetime.
-- FDID path tables use the existing WXL WDC reader directly through mounted native SFile storage.
+## Module boundaries
 
-CMake: WXL_ENABLE_NATIVE (master), WXL_ENABLE_ASSETS, WXL_ENABLE_BLP, WXL_ENABLE_MATERIALS, WXL_ENABLE_PARTICLES (default ON). Runtime CVars: wxlModernAssets, wxlModernBlp, wxlCustomMaterials, wxlParticles. Changes require restart/model reload as indicated by client help; disabled features use existing native paths. The diagnostic build enables WOWDECOMP_DISABLE_SIGNATURE_CHECKS to load custom patch/FrameXML data; no account actions or archive changes are performed.
+Each module has its own object-library build target and source directory. WxlNative/WXL::Native collects those objects once into a static library linked into the executable. This avoids circular static-archive resolution while retaining separate compilation and stable public module interfaces. This is not a dynamic DLL plugin ABI.
 
-This is the first native integration batch, not full WXL parity. Existing high-palette/high-index/custom shader restrictions of the byte converter remain. WDC5/material graph/race UI/forms/equipment/persistence/world module porting and hybrid renderer merge remain. Native fog/liquid/weather/postprocess implementations are not imported from WXL. No game test loops or new Downloads folder.
+| Module ID | Target / alias | Responsibility |
+| --- | --- | --- |
+| runtime | WxlRuntime / WXL::Runtime | feature settings, logging, immutable module metadata |
+| storage | WxlStorage / WXL::Storage | bounded native mounted-file reads |
+| db2 | WxlDB2 / WXL::DB2 | WDC tables, FDID paths, material texture IDs and appearance schemas |
+| blp | WxlBlp / WXL::BLP | modern texture decoding/transcode |
+| materials | WxlMaterials / WXL::Materials | source mesh material preservation; native Gx blend factors |
+| particles | WxlParticles / WXL::Particles | emitter normalization, EXP2 multiplier bake and neutral EXPT |
+| m2 | WxlM2 / WXL::M2 | native model/SKIN conversion, skeletons, animation and owned companion lifetime |
+| appearances | WxlAppearances / WXL::Appearances | component-owned atlas/mips, equipment textures, geosets and whole sheets |
+| protocol | WxlProtocol / WXL::Protocol | bounded custom packet transport, session lifecycle and Lua APIs |
 
-Palette admission follows the active native backend's shader-constant capacity (the same calculation as CM2Shared::Initialize), capped at the existing converter's75-bone limit. D3D9 is not assumed to have the former hybrid DX11 budget.
+Public headers remain under WXL/. Native call sites use those headers; implementations live under WXL/modules/. DB2 no longer depends on a model adapter just to read files, and BLP preprocessing is separate from model loading. Narrow native Gx, Model2, character and network seams stay with their native owners.
 
-## Current priority integration
+## Feature controls
 
-Retail model loading, appearances, spell visuals and custom opcode transport are the immediate source-build scope. Remaining WXL modules are later work unless required by these paths.
+All implemented features default ON. CMake options: WXL_ENABLE_NATIVE (master), WXL_ENABLE_ASSETS, WXL_ENABLE_DB2, WXL_ENABLE_BLP, WXL_ENABLE_MATERIALS, WXL_ENABLE_PARTICLES, WXL_ENABLE_APPEARANCES, WXL_ENABLE_PROTOCOL. Options control feature availability; interface implementations remain linked so native call sites have defined disabled behavior.
 
-- Retail SKIN index offsets retain their high word throughout shared upload, ordinary rendering, dynamic geometry and intersection consumers. The legacy uint16-count visibility optimizer is bypassed for modern models with more than65535 indices; complete geometry remains active.
-- Retail WDC5 schema/recipe loading uses native mounted storage. CCharacterComponent composes per-component atlas sheets and mipmaps, equipment layers, whole replaceable textures and selected geosets without global classic layout mutation. Exact modern model/recipe path must agree; incomplete metadata falls back. Retail choice-ID synchronization and attached customization models remain pending.
-- Native custom opcode receive/send routing and Lua binary packet APIs are compiled, bounded and session-owned. See NativeProtocol.md. Feature-specific addon consumers and the appearance save handshake are still required.
-- EXP2 constant RGB/alpha particle multipliers are baked into private native keys; native simulation/rendering consumes them. Unsupported layered TXAC/cutoff/EXPT families remain explicit limitations. Blend7 mesh and Screen particle factors remain separate.
-- Build/runtime features default ON and remain toggleable: wxlModernAssets, wxlModernBlp, wxlCustomMaterials, wxlParticles, wxlRetailAppearances, wxlCustomOpcodes.
+Runtime CVars: wxlModernAssets, wxlRetailDb2, wxlModernBlp, wxlCustomMaterials, wxlParticles, wxlRetailAppearances, wxlCustomOpcodes. Asset/DB changes require restart; model changes require reload. Appearances additionally require assets, DB2 and BLP; material/particle adaptation requires assets. Disabling dependencies suppresses the dependent path without changing its saved setting.
 
-Later: complete DX11 Gx/shader migration, attached retail customization models and choice/save ownership, remaining custom material shader families, unsupported particle extensions, terrain/world module parity, collections/other feature UI. Native fog/liquids/weather/postprocess stay native. No game launch or acceptance claim is made by compilation.
+C++ ModuleCount/QueryModule expose version1 module descriptors. Lua WXL_GetNativeModules() returns id, apiVersion, dependencies and effective enabled state. NativeProtocol.md documents binary custom packet send/pop APIs; transport readiness is not a server acknowledgement or complete feature parser.
+
+## Integrated native paths
+
+CM2Shared converts modern data before native relocation and owns converted SKIN companions until destruction. Per-section palettes use the actual backend constant budget. Retail high-word index offsets are consumed throughout upload/render/intersection; the legacy uint16-count optimizer is bypassed for modern topology over65535 indices rather than truncating it.
+
+Sized sync/async BLP sources keep transcode buffers alive through upload. The appearance module joins mounted retail customization/material/layout tables, checks exact model identity, composes private atlas sheets and equipment layers, applies geosets and owns replaceable textures with native teardown. Creation preferences are sized from mounted race IDs instead of the former22-race array.
+
+Mesh blend7 ONE/INV_SRC_ALPHA remains separate from particle Screen INV_DEST_COLOR/ONE. EXP2 constant RGB/alpha multipliers are baked into private native keys. Neutral EXPT accepts only exact0/1/1 triples per emitter with absent or exact neutral TXAC, based on the documented Whiteout source contract; mixed EXP2/EXPT, unknown values and malformed rows refuse without publishing altered model bytes.
+
+## Remaining integration
+
+- Retail attached customization models and remaining race-specific authoring policies.
+- Retail choice enumeration/cycling/validation/initialization and server choice/save agreement.
+- Custom packet feature consumers, including appearance hello/prepare/create persistence.
+- Remaining material shader and particle-layer/cutoff families; broader model source compatibility.
+- Remaining WXL client extensions, UI, WMO/ADT and related modules, following the same module interfaces.
+- DX11 is a separate deferred task; DX11-PORT.md is historical dependency research, not a prerequisite for this x64 WXL build.
+
+Compilation and source binding do not imply gameplay acceptance. Keep installed clients and rollback separate; no new Downloads folders or repeated gameplay probe loops are part of this work.

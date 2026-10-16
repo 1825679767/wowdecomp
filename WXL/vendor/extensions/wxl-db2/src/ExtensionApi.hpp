@@ -4,5 +4,5 @@
 
 // Logging and asset storage are compiled into this executable. No extension
 // service table, module loader, or binary host address is used here.
-#include "AssetCompat.hpp"
+#include "NativeStorage.hpp"
 #include "common/Log.hpp"

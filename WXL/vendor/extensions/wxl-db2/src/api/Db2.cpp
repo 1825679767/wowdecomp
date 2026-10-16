@@ -5,7 +5,7 @@
 
 #include "common/Log.hpp"
 
-#include "WXL/AssetCompat.hpp"
+#include "WXL/NativeStorage.hpp"
 
 #include <algorithm>
 #include <cstdio>

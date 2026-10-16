@@ -76,7 +76,7 @@ namespace wxl::native
 
         const char* Resolve(uint32_t id) noexcept
         {
-            if (!id || !AssetsEnabled()) return nullptr;
+            if (!id || !Db2Enabled()) return nullptr;
             try
             {
                 // Intentionally retain the immutable authority and cache for
@@ -94,7 +94,7 @@ namespace wxl::native
     }
 
     uint32_t ResolveMaterialTexture(uint32_t materialResourceId,uint32_t usage) noexcept {
-        if(!materialResourceId || !AssetsEnabled())return 0;
+        if(!materialResourceId || !Db2Enabled())return 0;
         try {
             using namespace wxl::runtime::db2;
             struct Index {

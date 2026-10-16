@@ -1,3 +1,7 @@
+# Deferred: DX11 is outside the current x64 WXL integration scope
+
+The user explicitly deferred this renderer migration. The notes below are reference only.
+
 # Native DX11 source port boundary
 
 This checkout has native D3D9, D3D9Ex and OpenGL backends. DX11 has **not** been enabled or represented by a placeholder backend. Existing material blend7 and particle Screen functionality uses those existing backends.
@@ -24,8 +28,8 @@ No whole shared-base replacement was performed in this batch. Native fog, weathe
 
 ## Implemented particle extension subset
 
-`AssetCompat.cpp` now reads chunk-relative EXP2 records before native relocation. A supported record has finite constant RGB/alpha multipliers in [0,16], zero extra scalar and an absent or constant-zero cutoff. TXAC, when present alongside EXP2, must have its exact material-plus-emitter row count and neutral per-particle entries. Unsupported EXPT semantics are explicitly refused while particle compatibility is enabled.
+`AssetCompat.cpp` now reads chunk-relative EXP2 records before native relocation. A supported record has finite constant RGB/alpha multipliers in [0,16], zero extra scalar and an absent or constant-zero cutoff. TXAC, when present alongside EXP2, must have its exact material-plus-emitter row count and neutral per-particle entries. Neutral EXPT0/1/1 rows are now supported by the separate particle module; nonneutral semantics remain refused.
 
 The converter retains source emitter ordering, and the adapter requires the source/target count to match. Non-unity multipliers create private, aligned native color/alpha key arrays; aliased original arrays are never modified. Existing native interpolation and rendering read those arrays. Color values must remain in [0,255] and alpha in the nonnegative native fixed16 range; saturation/HDR behavior is refused rather than approximated. Alpha baking quantizes back to fixed16. Runtime palette replacement can override RGB tracks and therefore does not establish EXP2 multiplier parity for palette-driven particles.
 
-This does not implement TXAC UV composition, layered particle shaders, animated cutoff, EXPT or general modern particle parity. Models without EXP2 keep the existing single-texture compatibility behavior. Unsupported extension records log a specific refusal before replacing the original model buffer. Disabling particle compatibility keeps the existing emitter omission policy.
+This does not implement TXAC UV composition, layered particle shaders, animated cutoff, nonneutral EXPT or general modern particle parity. Models without EXP2 keep the existing single-texture compatibility behavior. Unsupported extension records log a specific refusal before replacing the original model buffer. Disabling particle compatibility keeps the existing emitter omission policy.
