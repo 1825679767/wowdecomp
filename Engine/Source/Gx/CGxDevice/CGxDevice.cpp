@@ -1109,9 +1109,6 @@ void CGxDevice::CursorUnlock(uint32_t x, uint32_t y) {
 // OFFSET: 0x00685C60
 int32_t CGxDevice::TexCreate(EGxTexTarget target, uint32_t width, uint32_t height, uint32_t depth, EGxTexFormat format, EGxTexFormat dataFormat, CGxTexFlags flags, void* userArg, GxTexUserFunc userFunc, const char* name, CGxTex*& texId) {
     texId = new (SMemAlloc(sizeof(CGxTex), __FILE__, __LINE__, 0)) CGxTex(target, width, height, depth, format, dataFormat, flags, userArg, userFunc, name);
-#ifdef WXL_ENABLE_DX11
-    char trace[8]{};if(GetEnvironmentVariableA("WXL_DX11_TRACE_DRAWS",trace,sizeof(trace)))Log("Diagnostic texture=%p name=%s %ux%u format=%u data=%u",texId,name?name:"",width,height,format,dataFormat);
-#endif
     this->m_textures.LinkToHead(texId);
     return 1;
 }

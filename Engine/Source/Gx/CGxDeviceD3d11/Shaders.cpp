@@ -213,20 +213,6 @@ bool CGxDeviceD3d11::SyncDraw(EGxPrim primitive){
     m->context->IASetInputLayout(found->second.Get());m->context->IASetVertexBuffers(0,UINT(streams.size()),buffers,strides,offsets);
     m->context->VSSetShader(vertex->vertex.Get(),nullptr,0);m->context->PSSetShader(pixel->pixel.Get(),nullptr,0);
     if(!m->UploadConstants(*vertex,true)||!m->UploadConstants(*pixel,false)||!m->States())return false;
-    char traceState[8]{};if(m->presentedFrames==90&&GetEnvironmentVariableA("WXL_DX11_TRACE_DRAWS",traceState,sizeof(traceState))){
-        static uint32_t stateDraw=0;++stateDraw;
-        if(stateDraw==5){
-            for(uint32_t stage=0;stage<2;++stage){
-                char name[128];std::snprintf(name,sizeof(name),"Logs/dx11-state-%u-constants.bin",stage);
-                FILE* file=nullptr;fopen_s(&file,name,"wb");if(file){fwrite(ShaderConstantsLock(stage?GxSh_Pixel:GxSh_Vertex),1,4096,file);fclose(file);}
-                const auto& shader=stage?pixel:vertex;ComPtr<ID3DBlob> code;
-                if(SUCCEEDED(D3DDisassemble(shader->translated.dxbc.data(),shader->translated.dxbc.size(),0,nullptr,&code))){
-                    std::snprintf(name,sizeof(name),"Logs/dx11-state-%u-shader.txt",stage);fopen_s(&file,name,"wb");
-                    if(file){fwrite(code->GetBufferPointer(),1,code->GetBufferSize(),file);fclose(file);}
-                }
-            }
-        }
-    }
     for(uint32_t i=0;i<16;++i){auto* t=static_cast<CGxTex*>(m_appRenderStates[GxRs_Texture0+i].m_value.m_data.p);
         ID3D11ShaderResourceView* srv=nullptr;
         if(t&&t!=m_textureTarget[GxBuffers_Color].m_texture&&t!=m_textureTarget[GxBuffers_Depth].m_texture)srv=m->textures[t].srv.Get();
@@ -263,32 +249,5 @@ void CGxDeviceD3d11::Draw(CGxBatch* batch,int32_t indexed){
         m->context->DrawIndexed(batch->m_count,batch->m_start,0);
     }else m->context->Draw(batch->m_count,batch->m_start);
     ++m->drawCalls;
-    char trace[8]{};
-    if(m->presentedFrames==90&&GetEnvironmentVariableA("WXL_DX11_TRACE_DRAWS",trace,sizeof(trace))){
-        static uint32_t draw=0;++draw;
-        FILE* file=nullptr;fopen_s(&file,"Logs/dx11-draw-trace.txt","a");
-        if(file){
-            fprintf(file,"draw=%u count=%u indexed=%d format=%u target=%p\n",draw,batch->m_count,indexed,m_primVertexFormat,m_textureTarget[0].m_texture);
-            for(auto state:{GxRs_VertexShader,GxRs_PixelShader}){
-                auto* shader=static_cast<CGxShader*>(m_appRenderStates[state].m_value.m_data.p);auto it=m->shaderSources.find(shader);
-                if(it!=m->shaderSources.end())fprintf(file,"shader=%s/%s permutation=%u\n",it->second.path.c_str(),it->second.name.c_str(),it->second.index);
-                else fprintf(file,"shader=%p\n",shader);
-            }
-            for(uint32_t i=0;i<8;++i){auto* t=static_cast<CGxTex*>(m_appRenderStates[GxRs_Texture0+i].m_value.m_data.p);
-                if(t)fprintf(file,"texture%u=%p %ux%u format=%u data=%u\n",i,t,t->m_width,t->m_height,t->m_format,t->m_dataFormat);}
-            fclose(file);
-        }
-        if(draw<=32){
-            TSGrowableArray<CImVector> pixels;CiRect rect(0,0,m->height,m->width);ReadTargetPixels(rect,pixels);
-            if(pixels.Count()==m->width*m->height){
-                char name[128];std::snprintf(name,sizeof(name),"Logs/dx11-draw-%02u.bmp",draw);fopen_s(&file,name,"wb");
-                if(file){BITMAPFILEHEADER header{};BITMAPINFOHEADER info{};
-                    header.bfType=0x4d42;header.bfOffBits=sizeof(header)+sizeof(info);header.bfSize=header.bfOffBits+pixels.Count()*4;
-                    info.biSize=sizeof(info);info.biWidth=m->width;info.biHeight=-LONG(m->height);info.biPlanes=1;info.biBitCount=32;
-                    fwrite(&header,sizeof(header),1,file);fwrite(&info,sizeof(info),1,file);fwrite(pixels.Ptr(),4,pixels.Count(),file);fclose(file);
-                }
-            }
-        }
-    }
     if(auto* target=m_textureTarget[GxBuffers_Color].m_texture)m->textures[target].mipGenerationDirty=true;
 }

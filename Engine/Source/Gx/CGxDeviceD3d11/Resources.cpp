@@ -128,10 +128,6 @@ bool CGxDeviceD3d11::TextureReady(CGxTex* t){
                 if(!rowPitch||uint64_t(rowPitch)*rows>256u*1024*1024)return false;
                 std::vector<uint8_t> upload(size_t(rowPitch)*rows);C2iVector size;size.x=right-left;size.y=bottom-top;
                 if(!Blit(size,BlitAlpha_0,source,pitch,GxGetBlitFormat(t->m_dataFormat),upload.data(),rowPitch,GxGetBlitFormat(texture.storage)))return false;
-                char trace[8]{};if(GetEnvironmentVariableA("WXL_DX11_TRACE_DRAWS",trace,sizeof(trace))&&level==0){
-                    char name[128];std::snprintf(name,sizeof(name),"Logs/dx11-texture-%p-%ux%u-%u.bin",t,w,h,texture.storage);
-                    FILE* file=nullptr;fopen_s(&file,name,"wb");if(file){fwrite(upload.data(),1,upload.size(),file);fclose(file);}
-                }
                 D3D11_BOX box{left,top,0,right,bottom,1};
                 m->context->UpdateSubresource(texture.gpu.Get(),D3D11CalcSubresource(level,face,texture.mips),&box,upload.data(),rowPitch,0);
             }
