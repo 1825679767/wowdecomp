@@ -1,4 +1,5 @@
 #include "WXL/UnitOutline.hpp"
+#include "WXL/WmoMaterials.hpp"
 #include "WXL/MeshMaterials.hpp"
 #include "WXL/ParticleLayers.hpp"
 #include "WXL/ParticleRefraction.hpp"
@@ -205,6 +206,7 @@ CGxDevice* CreateGxDevice(EGxApi api, GxWindowProc windowProc, const CGxFormat& 
     }
 
     if (device->DeviceCreate(windowProc, format)) {
+        wxl::native::wmo_materials::DeviceReady(*device);
         return g_theGxDevicePtr;
     }
 
@@ -1128,6 +1130,7 @@ void GxDevDestroy(CGxDevice* device) {
     }
 
     wxl::native::unit_outline::Release(*g_theGxDevicePtr);
+    wxl::native::wmo_materials::Release(*g_theGxDevicePtr);
     wxl::native::mesh_materials::DestroyPrograms(*g_theGxDevicePtr);
     wxl::native::DestroyParticleLayerPrograms(*g_theGxDevicePtr);
     wxl::native::DestroyParticleRefraction(*g_theGxDevicePtr);

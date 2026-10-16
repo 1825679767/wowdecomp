@@ -4,7 +4,7 @@
 #include <cstdarg>
 #include <cstddef>
 #include <memory>
-namespace wxl::native {struct ParticleRefractionCapture;struct UnitOutlineResources;}
+namespace wxl::native {struct ParticleRefractionCapture;struct UnitOutlineResources;struct WmoMaterialResources;}
 #include <cstdint>
 #include "Engine/Source/Gx/CGxBuf.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
@@ -127,6 +127,7 @@ class CGxDevice {
     // Backend-owned capture is released before Reset/device destruction.
     std::shared_ptr<wxl::native::ParticleRefractionCapture> m_wxlParticleRefractionCapture;
     std::shared_ptr<wxl::native::UnitOutlineResources> m_wxlUnitOutline;
+    std::shared_ptr<wxl::native::WmoMaterialResources> m_wxlWmoMaterials;
     /* 2668 */ TSHashTable<CGxShader, HASHKEY_STRI> m_shaderList [6];
     /* 2758 */ uint32_t m_appMasterEnables;
     /* 275C */ uint32_t m_hwMasterEnables;

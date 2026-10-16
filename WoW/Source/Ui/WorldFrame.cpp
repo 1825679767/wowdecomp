@@ -1,4 +1,5 @@
 #include "WXL/UnitOutline.hpp"
+#include "WXL/WmoMaterials.hpp"
 #include "WXL/Skyriding.hpp"
 #include "WorldFrame.h"
 #include "WXL/QuestMarker.hpp"
@@ -2106,6 +2107,7 @@ void CGWorldFrame::RenderWorld(void* param) {
     wxl::native::unit_outline::BeginWorld();
     worldFrame->OnWorldRender();
     wxl::native::unit_outline::EndWorld();
+    wxl::native::wmo_materials::EndWorld();
     WorldTextRenderBatch();
 
     g_theGxDevicePtr->XformSetProjection(projection);

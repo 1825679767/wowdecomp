@@ -85,7 +85,8 @@ target_compile_definitions(WxlRetailUi PRIVATE WXL_ENABLE_RETAIL_UI=$<BOOL:${WXL
 add_dependencies(WxlRetailUi WxlRuntime WxlDB2)
 wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
 wxl_module(WxlAppearanceSession AppearanceSession modules/appearance-session/AppearanceSession.cpp)
-wxl_module(WxlWorld World modules/world/WmoNative.cpp modules/world/SplitAdtNative.cpp
+option(WXL_ENABLE_WMO_MATERIALS "Modern WMO composite and four-layer materials" ON)
+wxl_module(WxlWorld World modules/world/WmoMaterials.cpp modules/world/WmoNative.cpp modules/world/SplitAdtNative.cpp
  "${V}/src/platform/waystone/WmoAssetFamily.cpp" "${V}/src/platform/waystone/WmoRootBytes.cpp"
  "${V}/src/platform/waystone/WmoMaterialPlan.cpp" "${V}/src/platform/waystone/WmoChunkIndex.cpp")
 wxl_module(WxlClientExtensions ClientExtensions modules/client-extensions/ClientHelpers.cpp
@@ -104,6 +105,7 @@ add_dependencies(WxlSkyriding WxlRuntime WxlProtocol WxlM2)
 wxl_module(WxlRadialPing RadialPing modules/radial-ping/RadialPing.cpp)
 add_dependencies(WxlRadialPing WxlRuntime WxlProtocol)
 add_dependencies(WxlClientExtensions WxlRuntime WxlProtocol WxlRadialPing WxlQuestMarker WxlChallengeMode)
+target_compile_definitions(WxlWorld PRIVATE WXL_ENABLE_WMO_MATERIALS=$<BOOL:${WXL_ENABLE_WMO_MATERIALS}>)
 add_dependencies(WxlWorld WxlStorage WxlDB2 WxlRuntime)
 add_dependencies(WxlAppearanceSession WxlAppearances WxlProtocol)
 add_dependencies(WxlDB2 WxlRuntime WxlStorage)

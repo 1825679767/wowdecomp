@@ -1,5 +1,6 @@
 #include "MapObj.h"
 #include "WXL/WorldCompat.hpp"
+#include "WXL/WmoMaterials.hpp"
 #include <cstdlib>
 #include <malloc.h>
 #include <new>
@@ -938,12 +939,13 @@ void CMapObj::UnifiedRender(CMapObjGroup* group, uint32_t index) {
 
     for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_batchListCount); i++) {
         SMOBatch& batch = group->m_batchList[i];
+        wxl::native::wmo_materials::BatchScope wxlMaterialScope(*this,*group,batch.m_texture);
 
         if (!index) {
             batch.m_flags &= 0xF;
         }
 
-        if ((batch.m_flags & 0xF0) || CMapObj::CullBatch(&batch)) {
+        if ((batch.m_flags & 0xF0) || (!wxlMaterialScope.Modern() && CMapObj::CullBatch(&batch))) {
             continue;
         }
 
@@ -1362,12 +1364,13 @@ void CMapObj::ExteriorRender(CMapObjGroup* group, uint32_t index) {
 
     for (uint32_t i = 0; i < group->m_extBatchCount; i++) {
         SMOBatch& batch = group->m_batchList[i];
+        wxl::native::wmo_materials::BatchScope wxlMaterialScope(*this,*group,batch.m_texture);
 
         if (!index) {
             batch.m_flags &= 0xF;
         }
 
-        if ((batch.m_flags & 0xF0) || CMapObj::CullBatch(&batch)) {
+        if ((batch.m_flags & 0xF0) || (!wxlMaterialScope.Modern() && CMapObj::CullBatch(&batch))) {
             continue;
         }
 
@@ -1481,12 +1484,13 @@ void CMapObj::InteriorRender(CMapObjGroup* group, uint32_t index) {
 
     for (uint32_t i = 0; i < static_cast<uint32_t>(group->m_batchListCount); i++) {
         SMOBatch& batch = group->m_batchList[i];
+        wxl::native::wmo_materials::BatchScope wxlMaterialScope(*this,*group,batch.m_texture);
 
         if (!index) {
             batch.m_flags &= 0xF;
         }
 
-        if ((batch.m_flags & 0xF0) || CMapObj::CullBatch(&batch)) {
+        if ((batch.m_flags & 0xF0) || (!wxlMaterialScope.Modern() && CMapObj::CullBatch(&batch))) {
             continue;
         }
 

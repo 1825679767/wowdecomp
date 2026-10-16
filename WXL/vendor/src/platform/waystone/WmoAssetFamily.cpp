@@ -10,7 +10,7 @@ void Put(uint8_t* p,uint32_t n){std::memcpy(p,&n,4);}
 bool Path(const char* p,const char* suffix){if(!p || !*p || std::strlen(p)>900 || *p=='/' || *p==92 || std::strstr(p,"..") || std::strchr(p,':'))return false;for(auto q=p;*q;++q)if(static_cast<unsigned char>(*q)<32)return false;size_t n=std::strlen(p),end=std::strlen(suffix);return n>=end && !_stricmp(p+n-end,suffix);}
 void Chunk(std::vector<uint8_t>& b,const char* tag,std::span<const uint8_t> data){size_t at=b.size();b.resize(at+8);for(unsigned i=0;i<4;++i)b[at+i]=tag[3-i];Put(b.data()+at+4,uint32_t(data.size()));b.insert(b.end(),data.begin(),data.end());}
 }
-bool PrepareAssetFamily(const char* path,std::span<const uint8_t> source,TextureResolver texture,TextureResolver model,AssetFamily& output,std::string& reason){
+bool PrepareAssetFamily(const char* path,std::span<const uint8_t> source,TextureResolver texture,TextureResolver model,AssetFamily& output,std::string& reason,bool layeredRenderer){
  reason.clear();auto fail=[&](const char* why){reason=why;return false;};RootIndex index;
  if(!Path(path,".wmo") || !IndexRoot(source,index) || !index.modern)return fail("modern root required");
  const uint32_t providers=unsigned(index.groupFileIds.present)+unsigned(index.doodadFileIds.present);
@@ -46,7 +46,7 @@ bool PrepareAssetFamily(const char* path,std::span<const uint8_t> source,Texture
  std::vector<uint8_t> shaped;uint32_t version=17;Chunk(shaped,"MVER",{reinterpret_cast<const uint8_t*>(&version),4});
  // Keep MOTX absent so the conservative material planner recognizes modern FDIDs.
  for(size_t i=0;i<slots.size();++i)if(i!=1)Chunk(shaped,RootSlots[i].tag,slots[i]);
- if(!PrepareNamedRoot(shaped,texture,true,result.root,reason))return false;
+ if(!PrepareNamedRoot(shaped,texture,true,result.root,reason,layeredRenderer))return false;
  output=std::move(result);return true;
 }
 }

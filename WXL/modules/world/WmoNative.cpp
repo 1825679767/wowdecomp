@@ -1,6 +1,8 @@
 // Native WMO byte/provider module; native object lifecycle and renderer remain owner.
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 #include "WorldCompat.hpp"
+#include "WXL/WmoMaterials.hpp"
+#include <cmath>
 #include "NativeFeatures.hpp"
 #include "NativeStorage.hpp"
 #include "FdidCompat.hpp"
@@ -20,17 +22,25 @@ namespace wxl::native::world {
 namespace {
 namespace w=wxl::waystone::wmo;
 using namespace bytes;
-struct Family {std::vector<Blob> groups;size_t bytes=0;};
+struct Family {std::vector<Blob> groups;std::vector<std::shared_ptr<const wmo_materials::GroupSource>> render;size_t bytes=0;};
+struct Binding {CMapObj* root;unsigned index;const void* file;};
+std::map<CMapObjGroup*,Binding> bindings;
 std::mutex mutex;
 std::map<CMapObj*,std::shared_ptr<const Family>> families;
 size_t residentBytes=0;
-bool Group(const Blob& raw,uint32_t materials,const uint8_t* groupNames,uint32_t groupNameBytes,uint32_t lights,uint32_t doodads,Blob& output) {
+bool Group(const Blob& raw,uint32_t materials,const uint8_t* groupNames,uint32_t groupNameBytes,uint32_t lights,uint32_t doodads,Blob& output,wmo_materials::GroupSource& render,bool layeredReady) {
  w::GroupIndex index;if(!w::IndexGroup(raw,index) || !w::ValidateGroupGeometry(raw,index,materials))return false;
- // These formats need additional shader/index/strip ownership. Refuse instead
+ // Additional index/strip ownership remains unsupported; layered UV/weights
+ // are retained in the immutable renderer side stream below. Refuse instead
  // of feeding the classic positional walker incompatible optional chunks.
- if(index.unknownChunks || index.indices32.present || index.layerWeights.present || index.replacementBatches.present ||
-    index.uvSets>2 || index.colorSets>2 || (index.flags&(0x400u|0x20000u)) || index.vertices.size/12>65535)return false;
+ if(index.unknownChunks || index.indices32.present || index.replacementBatches.present ||
+    index.uvSets>4 || index.colorSets>2 || (index.flags&(0x400u|0x20000u)) || index.vertices.size/12>65535)return false;
  const auto* header=raw.data()+index.header.offset;const auto name=Read(header);
+ render.vertices=index.vertices.size/12;
+ bool needsLayers=false;for(size_t at=0;at<index.batches.size;at+=24){const auto* b=raw.data()+index.batches.offset+at;uint16_t material=b[23];if(b[22]&2)std::memcpy(&material,b+10,2);if(material>=render.materials->records.size())return false;needsLayers|=render.materials->records[material].layered;}
+ if(needsLayers){if(!layeredReady||index.uvSets!=4||!index.layerWeights.present||index.layerWeights.size!=render.vertices*4)return false;
+  render.stream.resize(size_t(render.vertices)*36);for(uint32_t v=0;v<render.vertices;++v){for(unsigned s=0;s<4;++s){if(index.uv[s].size!=render.vertices*8)return false;const auto* uv=raw.data()+index.uv[s].offset+v*8;float pair[2];std::memcpy(pair,uv,8);if(!std::isfinite(pair[0])||!std::isfinite(pair[1]))return false;std::memcpy(render.stream.data()+v*36+s*8,uv,8);}std::memcpy(render.stream.data()+v*36+32,raw.data()+index.layerWeights.offset+v*4,4);}
+ }
  if(name>=groupNameBytes || !std::memchr(groupNames+name,0,groupNameBytes-name))return false;
  auto span=[&](const w::Range& r)->Blob{return r.present?Blob(raw.begin()+r.offset,raw.begin()+r.offset+r.size):Blob{};};
  auto required=[&](uint32_t flag,const w::Range& r){return !(index.flags&flag)||r.present;};
@@ -70,20 +80,22 @@ bool PrepareWmo(CMapObj& object) noexcept {
   const auto* data=static_cast<const uint8_t*>(object.m_pWmoData);w::RootIndex source;
   if(!w::IndexRoot({data,size_t(object.m_wmoFileSize)},source))return false;if(!source.modern)return true;
   w::AssetFamily prepared;std::string reason;
-  if(!w::PrepareAssetFamily(object.m_wmoName,{data,size_t(object.m_wmoFileSize)},&ResolveTexture,&ResolveModel,prepared,reason)){
+  if(!w::PrepareAssetFamily(object.m_wmoName,{data,size_t(object.m_wmoFileSize)},&ResolveTexture,&ResolveModel,prepared,reason,wmo_materials::LayeredReady())){
    WLOG_WARN("native-wmo: refused %s: %s",object.m_wmoName,reason.c_str());return false;
   }
   w::RootIndex root;if(!w::IndexRoot(prepared.root.bytes,root))return false;
   const auto groups=Read(prepared.root.bytes.data()+root.slots[0].offset+4);
   if(groups>512 || prepared.groups.size()!=groups)return false;
+  auto materials=std::make_shared<const w::MaterialPlan>(std::move(prepared.root.materials));
   auto family=std::make_shared<Family>();family->groups.reserve(groups);size_t total=prepared.root.bytes.size();
   std::string stem=object.m_wmoName;if(stem.size()<4)return false;stem.resize(stem.size()-4);
   for(unsigned i=0;i<groups;++i){char suffix[32];std::snprintf(suffix,sizeof(suffix),"_%03u.wmo",i);
    // This key is the exact verified native ReadGroup filename contract. Only
    // its explicit GFID/named provider value is opened; no storage alias exists.
    auto path=prepared.groups.find(stem+suffix);if(path==prepared.groups.end())return false;
-   Blob raw,group;if(!ReadAsset(path->second.c_str(),raw) || !Group(raw,root.slots[2].size/64,prepared.root.bytes.data()+root.slots[3].offset,root.slots[3].size,root.slots[11].size/48,root.slots[14].size/40,group))return false;
-   total+=group.size();if(total>128u*1024u*1024u)return false;family->groups.push_back(std::move(group));
+   auto render=std::make_shared<wmo_materials::GroupSource>();render->materials=materials;
+   Blob raw,group;if(!ReadAsset(path->second.c_str(),raw) || !Group(raw,root.slots[2].size/64,prepared.root.bytes.data()+root.slots[3].offset,root.slots[3].size,root.slots[11].size/48,root.slots[14].size/40,group,*render,wmo_materials::LayeredReady()))return false;
+   total+=group.size()+render->stream.size();family->render.push_back(std::move(render));if(total>128u*1024u*1024u)return false;family->groups.push_back(std::move(group));
   }
   family->bytes=total;
   void* memory=SMemAlloc(prepared.root.bytes.size(),__FILE__,__LINE__,0);if(!memory)return false;
@@ -101,8 +113,12 @@ GroupLoad LoadPreparedWmoGroup(CMapObj& root,unsigned index,CMapObjGroup& group)
   std::shared_ptr<const Family> family;{std::lock_guard lock(mutex);auto it=families.find(&root);if(it==families.end())return GroupLoad::Classic;family=it->second;}
   if(index>=family->groups.size())return GroupLoad::Rejected;const auto& bytes=family->groups[index];
   void* memory=SMemAlloc(bytes.size(),__FILE__,__LINE__,0);if(!memory)return GroupLoad::Rejected;
-  std::memcpy(memory,bytes.data(),bytes.size());group.m_filePtr=memory;group.m_fileSize=uint32_t(bytes.size());group.m_parent=&root;group.Create();return GroupLoad::Loaded;
+  std::memcpy(memory,bytes.data(),bytes.size());group.m_filePtr=memory;group.m_fileSize=uint32_t(bytes.size());group.m_parent=&root;group.Create();{std::lock_guard lock(mutex);if(families.find(&root)==families.end()||families.at(&root)!=family)return GroupLoad::Rejected;bindings[&group]={&root,index,memory};}return GroupLoad::Loaded;
  }catch(...){SErrDisplayAppFatal("Unable to load prepared native WMO group");return GroupLoad::Rejected;}
 }
-void ReleaseWmo(CMapObj& object) noexcept {try{std::lock_guard lock(mutex);auto it=families.find(&object);if(it!=families.end()){residentBytes-=it->second->bytes;families.erase(it);}}catch(...){}}
+void ReleaseWmo(CMapObj& object) noexcept {try{std::lock_guard lock(mutex);auto it=families.find(&object);if(it!=families.end()){residentBytes-=it->second->bytes;families.erase(it);for(auto b=bindings.begin();b!=bindings.end();)if(b->second.root==&object)b=bindings.erase(b);else ++b;}}catch(...){}}
+}
+
+namespace wxl::native::wmo_materials {
+std::shared_ptr<const GroupSource> FindSource(CMapObj& root,CMapObjGroup& group) noexcept {try{std::lock_guard lock(world::mutex);auto f=world::families.find(&root);auto b=world::bindings.find(&group);if(f==world::families.end()||b==world::bindings.end()||b->second.root!=&root||b->second.file!=group.m_filePtr||group.m_parent!=&root||b->second.index>=f->second->render.size())return {};auto source=f->second->render[b->second.index];if(group.m_vertexListCount!=source->vertices)return {};return source;}catch(...){return {};}}
 }
