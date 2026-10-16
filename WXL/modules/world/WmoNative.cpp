@@ -105,7 +105,7 @@ bool PrepareWmo(CMapObj& object) noexcept {
   if(groups&&!fogs)return false;
   auto word=[](const uint8_t* at){uint16_t value;std::memcpy(&value,at,2);return uint32_t(value);};
   for(uint32_t i=0;i<portals;++i){const auto* row=prepared.root.bytes.data()+root.slots[7].offset+20*i;
-   const auto first=word(row),count=word(row+2);if(first>portalVertices||count>portalVertices-first)return false;
+   const auto first=word(row),count=word(row+2);if(count&&(first>portalVertices||count>portalVertices-first))return false;
   }
   for(uint32_t i=0;i<portalRefs;++i){const auto* row=prepared.root.bytes.data()+root.slots[8].offset+8*i;
    const auto portal=word(row),group=word(row+2);if(portal>=portals||group>=groups)return false;
