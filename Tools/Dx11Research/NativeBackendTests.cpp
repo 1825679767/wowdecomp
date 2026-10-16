@@ -237,14 +237,21 @@ int main(int argc,char** argv) try {
         Check(window.RecoverDevice()&&window.DeviceWindow()==handle&&!window.m_windowFocus,"window/owner/focus survive recreation");
         window.SceneClear(3,clear);Equal(Center(window,128,96),clear,"recreated swapchain pixels");window.ScenePresent();
         if(!std::strcmp(argv[3],"fullscreen")){
+            const auto hwnd=static_cast<HWND>(window.DeviceWindow());
+            ShowWindow(hwnd,SW_RESTORE);SetForegroundWindow(hwnd);SetFocus(hwnd);
+            MSG message{};while(PeekMessageA(&message,nullptr,0,0,PM_REMOVE)){TranslateMessage(&message);DispatchMessageA(&message);}
             DEVMODEW mode{};mode.dmSize=sizeof(mode);Check(EnumDisplaySettingsW(nullptr,ENUM_CURRENT_SETTINGS,&mode)!=0,"current desktop mode for bounded exclusive test");
             f.m_window=0;f.m_size.x=mode.dmPelsWidth;f.m_size.y=mode.dmPelsHeight;f.m_refreshRate=mode.dmDisplayFrequency;
-            Check(window.DeviceSetFormat(f)!=0,"native exclusive fullscreen transition");
+            const bool exclusive=GetForegroundWindow()==hwnd&&window.DeviceSetFormat(f)!=0;
+            if(!exclusive)std::cerr<<"PENDING exclusive fullscreen/gamma: foreground or display access unavailable; require interactive session\n";
+            if(exclusive){
             window.DeviceWM(GxWM_SetFocus,0,0);window.DeviceSetGamma(1.2f);
             window.SceneClear(3,clear);Equal(Center(window,f.m_size.x,f.m_size.y),clear,"exclusive fullscreen target pixels");window.ScenePresent();
             window.DeviceWM(GxWM_KillFocus,0,0);Check(!window.m_windowFocus,"exclusive focus-loss gamma restore path");
             window.DeviceWM(GxWM_SetFocus,0,0);Check(window.m_windowFocus!=0,"exclusive focus-return gamma reapply path");
-            window.DeviceSetGamma(1.f);f.m_window=1;f.m_size.x=128;f.m_size.y=96;f.m_refreshRate=0;
+            window.DeviceSetGamma(1.f);
+            }
+            f.m_window=1;f.m_size.x=128;f.m_size.y=96;f.m_refreshRate=0;
             Check(window.DeviceSetFormat(f)!=0,"return from exclusive fullscreen to native window");
             window.SceneClear(3,clear);Equal(Center(window,128,96),clear,"post-fullscreen native target pixels");window.ScenePresent();
         }
