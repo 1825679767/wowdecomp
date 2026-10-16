@@ -1,5 +1,6 @@
 #include "VisibleItem_C.h"
 #include "WXL/ItemGraph.hpp"
+#include "WXL/ItemVariants.hpp"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/ItemRec.h"
@@ -52,6 +53,7 @@ uint32_t VisibleItem_C::GetInventoryType() {
 // VERIFY: 9f906c98 auto
 // OFFSET: 0x00758E50
 uint32_t VisibleItem_C::GetDisplayID() {
+    if(auto display=wxl::native::ItemVariantDisplay(this))return display;
     WOWGUID guid = WOWGUID();
     ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 

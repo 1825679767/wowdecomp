@@ -28,7 +28,7 @@ std::mutex inboxMutex;std::deque<Incoming> inbox;size_t inboxBytes=0;
 CVar* enabled=nullptr;bool bound=false,collecting=false,ready=false,pumping=false;lua_State* readyContext=nullptr;
 thread_local uint64_t dispatchGeneration=0;
 struct SessionScope{uint64_t previous;explicit SessionScope(uint64_t value):previous(dispatchGeneration){dispatchGeneration=value;}~SessionScope(){dispatchGeneration=previous;}};
-void ResetState(){wxl_retail_ui::ResetWeeklyRewards();wxl_retail_ui::ResetCollections();wxl_retail_ui::ResetEquipment();wxl_retail_ui::ResetApply();wxl_retail_ui::ResetOutfits();wxl_retail_ui::ResetCustomSets();wxl_retail_ui::ResetSituations();}
+void ResetState(){wxl_retail_ui::ResetItemVariants();wxl_retail_ui::ResetWeeklyRewards();wxl_retail_ui::ResetCollections();wxl_retail_ui::ResetEquipment();wxl_retail_ui::ResetApply();wxl_retail_ui::ResetOutfits();wxl_retail_ui::ResetCustomSets();wxl_retail_ui::ResetSituations();}
 void Reset(void*) noexcept {try{{std::lock_guard lock(inboxMutex);inbox.clear();inboxBytes=0;}ResetState();}catch(...){}}
 void Receive(uint16_t opcode,const uint8_t* data,uint32_t size,uint64_t generation,void*) noexcept {try{
  if(!wxl::native::retail_ui::Enabled()||!size||size>protocol::MaxPayload)return;std::lock_guard lock(inboxMutex);if(inbox.size()>=128||size>4*1024*1024-inboxBytes){inbox.clear();inboxBytes=0;return;}
@@ -56,7 +56,7 @@ namespace wxl::native::retail_ui {
 bool Enabled() noexcept {return WXL_ENABLE_RETAIL_UI&&NativeEnabled()&&enabled&&enabled->m_intValue;}
 void Install(){if(!enabled)enabled=CVar::Register("wxlRetailUi","Native retail UI, wardrobe and weekly rewards bridges",2,WXL_ENABLE_RETAIL_UI?"1":"0",nullptr,0,false,nullptr,false);
  ready=false;readyContext=nullptr;Reset(nullptr);if(!Enabled())return;collecting=!bound;if(collecting){declarations.clear();receivers.clear();}
- bool ok=wxl_retail_ui::InstallRetailUiCompatibility();ok=wxl_retail_ui::InstallRetailTransmogPreview()&&ok;ok=wxl_retail_ui::InstallWeeklyRewards()&&ok;ok=wxl_retail_ui::InstallRetailTransmog()&&ok;ok=wxl_retail_ui::InstallRetailTransmogEquipment()&&ok;ok=wxl_retail_ui::InstallRetailTransmogApply()&&ok;ok=wxl_retail_ui::InstallRetailTransmogOutfits()&&ok;ok=wxl_retail_ui::InstallRetailTransmogCustomSets()&&ok;ok=wxl_retail_ui::InstallRetailTransmogSituations()&&ok;
+ bool ok=wxl_retail_ui::InstallRetailUiCompatibility();ok=wxl_retail_ui::InstallItemVariants()&&ok;ok=wxl_retail_ui::InstallRetailTransmogPreview()&&ok;ok=wxl_retail_ui::InstallWeeklyRewards()&&ok;ok=wxl_retail_ui::InstallRetailTransmog()&&ok;ok=wxl_retail_ui::InstallRetailTransmogEquipment()&&ok;ok=wxl_retail_ui::InstallRetailTransmogApply()&&ok;ok=wxl_retail_ui::InstallRetailTransmogOutfits()&&ok;ok=wxl_retail_ui::InstallRetailTransmogCustomSets()&&ok;ok=wxl_retail_ui::InstallRetailTransmogSituations()&&ok;
  if(!bound&&ok)bound=protocol::ClaimRawDispatch(declarations.data(),uint32_t(declarations.size()));collecting=false;if(!bound)WLOG_WARN("native-retail-ui: owner registration refused; native sends remain disabled");FrameScript_RegisterFunction("WXL_PumpRetailUi",&Pump);
 }
 void UiReady(){if(!Enabled())return;readyContext=FrameScript_GetContext();ready=readyContext!=nullptr;if(!ready)return;

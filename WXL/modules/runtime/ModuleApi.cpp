@@ -1,3 +1,4 @@
+#include "WXL/UnitOutline.hpp"
 #include "WXL/ProceduralEnchants.hpp"
 #include "WXL/RetailUi.hpp"
 #include "WXL/CreationBeams.hpp"
@@ -15,6 +16,7 @@ namespace wxl::native {
 namespace {
 struct Entry {const char* id;const char* dependencies;bool(*enabled)() noexcept;};
 const Entry entries[]{
+ {"unit-outline","runtime,m2,native-d3d9",&unit_outline::Enabled},
  {"retail-ui","runtime,protocol,db2,client-extensions",&retail_ui::Enabled},
  {"procedural-enchants","equipment-attachments,item-visual-graph",&procedural_enchants::Enabled},
  {"creation-beams","creation-effects,blp,native-spell-chain",&creation_beams::Enabled},

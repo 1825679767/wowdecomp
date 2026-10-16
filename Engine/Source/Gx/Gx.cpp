@@ -1,3 +1,4 @@
+#include "WXL/UnitOutline.hpp"
 #include "WXL/MeshMaterials.hpp"
 #include "WXL/ParticleLayers.hpp"
 #include "WXL/ParticleRefraction.hpp"
@@ -1126,6 +1127,7 @@ void GxDevDestroy(CGxDevice* device) {
         return;
     }
 
+    wxl::native::unit_outline::Release(*g_theGxDevicePtr);
     wxl::native::mesh_materials::DestroyPrograms(*g_theGxDevicePtr);
     wxl::native::DestroyParticleLayerPrograms(*g_theGxDevicePtr);
     wxl::native::DestroyParticleRefraction(*g_theGxDevicePtr);

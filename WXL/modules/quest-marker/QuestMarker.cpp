@@ -137,6 +137,10 @@ int SetMarker(lua_State* L){
  if(found!=markers.end())*found=p;else if(markers.size()<256)markers.push_back(p);return 0;
 }
 int ClearMarkers(lua_State*){markers.clear();return 0;}
+int SetQuestEntries(lua_State* L){uint32_t count=0;if(!Sync(L)||!Integer(L,1,4,count))return 0;Kills next;
+ for(uint32_t i=0;i<count;++i){uint32_t entry=0;if(!Integer(L,int(i)+2,UINT32_MAX,entry))return 0;if(entry)next.entries[next.count++]=entry;}
+ std::lock_guard lock(mutex);objectiveEntries=next;return 0;}
+int ClearQuestEntries(lua_State* L){if(Sync(L)){std::lock_guard lock(mutex);objectiveEntries={};}return 0;}
 int SetCorpse(lua_State* L){Corpse p;if(Sync(L)&&Point(L,1,p.x,p.y,p.z)){p.active=1;corpse=p;}return 0;}
 int ClearCorpse(lua_State*){corpse={};return 0;}
 int IsCorpse(lua_State* L){if(Sync(L)&&corpse.active)lua_pushnumber(L,1);else lua_pushnil(L);return 1;}
@@ -228,6 +232,7 @@ bool Install(){
  if(!installed)return false;
  struct Function{const char* name;lua_CFunction function;};
  const Function functions[]={
+ {"SetSelCircleQuestEntries",SetQuestEntries},{"ClearSelCircleQuestEntries",ClearQuestEntries},
  {"SetQuestMarker",SetMarker},{"ClearAllQuestMarkers",ClearMarkers},{"GetDistInfo",Dist},{"SetMarkerAlpha",Alpha},{"QuestTrackerReloadSettings",Reload},
  {"SetCorpseMarker",SetCorpse},{"ClearCorpseMarker",ClearCorpse},{"IsCorpseActive",IsCorpse},{"GetCorpseDistInfo",CorpseDist},{"SetDeadState",SetDead},
  {"GetPlayerPosition",PlayerPos},{"SetTrackerDiamond",Diamond},{"_WXL_QUEST_TRACKER_REQUEST",Request},{"_WXL_QUEST_TRACKER_POP_MARKER",PopMarker},

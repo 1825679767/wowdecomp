@@ -1,3 +1,4 @@
+#include "WXL/UnitOutline.hpp"
 #include "WXL/CreationBeams.hpp"
 #include "WXL/DonorMaterialFallback.hpp"
 #include "WXL/EquipmentAttachments.hpp"
@@ -40,6 +41,7 @@ void RegisterFeatures(){
  barber_appearance::Register();
  skyriding::Register();
  creation_effects::Register();
+ unit_outline::Register();
  CVar::Register("wxlAreaLootAuto","WXL automatic area loot",2,"1",nullptr,0,false,nullptr,false);
  CVar::Register("wxlAreaLootQuality","WXL minimum automatic area loot quality",2,"0",nullptr,0,false,nullptr,false);
  struct Feature{const char* name;const char* help;uint32_t bit;};
