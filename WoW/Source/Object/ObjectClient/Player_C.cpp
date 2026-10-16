@@ -1722,10 +1722,10 @@ void __stdcall CGPlayer_C::UnSilencePlayer(WOWGUID guid, bool silence) {
 
 // VERIFY: 2afbda5e manual
 // OFFSET: 0x006D46D0
-void __stdcall CGPlayer_C::SetLootMethod(uint32_t method, WOWGUID master, uint32_t threshold) {
+void __stdcall CGPlayer_C::SetLootMethod(LOOT_METHOD method, WOWGUID master, uint32_t threshold) {
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_SET_LOOT_METHOD));
-    msg.Put(method);
+    msg.Put(static_cast<uint32_t>(method));
     msg.Put(master.m_guid);
     msg.Put(threshold);
     msg.Finalize();
@@ -11740,7 +11740,7 @@ int32_t Packet_SMSG_GROUP_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDa
         CGPartyInfo::m_playerAssignments = assignments;
         CGPartyInfo::m_playerRole = roles;
         CGPartyInfo::m_playerLFGFlags = lfgFlags;
-        CGPartyInfo::SetLootMethod(lootMethod, lootMaster, lootThreshold, wasInGroup == 0);
+        CGPartyInfo::SetLootMethod(static_cast<LOOT_METHOD>(lootMethod), lootMaster, lootThreshold, wasInGroup == 0);
         CGPartyInfo::m_dungeonDifficulty = partyDungeonDifficulty;
         CGPartyInfo::m_raidDifficulty = partyRaidDifficulty;
         CGPartyInfo::m_dynamicDifficulty = dynamicDifficulty;

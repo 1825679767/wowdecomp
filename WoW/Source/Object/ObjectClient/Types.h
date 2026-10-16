@@ -4,6 +4,15 @@
 #include <cstddef>
 #include <cstdint>
 
+enum LOOT_METHOD : int32_t {
+    LOOT_METHOD_FREEFORALL = 0,
+    LOOT_METHOD_ROUNDROBIN = 1,
+    LOOT_METHOD_MASTERLOOTER = 2,
+    LOOT_METHOD_GROUP = 3,
+    LOOT_METHOD_NEEDBEFOREGREED = 4,
+    LOOT_METHOD_MAX = 5,
+};
+
 enum UNIT_REACTION : int32_t {
     UNIT_REACTION_HATED = 0,
     UNIT_REACTION_HOSTILE = 1,
