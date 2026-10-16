@@ -3836,7 +3836,9 @@ int32_t CCharacterComponent::GetHelmModelFilePath(ItemDisplayInfoRec& rec, const
     }
 
     displayRec = &rec;
-    ChrRacesRec* raceRec = g_chrRacesDB.GetRecord(this->m_data.m_preferences.m_raceID);
+    const auto equipmentRace = wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)
+        ? wxl::native::RetailEquipmentRace(*this) : m_data.m_preferences.m_raceID;
+    ChrRacesRec* raceRec = equipmentRace ? g_chrRacesDB.GetRecord(equipmentRace) : nullptr;
 
     if (!raceRec) {
         return 0;
@@ -3893,7 +3895,11 @@ void CCharacterComponent::AddHelm(int32_t itemVisual) {
         return;
     }
 
-    uint32_t raceMask = 1 << this->m_data.m_preferences.m_raceID;
+    const auto equipmentRace = wxl::native::RetailChoicesReady(m_data.m_preferences,m_data.m_model)
+        ? wxl::native::RetailEquipmentRace(*this) : m_data.m_preferences.m_raceID;
+    // Legacy visibility masks have only 32 bits. High retail families cannot
+    // wrap their shift into another race's helmet visibility policy.
+    uint32_t raceMask = equipmentRace < 32 ? (1u << equipmentRace) : 0u;
 
     if (raceMask & visRec->m_hideGeoset[0]) {
         this->m_data.m_geosets[0] = 1;

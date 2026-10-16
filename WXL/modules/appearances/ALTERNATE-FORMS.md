@@ -1,8 +1,6 @@
-# Native alternate appearance source handoff
+# Native alternate appearances
 
-Status: staged source candidate, **not compiled, tested, installed, or gameplay accepted**. No shared checkout files were edited. The exact input commit and per-file SHA-256 bindings are in `manifest.json`; integration must compare those source hashes before applying the patch. Parent source work unrelated to this patch must be retained.
-
-Apply `alternate-appearances.patch` only after reviewing the candidate files under `candidate/`. It includes the new typed owner, authority and renderer changes, creation/UI/session seams, and the one CMake source registration. It does not modify the shared protocol grammar/catalog or add binary hooks.
+Integrated native-source owner. Combined compilation and local runtime staging are recorded in release-control intakes; runtime, appearance and server acceptance remain separate. This file describes the current implementation, not an unapplied stage.
 
 ## Concrete behavior
 
@@ -25,15 +23,11 @@ A failed alternate construction is memoized for that exact primary component ser
 
 - This is source integration only. The parent must perform the combined compile and resolve any compiler findings before producing a candidate executable. No runtime/UI/save/reconnect acceptance is claimed.
 - Alternate families must actually exist for the requested sex in mounted tables and assets. Missing forms, layouts, textures or exact model matches fail closed. No opposite-sex or synthetic model substitution is attempted.
-- Alternate preview copies native body garment items only (shirt through tabard). It does not guess alternate-family helm, shoulder, cape, or weapon model paths from the wire race. Full equipment attachment parity remains separate work.
+- Alternate preview synchronizes garment, shoulder, cape, quiver and main/off-hand display IDs as the primary changes. Native item loaders own attachment models/textures and retirement. Off-hand shield mode follows the actual primary shield attachment. Helmet suffix and legacy hide-mask race come only from a unique mounted native default matching the alternate exact model path; ambiguous/missing families omit the helmet. Primary forms retain their own native race policy. This adds native display-ID equipment, not modern DB2 item-resource or enchantment parity.
 - Server authority must use the matching catalog and donor supplemental Worgen Eye Color rule. This handoff does not change or publish server data. Snapshot query, hello, prepared permit, timeout and retry bounds remain the existing native session contract.
 - The stage reuses the current DB2 option/choice authority semantics. It does not add requirement-condition filtering or a second appearance catalog.
 - Rebuilding an actor with retained IDs that no longer validate blocks that alternate until a new valid owner/session is supplied. There is no UI reset-to-default action in this patch; preserving edited state takes precedence over silently defaulting it.
 
-## Files and seams
+## Ownership
 
-New: `WXL/AlternateAppearances.hpp`, `WXL/modules/appearances/AlternateAppearances.cpp`.
-
-Updated: `WXL/RetailChoices.hpp`, the appearance authority/controller and UI implementation, `AppearanceCompat` readiness/family selection, native creation owner hooks, `AppearanceSession` capture/restoration, and `WXL/CMakeLists.txt`.
-
-`prepare_stage.py` generates the staged copies, patch and manifest from the shared source without editing it. Running it again rebases onto whatever source bytes are currently present; retain the handoff manifest when comparing this exact proposal.
+`AlternateAppearances.cpp` owns the alternate component. `RetailChoices.cpp` selects exact model-family and equipment authority. Native creation/session seams retain canonical primary ownership and release alternate actors before scene retirement.

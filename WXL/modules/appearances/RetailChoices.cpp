@@ -31,7 +31,7 @@ namespace wxl::native {
 namespace {
 namespace db=wxl::runtime::db2::appearance;
 struct Option {uint32_t id{};int axis=-1;std::vector<uint32_t> choices;};
-struct Authority {uint32_t family{},chrModel{};std::string path;std::array<uint32_t,5> counts{1,1,1,1,1};std::vector<Option> options;bool ready=false;};
+struct Authority {uint32_t family{},chrModel{},equipmentRace{};std::string path;std::array<uint32_t,5> counts{1,1,1,1,1};std::vector<Option> options;bool ready=false;};
 std::string Key(const char* value){std::string s=value?value:"";for(auto& c:s){if(c=='/')c='\\';if(c>='A'&&c<='Z')c=char(c-'A'+'a');}if(s.ends_with(".mdx"))s.replace(s.size()-4,4,".m2");return s;}
 uint32_t& Field(CharacterPreferences& p,RetailAxis axis){switch(axis){case RetailAxis::Skin:return p.m_skinID;case RetailAxis::Face:return p.m_faceId;case RetailAxis::HairStyle:return p.m_hairStyleId;case RetailAxis::HairColor:return p.m_hairColorId;default:return p.m_facialHairId;}}
 int Axis(const char* label){const std::string_view n=label?label:"";if(n=="Skin Color"||n=="Skin Type"||n=="Fur Color")return 0;if(n=="Face")return 1;if(n=="Hair Style")return 2;if(n=="Hair Color")return 3;if(wxl::waystone::appearance::FacialOption(n))return 4;return -1;}
@@ -80,6 +80,24 @@ const Authority* Get(uint32_t race,uint32_t sex,uint32_t family=0){
   for(uint32_t j=0;j<n;++j){WXL_ChrChoice c{};if(!db::ChoiceAt(o.id,j,c)){valid=false;break;}entry.choices.push_back(c.id);}
   a->options.push_back(std::move(entry));
  }
+ // Select helmet suffix/visibility policy only from mounted native defaults
+ // whose actual model path equals this recipe. Multiple native race records
+ // are ambiguous for alternate visibility masks; body identity never inherits the primary wire race suffix.
+ if(valid&&family==primary)a->equipmentRace=race;
+ else if(valid){
+  std::string prefix;bool ambiguous=false;
+  for(int32_t i=0;i<g_chrRacesDB.m_numRecords;++i){
+   const auto* r=g_chrRacesDB.GetRecordByIndex(i);
+   if(!r||r->m_id<=0||!r->m_clientPrefix||!*r->m_clientPrefix)continue;
+   const auto* d=g_creatureDisplayInfoDB.GetRecord(sex?r->m_femaleDisplayID:r->m_maleDisplayID);
+   const auto* m=d?g_creatureModelDataDB.GetRecord(d->m_modelID):nullptr;
+   if(!m||Key(m->m_modelName)!=a->path)continue;
+   if(a->equipmentRace&&(a->equipmentRace!=uint32_t(r->m_id)||prefix!=r->m_clientPrefix)){ambiguous=true;break;}
+   prefix=r->m_clientPrefix;
+   if(!a->equipmentRace||uint32_t(r->m_id)<a->equipmentRace)a->equipmentRace=uint32_t(r->m_id);
+  }
+  if(ambiguous)a->equipmentRace=0;
+ }
  a->ready=valid;auto* result=a.get();cache.emplace(key,std::move(a));return valid?result:nullptr;
 }
 const Authority* For(const CharacterPreferences& p,const CM2Model* model){
@@ -96,6 +114,7 @@ void Dirty(CCharacterComponent& c){c.m_dirtySections=0xffffffffu;c.m_flags|=5u;}
 }
 struct RetailChoiceState {uint32_t model{},revision=1;std::map<uint32_t,uint32_t> overrides;};
 uint32_t RetailRaceId(uint32_t race) noexcept {static constexpr uint32_t ids[]={0,1,2,3,4,5,6,7,8,35,10,11,22,27,17,29,0,76,31,0,30,9,26,0,85,13,25,86,0,34,75,32};return race<std::size(ids)?ids[race]:0;}
+uint32_t RetailEquipmentRace(const CCharacterComponent& c) noexcept {try{auto* a=For(c.m_data.m_preferences,c.m_data.m_model);return a?a->equipmentRace:0;}catch(...){return 0;}}
 uint32_t RetailChoiceCount(uint32_t race,uint32_t sex,RetailAxis axis) noexcept {try{auto* a=Get(race,sex);const auto i=uint32_t(axis);return a&&i<5?a->counts[i]:0;}catch(...){return 0;}}
 bool RetailChoicesReady(const CharacterPreferences& p,const CM2Model* model) noexcept {try{return For(p,model)!=nullptr;}catch(...){return false;}}
 bool NormalizeRetailPreferences(CharacterPreferences& p,const CM2Model* model) noexcept {try{auto* a=For(p,model);if(!a)return false;for(uint32_t i=0;i<5;++i)Field(p,RetailAxis(i))%=a->counts[i];return true;}catch(...){return false;}}

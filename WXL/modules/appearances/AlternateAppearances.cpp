@@ -18,6 +18,7 @@
 #include "Engine/Source/Model2/M2Scene.h"
 #include "Engine/Source/Tempest/CRandom.h"
 #include <memory>
+#include <array>
 #include <map>
 #include <string>
 #include <tuple>
@@ -38,6 +39,9 @@ struct Owner {
     bool showingAlternate=false;
     uint64_t restoredGuid=0;
     uint32_t restoredRevision=0;
+    std::array<uint32_t,NUM_ITEM_SLOTS> equipment{};
+    std::array<uint32_t,2> hands{};
+    bool shield=false,equipmentReady=false;
 };
 std::unique_ptr<Owner> owner;
 uint64_t nextGeneration=0;
@@ -61,6 +65,37 @@ bool Current(){
 bool PrimaryAlive(){auto* current=CCharacterCreation::m_character;return owner&&current==owner->primary&&current&&current->m_wxlSerial==owner->primarySerial&&current->m_data.m_model&&current->m_data.m_model->m_handle==owner->primaryHandle;}
 CM2Model* Background(){auto* frame=CCharacterCreation::m_charCustomizeFrame;return frame?frame->m_model:nullptr;}
 bool Complete(){return Current()&&owner->alternate.value&&AppearanceReady(*owner->primary)&&AppearanceReady(*owner->alternate.value);}
+void SynchronizeEquipment(Owner& state){
+    auto& primary=*state.primary;auto& alternate=*state.alternate.value;
+    for(uint32_t i=0;i<NUM_ITEM_SLOTS;++i){
+        // Helm suffixes come from an exact actual-model native default.
+        const uint32_t wanted=i==ITEMSLOT_HEAD&&!RetailEquipmentRace(alternate)?0:primary.m_itemDisplayID[i];
+        if(!state.equipmentReady||state.equipment[i]!=wanted){
+            if(alternate.m_itemDisplayID[i])alternate.RemoveItem(static_cast<ITEM_SLOT>(i));
+            if(wanted)alternate.AddItem(static_cast<ITEM_SLOT>(i),wanted,0);
+            state.equipment[i]=wanted;
+        }
+    }
+    bool shield=false;
+    for(auto* child=primary.m_data.m_model->m_attachList;child;child=child->m_attachNext)
+        if(child->m_attachmentId==ATTACH_SHIELD)shield=true;
+    for(uint32_t hand=0;hand<2;++hand){
+        const auto wanted=primary.m_handItemDisplayID[hand];
+        if(state.equipmentReady&&state.hands[hand]==wanted&&(hand==0||state.shield==shield))continue;
+        auto* model=alternate.m_data.m_model;
+        CCharacterComponent::RemoveLinkpt(model,hand?ATTACH_HANDLEFT:ATTACH_HANDRIGHT);
+        if(hand)CCharacterComponent::RemoveLinkpt(model,ATTACH_SHIELD);
+        alternate.m_handItemDisplayID[hand]=0;
+        CCharacterComponent::ComponentOpenFingers(model,hand?COMP_HAND_LEFT:COMP_HAND_RIGHT);
+        if(wanted){
+            if(!hand)alternate.SetMainHandItemDisplay(wanted);
+            else if(shield)alternate.SetShieldItemDisplay(wanted);
+            else alternate.SetOffHandItemDisplay(wanted);
+        }
+        state.hands[hand]=wanted;
+    }
+    state.shield=shield;state.equipmentReady=true;
+}
 bool Rows(const CCharacterComponent& component,std::vector<ap::Choice>& output){
     std::vector<RetailChoicePair> pairs;
     if(!CaptureRetailChoicePairs(component,pairs)||pairs.empty()||pairs.size()>ap::MaxChoices)return false;
@@ -100,6 +135,7 @@ void UpdateCreation() noexcept {
         const auto alternateRace=ap::AlternateRetailRace(uint8_t(preferences.m_raceID));
         if(!alternateRace)return;
         if(owner){
+            SynchronizeEquipment(*owner);
             owner->alternate.value->RenderPrep(1);
             return;
         }
@@ -140,10 +176,9 @@ void UpdateCreation() noexcept {
         // Restore the actual previously captured option IDs transactionally.
         // A changed family/schema rejects restoration instead of publishing defaults.
         if(oldSelection!=retained.end()&&!ApplyRetailChoices(*next->alternate.value,oldSelection->second.rows.data(),uint32_t(oldSelection->second.rows.size())))return;
-        // Body garment textures/geosets retain native priorities. Do not infer
-        // alternate-family helm/shoulder/cape/weapon model paths from wire race.
-        for(uint32_t slot=ITEMSLOT_SHIRT;slot<=ITEMSLOT_TABARD;++slot)
-            if(primary->m_itemDisplayID[slot])next->alternate.value->AddItem(static_cast<ITEM_SLOT>(slot),primary->m_itemDisplayID[slot],0);
+        // Native shoulders/cape/weapons keep their existing item paths; helmets
+        // use only a mounted default matching the alternate's exact model.
+        SynchronizeEquipment(*next);
         next->alternate.value->RenderPrep(1);
         if(!AppearanceReady(*next->alternate.value)||RetailRecipeRace(*next->alternate.value)!=alternateRace)return;
         next->alternate.value->m_data.m_model->SetAnimating(0);

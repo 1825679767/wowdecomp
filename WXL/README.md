@@ -15,7 +15,7 @@ Each module has its own object-library build target and source directory. WxlNat
 | db2 | WxlDB2 / WXL::DB2 | WDC tables, FDID paths, material texture IDs and appearance schemas |
 | blp | WxlBlp / WXL::BLP | modern texture decoding/transcode |
 | materials | WxlMaterials / WXL::Materials | source mesh material preservation; native Gx blend factors |
-| particles | WxlParticles / WXL::Particles | emitter normalization, EXP2 multiplier bake and neutral EXPT |
+| particles | WxlParticles / WXL::Particles | emitter normalization, extension multiplier/zSource tracks and native cutoff rendering |
 | m2 | WxlM2 / WXL::M2 | native model/SKIN conversion, skeletons, animation and owned companion lifetime |
 | appearances | WxlAppearances / WXL::Appearances | component-owned atlas/mips, equipment textures, geosets and whole sheets |
 | client-extensions | WxlClientExtensions / WXL::ClientExtensions | native helpers, legacy addon packet codec/dispatch and paragon owner |
@@ -39,13 +39,13 @@ CM2Shared converts modern data before native relocation and owns converted SKIN 
 
 Sized sync/async BLP sources keep transcode buffers alive through upload. The appearance module joins mounted retail customization/material/layout tables, checks exact model identity, composes private atlas sheets and equipment layers, applies geosets and owns replaceable textures with native teardown. Creation preferences are sized from mounted race IDs instead of the former22-race array.
 
-Mesh blend7 ONE/INV_SRC_ALPHA remains separate from particle Screen INV_DEST_COLOR/ONE. EXP2 constant RGB/alpha multipliers are baked into private native keys. EXPT supports emitter RGB/alpha constants with neutral TXAC. EXP2 takes precedence when both extension chunks occur, matching source semantics. Identically-zero cutoff tracks support the full uint16 lifetime domain; unsupported nonzero cutoff, zSource and layered rendering remain refused.
+Mesh blend7 ONE/INV_SRC_ALPHA remains separate from particle Screen INV_DEST_COLOR/ONE. EXP2 constant RGB/alpha multipliers are baked into private native keys. EXPT supports emitter RGB/alpha constants with neutral TXAC. EXP2 takes precedence when both extension chunks occur, matching source semantics. Identically-zero cutoff tracks support the full uint16 lifetime domain; nonzero single-texture sprite cutoff uses the native floating-alpha shader path described below. Layered rendering remains separate.
 
 ## Remaining integration
 
-- Remaining race-specific authoring policies and children with subset/reordered skeletons.
+- Synthetic/private race authoring policies and children with emitters/lights/attachments; unique ancestor-closed subset/reordered skeletons are implemented.
 - Authenticated server acceptance of appearance hello/prepare/create and persistence; remaining feature packet consumers. Area-loot/garrison/spell charges have native consumers.
-- Remaining material shader and particle-layer/cutoff families; broader model source compatibility.
+- Remaining custom material shaders and layered/model particle families; broader model source compatibility.
 - Remaining WXL client extensions, UI, WMO/ADT and related modules, following the same module interfaces.
 - DX11 is a separate deferred task; DX11-PORT.md is historical dependency research, not a prerequisite for this x64 WXL build.
 
@@ -55,11 +55,11 @@ Compilation and source binding do not imply gameplay acceptance. Keep installed 
 
 The five native appearance controls, counts, nth lookups, randomization, validation and Init now use one retail choice authority when the native default/actual model path matches a mounted MD21 retail recipe. The five classic byte fields are limited to256 values per axis. Class/race/sex rebuild creates a candidate before retiring the previous actor; additional choice overrides survive same-family rebuilds.
 
-WXL_GetRetailOptions/GetRetailChoices/GetRetailSelection and WXL_SetRetailChoice expose explicit option/choice IDs. WXL_RetailSelectionCanSave reports whether the selection fits the current native save path. Extra nondefault option IDs use the modular appearance-session owner: catalog negotiation, exact prepare/ACK matching, one-use native create dispatch and bounded stale/session/name/choice cancellation. Saved snapshots restore transactionally in character selection and on the active player. Alternate forms, synthetic profiles, barber state and nearby units remain outside this owner. No server ACK/save is simulated; authenticated persistence remains untested.
+WXL_GetRetailOptions/GetRetailChoices/GetRetailSelection and WXL_SetRetailChoice expose explicit option/choice IDs. WXL_RetailSelectionCanSave reports whether the selection fits the current native save path. Extra nondefault option IDs use the modular appearance-session owner: catalog negotiation, exact prepare/ACK matching, one-use native create dispatch and bounded stale/session/name/choice cancellation. Saved snapshots restore transactionally in character selection and on the active player. Alternate creation forms and nearby-player restoration are integrated below; synthetic profiles and barber save state remain outside this owner. No server ACK/save is simulated; authenticated persistence remains untested.
 
 Recipe-selected skinned children use typed native model lifetime and a verified child-to-source skeleton map. Ancestor-closed subsets and reordered bones are supported when exact identifiers, bind pivots and parent topology establish a unique injective correspondence. They share source pose updates, rendering, lighting, scene migration and shadow traversal. Ambiguous skeletons, omitted ancestors, differing bind pivots or child emitters/lights/point attachments remain unsupported; appendage culling bounds are not expanded yet.
 
-EXPT now supports finite constant RGB/alpha multipliers through the same private-key bake as EXP2, retaining source emitter order and native Screen behavior. Nonzero zSource, layered UV/shader rendering and animated cutoff remain unsupported.
+EXPT now supports finite constant RGB/alpha multipliers through the same private-key bake as EXP2, retaining source emitter order and native Screen behavior. Animated single-texture sprite cutoff is implemented below. Layered UV/shader rendering remains separate.
 
 Area-loot, garrison and spell-charge consumers now publish validated session-owned state through their existing WXL Lua APIs and WXL64 aliases. Spell-charge presentation installs after GameUI initialization, not during early Lua setup. See modules/protocol/CONSUMERS.md. Existing UI/data archives are not modified by this source batch.
 
@@ -75,7 +75,7 @@ Client extensions now supply CreateWXLPacket/OnWXLPacket, typed bounded little-e
 
 ## Alternate appearances, cutoff rendering and radial pings
 
-Primary/alternate creation actors now have independent model-family authorities and explicit option states for wire12 (22/23),17 (76/70),30 (75/52). The canonical native actor stays primary; form preview changes scene attachment/editor target. Capture requires both current independently bound actors, stamps both lifetimes/handles/revisions and sends both canonical arrays. Snapshot restore validates/allocates both states before publication. Actual alternate choices survive actor rebuilds through bounded session/GUID/race/sex retention. Worgen Human supplemental Eye Color follows the existing exact-FDID donor rule. Alternate body garments are copied; family-specific helm/shoulder/cape/weapon attachments and synthetic profiles remain separate. See modules/appearances/ALTERNATE-FORMS.md.
+Primary/alternate creation actors now have independent model-family authorities and explicit option states for wire12 (22/23),17 (76/70),30 (75/52). The canonical native actor stays primary; form preview changes scene attachment/editor target. Capture requires both current independently bound actors, stamps both lifetimes/handles/revisions and sends both canonical arrays. Snapshot restore validates/allocates both states before publication. Actual alternate choices survive actor rebuilds through bounded session/GUID/race/sex retention. Worgen Human supplemental Eye Color follows the existing exact-FDID donor rule. Alternate native garment/shoulder/cape/quiver/weapon displays now synchronize with the primary. Helmets use a unique actual-model native default for suffixes and hide masks, never the primary wire race; ambiguous families omit the helmet. Modern DB2 item resources, enchantments and synthetic profiles remain separate. See modules/appearances/ALTERNATE-FORMS.md.
 
 Nonzero EXP2 single-texture sprite cutoff now retains source-owned UNORM16 lifetime tracks and samples each rendered particle. Ordered native index slices use the existing floating alpha-reference Particle shader permutation, preserving native Gx blend/lighting/fog and restoring alpha state. Runtime stock shader Valid() is required; no new shader bytecode/compiler or DX11 path is supplied. Layered/model particles, zSource and fixed-function cutoff remain outside this path. Per-particle slices can cost extra draws; broad performance/visual testing is still pending. See modules/particles/CUTOFF.md.
 
