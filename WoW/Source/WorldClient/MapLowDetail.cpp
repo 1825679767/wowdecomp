@@ -1,4 +1,5 @@
 #include "MapLowDetail.h"
+#include "WXL/WorldCompat.hpp"
 #include <cmath>
 #include <cstring>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -131,6 +132,7 @@ void CMapLowDetail::Load(const char* mapPath, const char* mapName) {
     this->m_data = static_cast<char*>(SMemAlloc(size, __FILE__, __LINE__, 0));
     SFileReadFile(file, this->m_data, size, nullptr, nullptr, 0);
     SFileCloseFile(file);
+    if(!wxl::native::world::PrepareWdl(*this,size)){SMemFree(this->m_data,__FILE__,__LINE__,0);this->m_data=nullptr;return;}
 
     uint32_t* chunk = reinterpret_cast<uint32_t*>(this->m_data + reinterpret_cast<uint32_t*>(this->m_data)[1] + 8);
     char* data = this->m_data + reinterpret_cast<uint32_t*>(this->m_data)[1] + 16;

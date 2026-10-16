@@ -111,7 +111,7 @@ bool Sync(lua_State* L){
  const bool reset=epoch!=uiGeneration||currentMap!=uiMap;
  {std::lock_guard lock(mutex);if(epoch!=generation||map!=currentMap){ClearLocked();generation=epoch;map=currentMap;}}
  uiGeneration=epoch;uiMap=currentMap;
- if(reset||!epoch){markers.clear();corpse={};dead=false;diamond=false;}
+ if(reset||!epoch){markers.clear();corpse={};dead=false;diamond=false;worldNavigationDrawn=0;}
  return epoch!=0;
 }
 int Request(lua_State* L){
@@ -257,7 +257,8 @@ void RenderObjectives(){
 void RenderNavigation(){
  worldNavigationDrawn=0;try{
   if(!QuestMarkerEnabled()||(!settings.enabled&&!corpse.active)||!CGGameUI::m_visible||!ClntObjMgrGetCurrent()||!ClntObjMgrGetActivePlayer()||!g_theGxDevicePtr)return;
-  {std::lock_guard lock(mutex);if(!generation||generation!=protocol::SessionGeneration(FrameScript_GetContext())||map!=ClntObjMgrGetMapID())return;}
+  const auto epoch=protocol::SessionGeneration(FrameScript_GetContext());
+  {std::lock_guard lock(mutex);if(!generation||generation!=epoch||map!=ClntObjMgrGetMapID())return;}
   C3Vector player;if(!PlayerPosition(player))return;std::vector<WorldPoint> points;points.reserve(65);
   if(corpse.active&&Position(corpse.x,corpse.y,corpse.z))points.push_back({C3Vector(float(corpse.x),float(corpse.y),float(corpse.z)),true});
   if(!dead&&settings.show)for(const auto& m:markers){if(points.size()>=65)break;if(!m.active||!Position(m.x,m.y,m.z))continue;C3Vector p(float(m.x),float(m.y),float(m.z));if((p-player).SquaredMag()<=100000.f*100000.f)points.push_back({p,false});}

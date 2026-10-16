@@ -86,7 +86,7 @@ add_dependencies(WxlRetailUi WxlRuntime WxlDB2)
 wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
 wxl_module(WxlAppearanceSession AppearanceSession modules/appearance-session/AppearanceSession.cpp)
 option(WXL_ENABLE_WMO_MATERIALS "Modern WMO composite and four-layer materials" ON)
-wxl_module(WxlWorld World modules/world/WmoMaterials.cpp modules/world/WmoNative.cpp modules/world/SplitAdtNative.cpp
+wxl_module(WxlWorld World modules/world/WdlNative.cpp modules/world/WmoMaterials.cpp modules/world/WmoNative.cpp modules/world/SplitAdtNative.cpp
  "${V}/src/platform/waystone/WmoAssetFamily.cpp" "${V}/src/platform/waystone/WmoRootBytes.cpp"
  "${V}/src/platform/waystone/WmoMaterialPlan.cpp" "${V}/src/platform/waystone/WmoChunkIndex.cpp")
 wxl_module(WxlClientExtensions ClientExtensions modules/client-extensions/ClientHelpers.cpp
