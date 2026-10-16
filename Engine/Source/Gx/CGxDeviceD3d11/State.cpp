@@ -70,10 +70,10 @@ bool CGxDeviceD3d11::Impl::States(){
         sd.MaxAnisotropy=t?std::max(1u,std::min(uint32_t(t->m_flags.m_maxAnisotropy),16u)):1;
         sd.ComparisonFunc=D3D11_COMPARISON_LESS_EQUAL;sd.MaxLOD=t&&t->m_flags.m_filter>=GxTex_NearestMipNearest?D3D11_FLOAT32_MAX:0;
         if(t&&t->m_format==GxTex_D24X8)sd.Filter=D3D11_FILTER(sd.Filter|0x80);
-        if(m->samplerOverrides[i].enabled){
-            sd.Filter=m->samplerOverrides[i].mipLinear?D3D11_FILTER_MIN_MAG_MIP_LINEAR:D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+        if(samplerOverrides[i].enabled){
+            sd.Filter=samplerOverrides[i].mipLinear?D3D11_FILTER_MIN_MAG_MIP_LINEAR:D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
             sd.AddressU=sd.AddressV=sd.AddressW=D3D11_TEXTURE_ADDRESS_CLAMP;
-            sd.MipLODBias=0;sd.MinLOD=0;sd.MaxLOD=m->samplerOverrides[i].mipLinear?D3D11_FLOAT32_MAX:0;
+            sd.MipLODBias=0;sd.MinLOD=0;sd.MaxLOD=samplerOverrides[i].mipLinear?D3D11_FLOAT32_MAX:0;
             sd.MaxAnisotropy=1;
         }
         const auto key=Key(sd);auto si=samplers.find(key);
