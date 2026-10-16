@@ -173,7 +173,7 @@ bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t s
   if(skinned){if(!model->SetSkinningSource(owner.model,true,wire==18&&owner.sex==1?1.0f:0.0f))return false;claimed.push_back(variant);}
   else {model->AttachToParent(owner.model,row.attachId,nullptr,0);if(model->m_attachParent!=owner.model)return false;}
   model->SetBoneSequence(0xffffffffu,0,0xffffffffu,0,1.0f,1,1);
-  ApplyItemVisual(model,0,display);
+  equipment_attachments::ApplyItemVisual(model,0,display);
   output.children.push_back(std::move(child));
  }
  output.ready=true;return true;
@@ -271,11 +271,12 @@ void ApplyItemVisual(CM2Model* parent,int32_t visual,uint32_t display,uint32_t w
  if(!parent->m_scene)return;
  auto* record=visual>0?g_itemVisualsDB.GetRecord(visual):nullptr;
  if(!record){
+  if(!Enabled())return;
   ItemGraphVisual modern;
   const bool resolved=visual>0?ItemGraphVisualData(uint32_t(visual),modern):ItemGraphDisplayVisual(display,modern);
   if(!resolved)return;
-  struct Choice {uint32_t point;std::string path;float scale;};
-  std::vector<Choice> choices;choices.reserve(modern.models.size()+modern.effects.size());
+  struct Choice {uint32_t point;std::string path;float scale;float alpha=1,offset[3]{};uint32_t animation=0;};
+  std::vector<Choice> choices;choices.reserve(modern.models.size()+modern.effects.size()+modern.kitModels.size());
   for(const auto& effect:modern.models)choices.push_back({effect.attachmentId,effect.path,1.0f});
   uint32_t subclass=weaponSubclass;
   if(subclass!=UINT32_MAX||ItemGraphWeaponSubclass(display,subclass))for(const auto& effect:modern.effects){
@@ -283,6 +284,11 @@ void ApplyItemVisual(CM2Model* parent,int32_t visual,uint32_t display,uint32_t w
    // Kit-only rows have no model. A separately named direct attachment model
    // remains usable without interpreting its kit ID as a WotLK visual ID.
    choices.push_back({effect.attachmentId,effect.path,effect.scale});
+  }
+  for(const auto& model:modern.kitModels){
+   if(model.displayWeaponSubclassId!=UINT32_MAX&&model.displayWeaponSubclassId!=subclass)continue;
+   Choice choice{model.attachmentId,model.path,model.scale};choice.alpha=model.alpha;choice.animation=model.animationId;
+   std::copy_n(model.offset,3,choice.offset);choices.push_back(std::move(choice));
   }
   for(const auto& effect:choices){
    if(!parent->IsLoaded(1,0)||!parent->HasAttachment(effect.point))continue;
@@ -293,9 +299,10 @@ void ApplyItemVisual(CM2Model* parent,int32_t visual,uint32_t display,uint32_t w
    std::unique_ptr<CM2Model,decltype(release)> owner(parent->m_scene->CreateModel(path.c_str(),0),release);
    auto* child=owner.get();if(!child)continue;
    if(child->IsLoaded(1,0)&&child->m_shared&&Key(child->m_shared->m_fileName)==path){
-    child->SetBoneSequence(0xffffffffu,0,0xffffffffu,0,1.0f,1,1);
+    child->SetBoneSequence(0xffffffffu,effect.animation,0xffffffffu,0,1.0f,1,1);
+    child->m_baseAlpha=effect.alpha;
     child->AttachToParent(parent,effect.point,nullptr,0);
-    if(child->m_attachParent==parent)child->SetWorldTransform(C3Vector(0,0,0),0,effect.scale);
+    if(child->m_attachParent==parent)child->SetWorldTransform(C3Vector(effect.offset[0],effect.offset[1],effect.offset[2]),0,effect.scale);
    }
    // Owner drops the creation reference; successful attachment retained its own.
   }

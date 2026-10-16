@@ -11,7 +11,7 @@ namespace wxl::waystone::skin {
 // retain the legacy 75-bone preparation ceiling.
 struct Draw {uint32_t sourceSection{},firstIndex{},indexCount{};std::vector<uint16_t> bones;};
 struct Plan {std::vector<Draw> draws;uint64_t sourceTriangles{};uint32_t sourceSections{},splitSections{};};
-struct Owned {std::vector<uint8_t> body,skin;std::vector<uint32_t> vertexOrigins;Plan plan;};
+struct Owned {std::vector<uint8_t> body,skin;std::vector<uint32_t> vertexOrigins,batchOrigins;Plan plan;};
 bool Rebuild(std::span<const uint8_t> body,std::span<const uint8_t> skin,uint32_t skeletonBones,bool extendedIndexStarts,Owned& output,std::string& error,uint32_t paletteLimit=75);
 bool Partition(std::span<const uint8_t> body,std::span<const uint8_t> skin,uint32_t skeletonBones,bool extendedIndexStarts,Plan& output,std::string& error,uint32_t paletteLimit=75);
 }

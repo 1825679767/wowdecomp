@@ -30,6 +30,36 @@ struct Skin {std::vector<uint8_t> original,prepared,converted;std::shared_ptr<co
 struct ModelAssets {bool nativeGpuSkinning=false;bool donorFallback=false;std::vector<uint8_t> donorSourceModel;std::string meshPath;const uint8_t* meshInput=nullptr;size_t meshInputSize=0;std::shared_ptr<const mesh_materials::Source> selectedMesh;std::map<std::string,Skin> skins;uint32_t profile{};ParticleCutoffSet cutoffs;ParticleLayerSet layers;bool riftSource=false;std::shared_ptr<const ParticleRefractionRecipe> refraction;};
 namespace {
 thread_local ModelAssets* loading{};
+uint32_t DonorWord(const uint8_t* data){uint32_t value;std::memcpy(&value,data,4);return value;}
+void DonorWrite(std::vector<uint8_t>& data,size_t at,uint32_t value){std::memcpy(data.data()+at,&value,4);}
+bool BindDonorTopology(const Skin& skin,const std::vector<uint8_t>& rebuilt,const std::vector<uint32_t>& origins,std::shared_ptr<const DonorMaterialRecipe>& output){
+ if(!skin.donor||skin.donor->topologyParent||skin.prepared.size()<48||rebuilt.size()<48||wxl::waystone::m2bytes::Fingerprint(skin.prepared)!=skin.donor->preparedSkinFingerprint)return false;
+ // Serializer-only carrier: keep the exact original prepared batch bytes, but
+ // supply no geometry. It cannot be admitted or published as a native SKIN.
+ // Actual output geometry was already fully partitioned and strictly validated.
+ const auto preparedN=DonorWord(skin.prepared.data()+36),preparedAt=DonorWord(skin.prepared.data()+40);
+ if(preparedN!=skin.donor->preparedBatches||preparedAt<48||preparedAt>skin.prepared.size()||uint64_t(preparedN)*24>skin.prepared.size()-preparedAt)return false;
+ std::vector<uint8_t> carrier(48,0);std::memcpy(carrier.data(),"SKIN",4);
+ carrier.insert(carrier.end(),skin.prepared.begin()+preparedAt,skin.prepared.begin()+preparedAt+size_t(preparedN)*24);
+ DonorWrite(carrier,36,preparedN);DonorWrite(carrier,40,48);
+ std::vector<uint8_t> serialized;
+ if(!wxl::waystone::m2bytes::ConvertSkin(carrier,serialized,true)||serialized.size()<48)return false;
+ const uint32_t templateN=DonorWord(serialized.data()+36),templateAt=DonorWord(serialized.data()+40),count=DonorWord(rebuilt.data()+36),at=DonorWord(rebuilt.data()+40);
+ auto fits=[](const std::vector<uint8_t>& bytes,uint32_t offset,uint32_t n){return offset>=48&&offset<=bytes.size()&&uint64_t(n)*24<=bytes.size()-offset;};
+ if(templateN!=skin.donor->nativeBatches||origins.size()!=count||!fits(serialized,templateAt,templateN)||!fits(rebuilt,at,count))return false;
+ auto next=std::make_shared<DonorMaterialRecipe>(*skin.donor);next->topologyParent=skin.donor;next->nativeBatches=count;next->nativeBatchOrigins=origins;next->secondaryUV.clear();
+ next->topologyBatchTemplate.resize(templateN);
+ for(uint32_t batch=0;batch<templateN;++batch)std::memcpy(next->topologyBatchTemplate[batch].data(),serialized.data()+templateAt+24*batch,24);
+ std::map<uint32_t,DonorMaterialUVFix> fixes;
+ for(const auto& fix:skin.donor->secondaryUV)if(fix.nativeBatch>=templateN||!fixes.emplace(fix.nativeBatch,fix).second)return false;
+ for(uint32_t batch=0;batch<count;++batch){
+  const auto origin=origins[batch];if(origin>=templateN)return false;
+  const auto* actual=rebuilt.data()+at+24*batch;const auto& expected=next->topologyBatchTemplate[origin];
+  for(uint32_t byte=0;byte<24;++byte)if(byte!=4&&byte!=5&&actual[byte]!=expected[byte])return false;
+  if(const auto fix=fixes.find(origin);fix!=fixes.end()){auto remapped=fix->second;remapped.nativeBatch=batch;next->secondaryUV.push_back(remapped);}
+ }
+ output=std::move(next);return true;
+}
 bool ReadCompanion(const char* path,std::vector<uint8_t>& output){
  if(!ReadAsset(path,output))return false;
  const auto key=Key(path);
@@ -74,8 +104,8 @@ bool PrepareModel(CM2Shared& shared){
    paletteLimit=(std::min)(75u,(constants-(constants>0xc0?64u:32u))/3u);
    if(paletteLimit<3)return false;
   }
-  std::vector<std::vector<uint8_t>> rebuiltSkins;
-  if(!wxl::waystone::m2bytes::ConvertForNativeRuntime(shared.m_fileName,{raw,shared.m_fileSize},&ResolveTexture,&ReadCompanion,converted,stats,ParticlesEnabled(),true,paletteLimit,&rebuiltSkins)){
+  std::vector<std::vector<uint8_t>> rebuiltSkins;std::vector<std::vector<uint32_t>> rebuiltBatchOrigins;
+  if(!wxl::waystone::m2bytes::ConvertForNativeRuntime(shared.m_fileName,{raw,shared.m_fileSize},&ResolveTexture,&ReadCompanion,converted,stats,ParticlesEnabled(),true,paletteLimit,&rebuiltSkins,&rebuiltBatchOrigins)){
    WLOG_WARN("native-modern-model: refused path=%s reason=%s",shared.m_fileName,stats.reason.c_str());return false;
   }
   std::string particleReason;
@@ -88,6 +118,7 @@ bool PrepareModel(CM2Shared& shared){
    WLOG_WARN("native-modern-particles: refused path=%s reason=%s",shared.m_fileName,particleReason.c_str());return false;
   }
   PreserveMaterials({raw,shared.m_fileSize},converted);
+  if(rebuiltSkins.size()!=rebuiltBatchOrigins.size())return false;
   if(!rebuiltSkins.empty()){
    // Publish only model-owned output paired to the exact named source. The
    // normal native SKIN file read is still compared against original bytes.
@@ -96,7 +127,12 @@ bool PrepareModel(CM2Shared& shared){
     const auto it=assets->skins.find(stem+suffix);if(it==assets->skins.end()||rebuiltSkins[profile].empty())return false;
     // Renderer recipes contain original per-batch/section identities. A
     // topology rewrite must not silently reuse those identities after a split.
-    if(it->second.mesh||it->second.donor)return false;
+    if(it->second.mesh)return false; // Exact custom mesh palette identity stays unpartitioned.
+    if(it->second.donor){
+     std::shared_ptr<const DonorMaterialRecipe> composed;
+     if(!BindDonorTopology(it->second,rebuiltSkins[profile],rebuiltBatchOrigins[profile],composed))return false;
+     it->second.donor=std::move(composed);
+    }
     it->second.converted=std::move(rebuiltSkins[profile]);
    }
    WLOG_INFO("native-modern-model: full topology repartitioned model=%s profiles=%zu device-palette=%u",shared.m_fileName,rebuiltSkins.size(),paletteLimit);
@@ -115,7 +151,7 @@ bool PrepareModel(CM2Shared& shared){
     if(assets->donorSourceModel.empty())assets->donorSourceModel.assign(raw,raw+shared.m_fileSize);
     uint32_t rules[5]{};for(const auto& batch:skin.donor->batches)++rules[uint32_t(batch.rule)];
     WLOG_WARN("native-donor-material: donor approximation model=%s skin=%s source-hash=%llx skin-hash=%llx rebase=%u collapse=%u default-diffuse=%u env-split=%u uv1-split=%u; source bytes retained; retail shader parity not provided",shared.m_fileName,name.c_str(),static_cast<unsigned long long>(skin.donor->modelFingerprint),static_cast<unsigned long long>(skin.donor->sourceSkinFingerprint),rules[0],rules[1],rules[2],rules[3],rules[4]);
-    uint32_t logged=0;for(const auto& batch:skin.donor->batches){if(logged++==16)break;WLOG_WARN("native-donor-material: source-batch=%u shader=0x%04x textures=%u rule=%u native-batch=%u",batch.sourceBatch,unsigned(batch.sourceShader),unsigned(batch.sourceTextureCount),unsigned(batch.rule),batch.firstNativeBatch);}
+    uint32_t logged=0;for(const auto& batch:skin.donor->batches){if(logged++==16)break;WLOG_WARN("native-donor-material: source-batch=%u shader=0x%04x textures=%u rule=%u canonical-template-batch=%u",batch.sourceBatch,unsigned(batch.sourceShader),unsigned(batch.sourceTextureCount),unsigned(batch.rule),batch.firstNativeBatch);}
    }
   }
   assets->meshInput=nullptr;assets->meshInputSize=0;

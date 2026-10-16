@@ -31,11 +31,19 @@ struct ItemGraphVisualEffect {
  uint32_t id=0,attachmentId=0,displayWeaponSubclassId=0,spellVisualKitId=0,fileDataId=0;
  float scale=1;std::string path;
 };
+struct ItemGraphKitModel {
+ uint32_t kitId=0,modelAttachId=0,fileDataId=0,attachmentId=0;
+ uint32_t displayWeaponSubclassId=UINT32_MAX,sourceEffectId=0,animationId=0;
+ float scale=1,alpha=1,offset[3]{};
+ std::string path;
+};
 struct ItemGraphVisual {
  uint32_t id=0,spellVisualKitId1=0,spellVisualKitId2=0;
  std::vector<ItemGraphVisualModel> models;
  // Explicit selectors/kit ownership are retained, not guessed as legacy IDs.
  std::vector<ItemGraphVisualEffect> effects;
+ std::vector<ItemGraphKitModel> kitModels;
+ uint32_t unsupportedKitRows=0;
 };
 bool ItemGraphVisualData(uint32_t visual,ItemGraphVisual&) noexcept;
 bool ItemGraphWeaponSubclass(uint32_t display,uint32_t& subclass) noexcept;

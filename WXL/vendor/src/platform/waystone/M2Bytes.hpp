@@ -41,7 +41,9 @@ bool Convert(const char* path,std::span<const uint8_t> input,Resolve resolve,Rea
 // Optional source-native SKIN output owns rebuilt full topology for every LOD
 // when a palette exceeds the actual device budget. Empty means no rebuild.
 // All profiles share one bounded native vertex/combo array; no archive alias.
-bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend=false,bool extendedIndices=false,uint32_t paletteLimit=75,std::vector<std::vector<uint8_t>>* rebuiltSkins=nullptr);
+// Optional paired origins map each converted rebuilt batch to its original
+// converted prepared-SKIN batch row, including EnvSplit one-to-two expansion.
+bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend=false,bool extendedIndices=false,uint32_t paletteLimit=75,std::vector<std::vector<uint8_t>>* rebuiltSkins=nullptr,std::vector<std::vector<uint32_t>>* rebuiltBatchOrigins=nullptr);
 // Explicit unpublished CPU byte policy. Caller must separately obtain the exact
 // verified native capability before publication. No owner/renderer grant here.
 // Requires fully embedded/noalias source and validated supplied native hash;

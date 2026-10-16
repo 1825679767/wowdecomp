@@ -12,7 +12,7 @@ void RegisterDonorMaterialFallback();
 bool DonorMaterialFallbackEnabled() noexcept;
 enum class DonorMaterialRule : uint8_t { NamedRebase, DiffuseCollapse, DefaultDiffuse, EnvironmentSplit, SecondaryUVSplit };
 struct DonorMaterialBatch {
- uint32_t sourceBatch=0,firstNativeBatch=0;
+ uint32_t sourceBatch=0,firstNativeBatch=0; // Canonical converted template index, before topology duplication.
  uint16_t sourceShader=0,sourceTextureCount=0;
  DonorMaterialRule rule=DonorMaterialRule::DefaultDiffuse;
  std::array<uint8_t,24> source{};
@@ -23,6 +23,11 @@ struct DonorMaterialRecipe {
  uint32_t sourceBatches=0,preparedBatches=0,nativeBatches=0;
  std::vector<DonorMaterialBatch> batches;
  std::vector<DonorMaterialUVFix> secondaryUV;
+ // Native topology composition owns provenance and the immutable original
+ // serializer result. Neither the material-only carrier nor its geometry is published.
+ std::shared_ptr<const DonorMaterialRecipe> topologyParent;
+ std::vector<uint32_t> nativeBatchOrigins;
+ std::vector<std::array<uint8_t,24>> topologyBatchTemplate;
 };
 // Produces an owned prepared clone. No changes means an empty clone/recipe.
 // Source21/33/35 require their existing exact prepared renderer recipe.

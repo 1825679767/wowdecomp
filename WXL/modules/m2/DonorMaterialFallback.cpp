@@ -113,6 +113,15 @@ bool FinishDonorMaterialSkin(const DonorMaterialRecipe& recipe,const std::vector
  if(model.size()<304||std::memcmp(model.data(),"MD20",4)||U32(model.data()+4)!=264||converted.size()<48||std::memcmp(converted.data(),"SKIN",4))return fail("donor fallback converted header");
  const auto count=U32(converted.data()+36),at=U32(converted.data()+40);
  if(count!=recipe.nativeBatches||(count&&(at<48||!Range(converted.size(),at,count,24))))return fail("donor fallback converted batch identity");
+ if(recipe.topologyParent){
+  if(recipe.nativeBatchOrigins.size()!=count||recipe.topologyBatchTemplate.size()!=recipe.topologyParent->nativeBatches)return fail("donor topology provenance count");
+  for(uint32_t batch=0;batch<count;++batch){
+   const auto origin=recipe.nativeBatchOrigins[batch];if(origin>=recipe.topologyBatchTemplate.size())return fail("donor topology provenance reference");
+   const auto* actual=converted.data()+at+24*batch;const auto& expected=recipe.topologyBatchTemplate[origin];
+   // Only the section identity changes during native full-geometry partition.
+   for(uint32_t byte=0;byte<24;++byte)if(byte!=4&&byte!=5&&actual[byte]!=expected[byte])return fail("donor topology material batch changed");
+  }
+ }
  if(recipe.secondaryUV.empty())return true;
  const auto unitCount=U32(model.data()+0x88),unitAt=U32(model.data()+0x8c);
  if(unitCount!=6||!Range(model.size(),unitAt,unitCount,2)||U16(model.data()+unitAt+2)!=0xffff||U16(model.data()+unitAt+10)!=1)return fail("donor fallback native UV lookup contract");

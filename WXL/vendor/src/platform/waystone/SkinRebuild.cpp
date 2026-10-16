@@ -69,7 +69,7 @@ bool Rebuild(std::span<const uint8_t> body,std::span<const uint8_t> source,uint3
         if(original>=runs.size())return fail("batch section reference");
         for(auto section:runs[original]){
             if(batches.size()/24>=65535)return fail("rebuilt batch limit");
-            const auto at=batches.size();batches.insert(batches.end(),batch,batch+24);W16(batches,at+4,section);
+            const auto at=batches.size();batches.insert(batches.end(),batch,batch+24);W16(batches,at+4,section);result.batchOrigins.push_back(i);
         }
     }
     if(body.size()+vertices.size()+combos.size()>64u*1024u*1024u)return fail("rebuilt body limit");

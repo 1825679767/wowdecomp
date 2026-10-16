@@ -334,7 +334,7 @@ bool ConvertSkin(std::span<const uint8_t> input,std::vector<uint8_t>& output,boo
     if(split){if(result.size()%2)result.push_back(0);const auto newOffset=uint32_t(result.size());result.insert(result.end(),batches.begin(),batches.end());d::Wr32(result.data()+36,uint32_t(batches.size()/24));d::Wr32(result.data()+40,newOffset);}
     output.swap(result);return true;
 }
-static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit,PartitionedPair* partitioned,bool wxlFirstTextureApproximation=false,bool nativeSequenceHash=false,bool nativeRuntimeSequences=false,std::vector<std::vector<uint8_t>>* nativeSkins=nullptr) {
+static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit,PartitionedPair* partitioned,bool wxlFirstTextureApproximation=false,bool nativeSequenceHash=false,bool nativeRuntimeSequences=false,std::vector<std::vector<uint8_t>>* nativeSkins=nullptr,std::vector<std::vector<uint32_t>>* nativeOrigins=nullptr) {
     stats={};auto fail=[&](const char* why){stats.reason=why;return false;};
     if(paletteLimit<3 || paletteLimit>75)return fail("invalid native palette budget");
     if(!path || !resolve || !read || input.size()<8 || input.size()>Limit || d::Rd32(input.data())!=f::kMagicMD21) return false;
@@ -402,7 +402,7 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
     std::string stem=path;auto dot=stem.find_last_of('.');
     if(dot==std::string::npos || stem.size()>900) return fail("invalid model path");
     stem.resize(dot);std::vector<uint8_t> skin;skin::Owned rebuilt;
-    std::vector<uint8_t> nativeBody;std::vector<std::vector<uint8_t>> nativeSourceSkins,nativeConvertedSkins;
+    std::vector<uint8_t> nativeBody;std::vector<std::vector<uint8_t>> nativeSourceSkins,nativeConvertedSkins;std::vector<std::vector<uint32_t>> nativeConvertedOrigins;
     if(nativeRuntimeSequences && nativeSkins && !partitioned){
         bool needsPartition=false;nativeSourceSkins.resize(source->numSkinProfiles);
         for(uint32_t i=0;i<source->numSkinProfiles;++i){
@@ -425,6 +425,7 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
             std::map<std::array<uint8_t,48>,uint16_t> vertexMap;
             std::vector<std::vector<uint8_t>> candidates;
             candidates.reserve(nativeSourceSkins.size());
+            if(nativeOrigins)nativeConvertedOrigins.reserve(nativeSourceSkins.size());
             for(const auto& original:nativeSourceSkins){
                 skin::Owned current;
                 if(!skin::Rebuild(body,original,source->bones.count,true,current,stats.reason,paletteLimit))return false;
@@ -447,6 +448,20 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
                 const auto sectionN=d::Rd32(current.skin.data()+28),sectionAt=d::Rd32(current.skin.data()+32);
                 for(uint32_t j=0;j<sectionN;++j){auto* value=current.skin.data()+sectionAt+j*48+14;d::Wr16(value,uint16_t(comboBase+d::Rd16(value)));}
                 combos.insert(combos.end(),current.body.begin()+header->boneCombos.offset,current.body.begin()+header->boneCombos.offset+size_t(header->boneCombos.count)*2);
+                if(nativeOrigins){
+                    const auto sourceN=d::Rd32(original.data()+36),sourceAt=d::Rd32(original.data()+40);
+                    const auto rebuiltN=d::Rd32(current.skin.data()+36),rebuiltAt=d::Rd32(current.skin.data()+40);
+                    if(current.batchOrigins.size()!=rebuiltN)return fail("native topology batch provenance count");
+                    std::vector<uint32_t> base(sourceN);uint32_t convertedN=0;
+                    for(uint32_t batch=0;batch<sourceN;++batch){const auto* row=original.data()+sourceAt+24*batch;base[batch]=convertedN;convertedN+=EnvSplit(d::Rd16(row+2),d::Rd16(row+14))?2:1;}
+                    std::vector<uint32_t> origins;origins.reserve(size_t(rebuiltN)*2);
+                    for(uint32_t batch=0;batch<rebuiltN;++batch){
+                        const auto origin=current.batchOrigins[batch];if(origin>=sourceN)return fail("native topology batch provenance reference");
+                        const auto* row=current.skin.data()+rebuiltAt+24*batch;origins.push_back(base[origin]);
+                        if(EnvSplit(d::Rd16(row+2),d::Rd16(row+14)))origins.push_back(base[origin]+1);
+                    }
+                    nativeConvertedOrigins.push_back(std::move(origins));
+                }
                 candidates.push_back(std::move(current.skin));
             }
             if(body.size()+vertices.size()+combos.size()+6>Limit)return fail("native topology joined body budget");
@@ -495,6 +510,7 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
         else if(!read((stem+suffix).c_str(),skin))return fail("missing named skin");
         if(!Skin(skin,*source,body,stats,extendedIndices,paletteLimit)) {if(stats.reason.empty())stats.reason="unsupported named skin";return false;}
         if(!nativeConvertedSkins.empty()&&!ConvertSkin(skin,nativeConvertedSkins[i],true))return fail("native topology SKIN conversion");
+        if(!nativeConvertedOrigins.empty() && nativeConvertedOrigins[i].size()!=d::Rd32(nativeConvertedSkins[i].data()+36))return fail("native topology converted provenance count");
         stats.skinFingerprints[i]=Fingerprint(skin);++stats.skins;
     }
     if(stats.twoStageBatches && body.size()+8>Limit)return fail("expanded header exceeds byte limit");
@@ -605,6 +621,7 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
         if(!Validate(result,false,stats.reason,screenBlend,nativeSequenceHash||nativeRuntimeSequences))return false;
     }
     if(nativeSkins)nativeSkins->swap(nativeConvertedSkins);
+    if(nativeOrigins)nativeOrigins->swap(nativeConvertedOrigins);
     output.swap(result);return true;
 }
 bool Convert(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit){
@@ -614,8 +631,8 @@ bool Convert(const char* path,std::span<const uint8_t> input,Resolve resolve,Rea
 // modern action IDs after owned external/alias assembly and the bounded native
 // hash rebuild; all geometry/material/track validations still apply. The old
 // bridge/generic Convert entry remains strict.
-bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit,std::vector<std::vector<uint8_t>>* rebuiltSkins){
- return ConvertImpl(path,input,resolve,read,output,stats,screenBlend,extendedIndices,paletteLimit,nullptr,false,false,true,rebuiltSkins);
+bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit,std::vector<std::vector<uint8_t>>* rebuiltSkins,std::vector<std::vector<uint32_t>>* rebuiltBatchOrigins){
+ return ConvertImpl(path,input,resolve,read,output,stats,screenBlend,extendedIndices,paletteLimit,nullptr,false,false,true,rebuiltSkins,rebuiltBatchOrigins);
 }
 bool ConvertWithNativeSequenceHash(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit){
  return ConvertImpl(path,input,resolve,read,output,stats,screenBlend,extendedIndices,paletteLimit,nullptr,false,true);
