@@ -24,6 +24,7 @@ struct TranslatedShader {
 };
 
 // Converts actual legacy bytecode, not a same-name shader from a different game.
+bool ValidateLegacyBytecode(const void* code,size_t size,bool vertex,std::string& error);
 // Pixel conversion is keyed to its exact upstream vertex-output declaration.
 // The caller owns caching by bytecode, vertex declaration and TranslationState.
 bool TranslateLegacy(const void* code, size_t size, bool vertex,

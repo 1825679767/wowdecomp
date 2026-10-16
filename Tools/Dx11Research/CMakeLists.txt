@@ -9,7 +9,8 @@ add_library(Dx11Zlib STATIC
     ${ROOT}/ThirdParty/zlib/inftrees.c ${ROOT}/ThirdParty/zlib/zutil.c
     ${ROOT}/ThirdParty/zlib/compress.c ${ROOT}/ThirdParty/zlib/deflate.c
     ${ROOT}/ThirdParty/zlib/trees.c)
-add_library(GxShaderContainer STATIC ${ROOT}/Engine/Source/Gx/ShaderContainer/ShaderContainer.cpp)
+add_library(GxShaderContainer STATIC ${ROOT}/Engine/Source/Gx/ShaderContainer/ShaderContainer.cpp
+    ${ROOT}/Engine/Source/Gx/ShaderContainer/LegacyContainer.cpp)
 target_include_directories(GxShaderContainer PUBLIC ${ROOT})
 target_link_libraries(GxShaderContainer PUBLIC Dx11Zlib)
 add_executable(ShaderContainerTests ShaderContainerTests.cpp)
@@ -26,12 +27,16 @@ if(WXL_DX11_WDK_ROOT)
     add_subdirectory(${ROOT}/ThirdParty/D3D9ShaderConverter ${CMAKE_CURRENT_BINARY_DIR}/ShaderConverter)
     add_library(GxLegacyShaderTranslator STATIC ${ROOT}/Engine/Source/Gx/ShaderContainer/LegacyShaderTranslator.cpp)
     target_include_directories(GxLegacyShaderTranslator PUBLIC ${ROOT})
-    target_link_libraries(GxLegacyShaderTranslator PUBLIC GxD3D9ShaderConverter)
+    target_link_libraries(GxLegacyShaderTranslator PUBLIC GxD3D9ShaderConverter d3dcompiler)
     add_executable(LegacyShaderCheck LegacyShaderCheck.cpp)
     target_link_libraries(LegacyShaderCheck PRIVATE GxLegacyShaderTranslator d3d11 d3dcompiler dxguid)
+    add_executable(LegacyShaderAudit LegacyShaderAudit.cpp)
+    target_link_libraries(LegacyShaderAudit PRIVATE GxLegacyShaderTranslator GxShaderContainer d3d11)
     if(WXL_DX11_SIGNER_DLL)
         add_custom_command(TARGET LegacyShaderCheck POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${WXL_DX11_SIGNER_DLL}" "$<TARGET_FILE_DIR:LegacyShaderCheck>/dxbcSigner.dll")
+        add_custom_command(TARGET LegacyShaderAudit POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${WXL_DX11_SIGNER_DLL}" "$<TARGET_FILE_DIR:LegacyShaderAudit>/dxbcSigner.dll")
     endif()
 endif()
 add_test(NAME ShaderContainerBounds COMMAND ShaderContainerTests)

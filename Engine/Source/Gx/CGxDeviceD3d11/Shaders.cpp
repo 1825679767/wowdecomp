@@ -1,8 +1,65 @@
 #include "Internal.h"
 #include "Engine/Source/Gx/Buffer.h"
 #include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gx/ShaderContainer/LegacyContainer.h"
+#include <cstdio>
 
 using namespace gx11;
+
+namespace {
+bool LoadFamily(EGxShTarget target,int32_t profile,const char* path,const char* name,uint32_t count,
+    gx::shader::LegacyContainer& container,std::string& error){
+    if(!path||!name||std::strlen(path)>128||std::strlen(name)>128||!count||count>65536){error="invalid shader family request";return false;}
+    for(int32_t p=profile;p>0;--p){
+        const char* model=target==GxSh_Vertex?CGxDevice::s_vertexShaderTargetNames[p]:CGxDevice::s_pixelShaderTargetNames[p];
+        char filename[512];const int n=std::snprintf(filename,sizeof(filename),"%s\\%s\\%s.bls",path,model,name);
+        if(n<0||n>=int(sizeof(filename))){error="shader family path exceeds limit";return false;}
+        SFileImpl* file=nullptr;if(!SFileOpenFile(filename,&file)||!file)continue;
+        struct Close{SFileImpl* file;~Close(){SFileCloseFile(file);}} close{file};
+        uint32_t high=0;const uint32_t size=SFileGetFileSize(file,&high);
+        if(!high&&!size)continue; // Native stock archives contain empty profile placeholders.
+        if(high||size<12||size>gx::shader::LegacyContainer::MaxFileBytes){error="shader family file size outside limits";return false;}
+        std::vector<uint8_t> bytes(size);uint32_t actual=0;
+        if(!SFileReadFile(file,bytes.data(),size,&actual,nullptr,0)||actual!=size){error="short mounted shader read";return false;}
+        if(!container.Open(bytes.data(),bytes.size(),error))return false;
+        if(container.Permutations().size()!=count){error="mounted shader family permutation count mismatch";return false;}
+        for(const auto& row:container.Permutations())if(!row.code.empty()&&
+            !gx::shader::ValidateLegacyBytecode(row.code.data(),row.code.size(),target==GxSh_Vertex,error))return false;
+        return true;
+    }
+    error="no mounted native shader family for requested profiles";return false;
+}
+void Assign(CGxShader* shader,const gx::shader::LegacyPermutation& row){
+    shader->m_code.SetCount(uint32_t(row.code.size()));if(!row.code.empty())std::memcpy(shader->m_code.Ptr(),row.code.data(),row.code.size());
+    shader->unk_003C=row.flags;shader->unk_0040=row.unknown;shader->unk_0044=row.wordA;shader->unk_0046=row.wordB;
+    shader->m_loaded=0;shader->m_valid=0;shader->m_patched=0;shader->m_apiSpecific=nullptr;
+}
+}
+
+void CGxDeviceD3d11::ShaderCreate(CGxShader** shaders,EGxShTarget target,const char* path,const char* name,uint32_t count){
+    if(!shaders||!count||count>65536)return;std::fill(shaders,shaders+count,nullptr);
+    if((target!=GxSh_Vertex&&target!=GxSh_Pixel)||!path||!name||std::strlen(path)>128||std::strlen(name)>128)return;
+    std::vector<CGxShader*> candidate,created;std::vector<std::string> keys;
+    try{
+        candidate.resize(count);created.reserve(count);keys.reserve(count);
+        const std::string family="dx11|"+std::to_string(target)+"|"+std::to_string(m_caps.m_shaderTargets[target])+"|"+path+"|"+name+"|"+std::to_string(count)+"|";
+        bool missing=false;
+        for(uint32_t i=0;i<count;++i){keys.push_back(family+std::to_string(i));candidate[i]=m_shaderList[target].Ptr(keys.back().c_str());if(!candidate[i])missing=true;}
+        gx::shader::LegacyContainer container;
+        if(missing){std::string error;
+            if(!LoadFamily(target,m_caps.m_shaderTargets[target],path,name,count,container,error)){Log("DX11 shader family %s refused: %s",name,error.c_str());return;}
+            for(uint32_t i=0;i<count;++i)if(!candidate[i]){
+                auto* shader=m_shaderList[target].New(keys[i].c_str(),0,0);if(!shader)throw std::bad_alloc();
+                created.push_back(shader);shader->m_target=target;Assign(shader,container.Permutations()[i]);candidate[i]=shader;
+                m->shaderSources[shader]={path,name,count,i};
+            }
+        }
+        for(uint32_t i=0;i<count;++i){++candidate[i]->m_refCount;shaders[i]=candidate[i];}
+    }catch(const std::bad_alloc&){
+        for(auto* shader:created){m->shaderSources.erase(shader);m_shaderList[target].Delete(shader);}
+        Log("DX11 shader family allocation failed");
+    }
+}
 
 std::shared_ptr<CGxDeviceD3d11::Impl::Variant> CGxDeviceD3d11::Impl::Shader(CGxShader* shader,
     const std::vector<gx::shader::Semantic>& decl,const gx::shader::TranslationState& state){
@@ -43,6 +100,7 @@ void CGxDeviceD3d11::ShaderDestroy(CGxShader*& shader){
     if(!shader)return;
     if(shader->m_refCount==1){const auto prefix=Key(shader);
         m->shaderObjects.erase(shader);
+        m->shaderSources.erase(shader);
         for(auto i=m->variants.begin();i!=m->variants.end();)if(i->first.compare(0,prefix.size(),prefix)==0)i=m->variants.erase(i);else ++i;
         shader->m_apiSpecific=nullptr;shader->m_valid=0;shader->m_loaded=0;
     }
@@ -50,10 +108,14 @@ void CGxDeviceD3d11::ShaderDestroy(CGxShader*& shader){
 }
 void CGxDeviceD3d11::IShaderReload(CGxShader* shader,const char* path,const char* name){
     if(!shader||!path||!name)return;const auto prefix=Key(shader);
+    auto found=m->shaderSources.find(shader);if(found==m->shaderSources.end()){Log("DX11 reload refused for an unowned shader family");return;}
+    const auto source=found->second;gx::shader::LegacyContainer container;std::string error;
+    if(!LoadFamily(EGxShTarget(shader->m_target),m_caps.m_shaderTargets[shader->m_target],source.path.c_str(),source.name.c_str(),source.count,container,error)){
+        Log("DX11 shader reload kept previous family: %s",error.c_str());return;
+    }
     m->shaderObjects.erase(shader);
     for(auto i=m->variants.begin();i!=m->variants.end();)if(i->first.compare(0,prefix.size(),prefix)==0)i=m->variants.erase(i);else ++i;
-    shader->m_apiSpecific=nullptr;shader->m_loaded=0;shader->m_valid=0;shader->m_code.SetCount(0);
-    CGxShader* one=shader;IShaderLoad(&one,EGxShTarget(shader->m_target),path,name,1);
+    Assign(shader,container.Permutations()[source.index]);
 }
 
 bool CGxDeviceD3d11::Impl::UploadConstants(const Variant& shader,bool vertex){
@@ -124,6 +186,7 @@ bool CGxDeviceD3d11::SyncDraw(EGxPrim primitive){
     if(vertex&&ps)pixel=m->Shader(ps,vertex->translated.outputs,state);
     if((vs&&!vertex)||(ps&&vertex&&!pixel))return false;
     if((!vs||!ps)&&!m->FixedShaders(vertex,pixel,inputs,state))return false;
+    if(ps&&!pixel)pixel=m->Shader(ps,vertex->translated.outputs,state);
     if(!vertex||!pixel)return false;
     std::string layoutKey;
     for(const auto& a:attributes)layoutKey+=Key(a.m_attrib)+Key(a.m_type)+Key(a.m_offset)+Key(a.m_bufSize);
@@ -154,6 +217,7 @@ bool CGxDeviceD3d11::SyncDraw(EGxPrim primitive){
 void CGxDeviceD3d11::Draw(CGxBatch* batch,int32_t indexed){
     // Wrath's second argument is an indexed/non-indexed flag, not an array count.
     if(!batch||!batch->m_count||batch->m_primType>=GxPrims_Last||!SyncDraw(batch->m_primType))return;
+    ++m->drawCalls;
     static const D3D11_PRIMITIVE_TOPOLOGY topology[]={D3D11_PRIMITIVE_TOPOLOGY_POINTLIST,D3D11_PRIMITIVE_TOPOLOGY_LINELIST,
         D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST};
     m->context->IASetPrimitiveTopology(topology[batch->m_primType]);
@@ -176,4 +240,5 @@ void CGxDeviceD3d11::Draw(CGxBatch* batch,int32_t indexed){
         m->context->IASetIndexBuffer(m->pools[m_primIndexBuf->m_pool].gpu.Get(),DXGI_FORMAT_R16_UINT,m_primIndexBuf->m_index);
         m->context->DrawIndexed(batch->m_count,batch->m_start,0);
     }else m->context->Draw(batch->m_count,batch->m_start);
+    if(auto* target=m_textureTarget[GxBuffers_Color].m_texture)m->textures[target].mipGenerationDirty=true;
 }

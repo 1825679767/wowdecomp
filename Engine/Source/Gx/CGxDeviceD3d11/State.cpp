@@ -21,7 +21,7 @@ bool CGxDeviceD3d11::Impl::States(){
     rt.SrcBlend=src[blend];rt.DestBlend=dst[blend];rt.BlendOp=D3D11_BLEND_OP_ADD;
     rt.SrcBlendAlpha=alpha(rt.SrcBlend);rt.DestBlendAlpha=alpha(rt.DestBlend);rt.BlendOpAlpha=D3D11_BLEND_OP_ADD;
     const uint32_t mask=masters&(1<<GxMasterEnable_ColorWrite)?state(GxRs_ColorWrite):0;
-    rt.RenderTargetWriteMask=UINT8(mask&15);
+    rt.RenderTargetWriteMask=UINT8((mask&9)|((mask&2)<<1)|((mask&4)>>1));
     auto bk=Key(bd);auto bi=blends.find(bk);
     if(bi==blends.end()){ComPtr<ID3D11BlendState> value;if(!Check(device->CreateBlendState(&bd,&value),"blend state"))return false;
         if(blends.size()>=256)blends.clear();bi=blends.emplace(bk,std::move(value)).first;}
@@ -38,7 +38,11 @@ bool CGxDeviceD3d11::Impl::States(){
     const auto cull=(masters&(1<<GxMasterEnable_Culling))?state(GxRs_Culling):0;
     rd.CullMode=cull?D3D11_CULL_BACK:D3D11_CULL_NONE;rd.FrontCounterClockwise=cull==1;
     rd.DepthClipEnable=TRUE;rd.ScissorEnable=state(GxRs_ScissorTest)!=0;rd.MultisampleEnable=state(GxRs_Multisample)!=0;
-    rd.DepthBias=static_cast<int>(self->m_appRenderStates[GxRs_PolygonOffset].m_value.m_data.f[0]*65536.f);
+    const float offset=self->m_appRenderStates[GxRs_PolygonOffset].m_value.m_data.f[0];
+    D3D11_DEPTH_STENCIL_VIEW_DESC currentDepth{};if(CurrentDepth())CurrentDepth()->GetDesc(&currentDepth);
+    const double units=currentDepth.Format==DXGI_FORMAT_D16_UNORM?65536.0:
+        (currentDepth.Format==DXGI_FORMAT_D32_FLOAT?8388608.0:16777216.0);
+    if(std::isfinite(offset))rd.DepthBias=int(std::max(-2147483647.0,std::min(2147483647.0,-offset*units)));
     const auto rk=Key(rd);auto ri=rasters.find(rk);
     if(ri==rasters.end()){ComPtr<ID3D11RasterizerState> value;if(!Check(device->CreateRasterizerState(&rd,&value),"raster state"))return false;
         if(rasters.size()>=256)rasters.clear();ri=rasters.emplace(rk,std::move(value)).first;}

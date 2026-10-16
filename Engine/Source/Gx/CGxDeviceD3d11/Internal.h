@@ -36,11 +36,17 @@ struct CGxDeviceD3d11::Impl {
     explicit Impl(CGxDeviceD3d11* owner):self(owner){}
     CGxDeviceD3d11* self;
     HWND window=nullptr;
-    bool ownWindow=false,offscreen=false,warp=false,stateDirty=true;
+    bool ownWindow=false,offscreen=false,warp=false,stateDirty=true,changingFormat=false;
     uint32_t width=0,height=0,samples=1;
+    uint64_t presentedFrames=0,drawCalls=0;
     D3D_FEATURE_LEVEL featureLevel{};
+    DXGI_FORMAT depthStorage=DXGI_FORMAT_R24G8_TYPELESS,depthTargetFormat=DXGI_FORMAT_D24_UNORM_S8_UINT,depthSampleFormat=DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+    ComPtr<IDXGIOutput> gammaOutput;
+    DXGI_GAMMA_CONTROL originalGamma{};
+    bool gammaCaptured=false;
     ComPtr<ID3D11Device> device;
     ComPtr<ID3D11DeviceContext> context;
+    ComPtr<ID3D11Query> frameFence;
     ComPtr<IDXGISwapChain> swapchain;
     ComPtr<ID3D11Texture2D> backbuffer,color,depth;
     ComPtr<ID3D11RenderTargetView> colorView;
@@ -57,6 +63,7 @@ struct CGxDeviceD3d11::Impl {
         ComPtr<ID3D11DepthStencilView> dsv[6];
         uint32_t width=0,height=0,mips=0,faces=0,baseMip=0;
         EGxTexFormat storage=GxTex_Unknown;
+        bool mipGenerationDirty=false,generateMips=false,renderTarget=false;
     };
     std::map<CGxTex*,Texture> textures;
     struct Variant {
@@ -68,6 +75,8 @@ struct CGxDeviceD3d11::Impl {
     };
     std::map<std::string,std::shared_ptr<Variant>> variants;
     std::map<CGxShader*,std::shared_ptr<Variant>> shaderObjects;
+    struct Source {std::string path,name;uint32_t count=0,index=0;};
+    std::map<CGxShader*,Source> shaderSources;
     std::map<std::string,std::unique_ptr<CGxShader>> fixedSources;
     std::map<std::string,ComPtr<ID3D11BlendState>> blends;
     std::map<std::string,ComPtr<ID3D11DepthStencilState>> depths;
@@ -81,8 +90,11 @@ struct CGxDeviceD3d11::Impl {
     bool UploadConstants(const Variant&,bool vertex);
     bool States();
     bool Blit(ID3D11ShaderResourceView*,ID3D11RenderTargetView*,const CiRect&,const CiRect&,uint32_t,uint32_t,bool depthCopy=false);
+    bool StretchColor(ID3D11Texture2D*,uint32_t,ID3D11Texture2D*,uint32_t,const CiRect&,const CiRect&);
     bool FixedShaders(std::shared_ptr<Variant>&,std::shared_ptr<Variant>&,const std::vector<gx::shader::Semantic>&,const gx::shader::TranslationState&);
     void FixedConstants(bool vertex,uint32_t* words);
+    void ApplyGamma();
+    void RestoreGamma();
     ID3D11RenderTargetView* CurrentColor();
     ID3D11DepthStencilView* CurrentDepth();
     ID3D11Texture2D* CurrentColorResource();

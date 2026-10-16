@@ -49,11 +49,18 @@ void CGxDeviceD3d11::BufData(CGxBuf* buf,const void* data,uint32_t size,uint32_t
 bool CGxDeviceD3d11::TextureReady(CGxTex* t){
     if(!t||!m->device||!t->m_width||!t->m_height||t->m_width>16384||t->m_height>16384)return false;
     auto found=m->textures.find(t);
+    if(found!=m->textures.end()&&t->m_needsFlagUpdate){
+        uint32_t w,h,base,end;ITexWHDStartEnd(t,w,h,base,end);
+        if(found->second.baseMip!=base||found->second.width!=w||found->second.height!=h||
+           found->second.generateMips!=bool(t->m_flags.m_generateMipMaps)||found->second.renderTarget!=bool(t->m_flags.m_renderTarget)||
+           (!t->m_flags.m_generateMipMaps&&found->second.mips!=end-base))t->m_needsCreation=1;
+    }
     if(t->m_needsCreation||found==m->textures.end()){
         Impl::Texture candidate;uint32_t end;
         ITexWHDStartEnd(t,candidate.width,candidate.height,candidate.baseMip,end);
         candidate.width=std::max(1u,candidate.width);candidate.height=std::max(1u,candidate.height);
         candidate.mips=end-candidate.baseMip;candidate.faces=t->m_target==GxTex_CubeMap?6:1;candidate.storage=t->m_format;
+        candidate.generateMips=t->m_flags.m_generateMipMaps;candidate.renderTarget=t->m_flags.m_renderTarget;
         if(!candidate.mips)return false;
         if((t->m_format==GxTex_Argb4444||t->m_format==GxTex_Argb1555||t->m_format==GxTex_Rgb565)&&!m_caps.m_texFmt[t->m_format])candidate.storage=GxTex_Argb8888;
         D3D11_TEXTURE2D_DESC d{};d.Width=candidate.width;d.Height=candidate.height;d.MipLevels=candidate.mips;d.ArraySize=candidate.faces;
@@ -83,6 +90,7 @@ bool CGxDeviceD3d11::TextureReady(CGxTex* t){
             }
         }
         m->textures[t]=std::move(candidate);t->m_needsCreation=0;t->m_needsUpdate=1;
+        t->m_updateRect=CiRect(0,0,t->m_height,t->m_width);
         t->m_apiSpecificData=m->textures[t].srv.Get();t->m_apiSpecificData2=m->textures[t].gpu.Get();
     }
     auto& texture=m->textures[t];
@@ -116,7 +124,11 @@ bool CGxDeviceD3d11::TextureReady(CGxTex* t){
         }
         if(t->m_flags.m_generateMipMaps)m->context->GenerateMips(texture.srv.Get());
     }
-    CGxDevice::ITexMarkAsUpdated(t);return true;
+    if(texture.mipGenerationDirty&&t->m_flags.m_generateMipMaps&&
+        t!=m_textureTarget[GxBuffers_Color].m_texture&&t!=m_textureTarget[GxBuffers_Depth].m_texture){
+        texture.mipGenerationDirty=false;m->UnbindViews();m->context->GenerateMips(texture.srv.Get());
+    }
+    t->m_needsFlagUpdate=0;CGxDevice::ITexMarkAsUpdated(t);return true;
 }
 void CGxDeviceD3d11::ITexMarkAsUpdated(CGxTex* texture){if(m_context)TextureReady(texture);}
 void CGxDeviceD3d11::TexDestroy(CGxTex* t){
@@ -145,9 +157,10 @@ bool CGxDeviceD3d11::BindTargets(){
     auto* depth=m_textureTarget[GxBuffers_Depth].m_texture;if(depth&&!TextureReady(depth))return false;
     if(color&&!depth&&!m->depthOverride){auto& t=m->textures[color];const auto key=std::make_pair(t.width,t.height);
         if(!m->auxiliaryDepth.count(key)){D3D11_TEXTURE2D_DESC d{};d.Width=t.width;d.Height=t.height;d.MipLevels=1;d.ArraySize=1;
-            d.Format=DXGI_FORMAT_D24_UNORM_S8_UINT;d.SampleDesc.Count=1;d.BindFlags=D3D11_BIND_DEPTH_STENCIL;
+            d.Format=DXGI_FORMAT_R24G8_TYPELESS;d.SampleDesc.Count=1;d.BindFlags=D3D11_BIND_DEPTH_STENCIL|D3D11_BIND_SHADER_RESOURCE;
             std::pair<ComPtr<ID3D11Texture2D>,ComPtr<ID3D11DepthStencilView>> candidate;
-            if(!Check(m->device->CreateTexture2D(&d,nullptr,&candidate.first),"auxiliary depth")||!Check(m->device->CreateDepthStencilView(candidate.first.Get(),nullptr,&candidate.second),"auxiliary DSV"))return false;
+            D3D11_DEPTH_STENCIL_VIEW_DESC view{};view.Format=DXGI_FORMAT_D24_UNORM_S8_UINT;view.ViewDimension=D3D11_DSV_DIMENSION_TEXTURE2D;
+            if(!Check(m->device->CreateTexture2D(&d,nullptr,&candidate.first),"auxiliary depth")||!Check(m->device->CreateDepthStencilView(candidate.first.Get(),&view,&candidate.second),"auxiliary DSV"))return false;
             if(m->auxiliaryDepth.size()>=32)m->auxiliaryDepth.clear();m->auxiliaryDepth.emplace(key,std::move(candidate));
         }
     }
@@ -171,30 +184,37 @@ void CGxDeviceD3d11::DeviceResolveDepthBuffer(CGxTex* t){
 }
 
 void CGxDeviceD3d11::DeviceCopyTex(CGxTex* src,uint32_t srcPlane,CGxTex* dst,uint32_t dstPlane){
-    if(!m_context||!dst||!TextureReady(dst)||(src&&!TextureReady(src)))return;
-    auto& to=m->textures[dst];if(dstPlane>=to.faces)return;
-    ID3D11Texture2D* from=src?m->textures[src].gpu.Get():m->CurrentColorResource();
-    D3D11_TEXTURE2D_DESC a{},b{};from->GetDesc(&a);to.gpu->GetDesc(&b);
-    if(srcPlane>=a.ArraySize||a.Width!=b.Width||a.Height!=b.Height||a.Format!=b.Format){Log("DX11 incompatible DeviceCopyTex request");return;}
-    m->UnbindViews();const UINT source=D3D11CalcSubresource(0,srcPlane,a.MipLevels),dest=D3D11CalcSubresource(0,dstPlane,b.MipLevels);
-    if(a.SampleDesc.Count>1&&b.SampleDesc.Count==1)m->context->ResolveSubresource(to.gpu.Get(),dest,from,source,b.Format);
-    else if(a.SampleDesc.Count==b.SampleDesc.Count)m->context->CopySubresourceRegion(to.gpu.Get(),dest,0,0,0,from,source,nullptr);
+    if(!m_context||!src||!dst||!TextureReady(dst)||!TextureReady(src))return;
+    auto& to=m->textures[dst];auto& from=m->textures[src];if(dstPlane>=to.faces||srcPlane>=from.faces)return;
+    if(src==dst&&srcPlane==dstPlane)return;
+    const UINT source=D3D11CalcSubresource(0,srcPlane,from.mips),dest=D3D11CalcSubresource(0,dstPlane,to.mips);
+    m->UnbindViews();
+    if(from.width==to.width&&from.height==to.height&&from.storage==to.storage){
+        m->context->CopySubresourceRegion(to.gpu.Get(),dest,0,0,0,from.gpu.Get(),source,nullptr);to.mipGenerationDirty=true;
+    }else if(src->m_format!=GxTex_D24X8&&dst->m_format!=GxTex_D24X8){
+        CiRect dr(0,0,to.height,to.width),sr(0,0,from.height,from.width);
+        if(m->StretchColor(from.gpu.Get(),source,to.gpu.Get(),dest,dr,sr))to.mipGenerationDirty=true;
+    }else Log("DX11 depth copies require matching dimensions and storage");
     BindTargets();
 }
+
 int32_t CGxDeviceD3d11::TexCopy(CGxTex* dst,const C2iVector& destPos,const C2iVector& sourcePos,const C2iVector& size,uint32_t level,uint32_t plane){
     if(!m_context||!dst||!TextureReady(dst)||size.x<=0||size.y<=0||destPos.x<0||destPos.y<0||sourcePos.x<0||sourcePos.y<0)return 0;
     auto& to=m->textures[dst];if(level>=to.mips||plane>=to.faces)return 0;
     auto* source=m->CurrentColorResource();D3D11_TEXTURE2D_DESC a{};source->GetDesc(&a);
     const uint32_t w=std::max(1u,to.width>>level),h=std::max(1u,to.height>>level);
     if(uint64_t(destPos.x)+size.x>w||uint64_t(destPos.y)+size.y>h||uint64_t(sourcePos.x)+size.x>a.Width||uint64_t(sourcePos.y)+size.y>a.Height)return 0;
+    const auto& current=m_textureTarget[GxBuffers_Color];
+    UINT sourceSub=D3D11CalcSubresource(0,current.m_texture?current.m_plane:0,a.MipLevels);
     ComPtr<ID3D11Texture2D> resolved;
     if(a.SampleDesc.Count>1){auto d=a;d.SampleDesc.Count=1;d.SampleDesc.Quality=0;d.BindFlags=0;
         if(!Check(m->device->CreateTexture2D(&d,nullptr,&resolved),"copy resolve"))return 0;
-        m->context->ResolveSubresource(resolved.Get(),0,source,0,a.Format);source=resolved.Get();
+        m->context->ResolveSubresource(resolved.Get(),0,source,sourceSub,a.Format);source=resolved.Get();sourceSub=0;
     }
-    if(Format(to.storage)!=a.Format)return TexStretch(dst,nullptr,nullptr,level,plane);
+    if(Format(to.storage)!=a.Format){CiRect dr(destPos.y,destPos.x,destPos.y+size.y,destPos.x+size.x),sr(sourcePos.y,sourcePos.x,sourcePos.y+size.y,sourcePos.x+size.x);
+        return TexStretch(dst,&dr,&sr,level,plane);}
     D3D11_BOX box{UINT(sourcePos.x),UINT(sourcePos.y),0,UINT(sourcePos.x+size.x),UINT(sourcePos.y+size.y),1};
-    m->UnbindViews();m->context->CopySubresourceRegion(to.gpu.Get(),D3D11CalcSubresource(level,plane,to.mips),destPos.x,destPos.y,0,source,0,&box);BindTargets();return 1;
+    m->UnbindViews();m->context->CopySubresourceRegion(to.gpu.Get(),D3D11CalcSubresource(level,plane,to.mips),destPos.x,destPos.y,0,source,sourceSub,&box);to.mipGenerationDirty=true;BindTargets();return 1;
 }
 
 void CGxDeviceD3d11::QueryDestroy(CGxQuery*& q){if(!q)return;if(q->m_apiSpecific){static_cast<IUnknown*>(q->m_apiSpecific)->Release();q->m_apiSpecific=nullptr;}CGxDevice::QueryDestroy(q);}

@@ -13,6 +13,10 @@ public:
     int32_t DeviceCreate(void* window,const CGxFormat& format) override;
     void DeviceDestroy() override;
     int32_t DeviceSetFormat(const CGxFormat& format) override;
+    void DeviceSetBaseMipLevel(uint32_t level) override;
+    void DeviceSetGamma(float gamma) override;
+    void DeviceSetGamma(const CGxGammaRamp& ramp) override;
+    void DeviceOverride(EGxOverride setting,uint32_t value) override;
     void DeviceEvictResources() override;
     void* DeviceWindow() override;
     int32_t DeviceWM(EGxWM wm,uintptr_t a,uintptr_t b) override;
@@ -44,6 +48,7 @@ public:
     bool QueryEnd(CGxQuery* query) override;
     bool QueryGetParam(CGxQuery* query,EGxQueryParam param,uint32_t& data) override;
     bool QueryGetData(CGxQuery* query,uint32_t& data) override;
+    void ShaderCreate(CGxShader** shaders,EGxShTarget target,const char* path,const char* name,uint32_t permutations) override;
     void IShaderReload(CGxShader* shader,const char* path,const char* name) override;
     void IShaderCreate(CGxShader* shader) override;
     void ShaderDestroy(CGxShader*& shader) override;
@@ -63,6 +68,8 @@ public:
 
     // Diagnostic creation exercises the exact backend without a game/window.
     bool CreateOffscreen(uint32_t width,uint32_t height,bool warp);
+    void ReadTargetPixels(CiRect& rect,TSGrowableArray<CImVector>& pixels);
+    bool RecoverDevice();
     static bool Available();
     static int32_t AdapterFormats(TSGrowableArray<CGxFormat>& formats);
 private:
@@ -71,6 +78,7 @@ private:
     bool Initialize(bool warp);
     bool Resize(uint32_t width,uint32_t height);
     bool BindTargets();
+    void ReadColorPixels(CiRect&,TSGrowableArray<CImVector>&,bool backbuffer);
     bool TextureReady(CGxTex* texture);
     bool SyncDraw(EGxPrim primitive);
     bool PoolReady(CGxPool* pool);

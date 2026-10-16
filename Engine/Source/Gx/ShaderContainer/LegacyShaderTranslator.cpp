@@ -7,6 +7,8 @@
 #define D3D12_TOKENIZED_PROGRAM_FORMAT_HEADER
 #include <d3d10umddi.h>
 #include <ShaderConv.h>
+#include <d3dcompiler.h>
+#include <wrl/client.h>
 #include <algorithm>
 #include <cstring>
 #include <memory>
@@ -34,6 +36,7 @@ uint32_t System(uint32_t usage) {
 uint32_t LegacyLength(uint32_t op) {
     switch(op) {
     case D3DSIO_NOP:case D3DSIO_PHASE:return 1;
+    case D3DSIO_DCL:return 3;
     case D3DSIO_MOV:case D3DSIO_RCP:case D3DSIO_RSQ:case D3DSIO_EXP:case D3DSIO_LOG:
     case D3DSIO_LIT:case D3DSIO_FRC:case D3DSIO_ABS:case D3DSIO_NRM:
     case D3DSIO_EXPP:case D3DSIO_LOGP:return 3;
@@ -106,13 +109,22 @@ bool BuildDxbc(const ShaderConv::ByteCode& tokens,const Bytes& in,const Bytes& o
 }
 }
 
+bool ValidateLegacyBytecode(const void* data,size_t size,bool vertex,std::string& error){
+    error.clear();if(!data||size<8||size>1024*1024)return Fail(error,"legacy bytecode size outside limits");
+    try{
+        Bytes code(static_cast<const uint8_t*>(data),static_cast<const uint8_t*>(data)+size);
+        if(!TokenBounds(code,vertex,error))return false;
+        Microsoft::WRL::ComPtr<ID3DBlob> checked;
+        return SUCCEEDED(D3DDisassemble(code.data(),code.size(),0,nullptr,&checked))||Fail(error,"legacy compiler validation refused bytecode");
+    }catch(const std::bad_alloc&){return Fail(error,"legacy bytecode validation allocation failed");}
+}
 bool TranslateLegacy(const void* data,size_t size,bool vertex,const std::vector<Semantic>& declaration,
                      const TranslationState& state,TranslatedShader& output,std::string& error) {
     output={};error.clear();
     if(!data||size<8||size>1024*1024||declaration.size()>64)return Fail(error,"translation input outside limits");
     try {
         Bytes code(static_cast<const uint8_t*>(data),static_cast<const uint8_t*>(data)+size);
-        if(!TokenBounds(code,vertex,error))return false;
+        if(!ValidateLegacyBytecode(code.data(),code.size(),vertex,error))return false;
         ShaderConv::RasterStates raster;
         raster.TCIMapping=ShaderConv::TCIMASK_PASSTHRU;raster.PrimitiveType=state.primitive;
         raster.AlphaTestEnable=state.alphaTest;raster.AlphaFunc=state.alphaFunc;raster.FogEnable=state.fog;

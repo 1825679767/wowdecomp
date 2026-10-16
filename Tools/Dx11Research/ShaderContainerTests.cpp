@@ -1,4 +1,5 @@
 #include "TestFixtures.h"
+#include "Engine/Source/Gx/ShaderContainer/LegacyContainer.h"
 #include <iostream>
 #include <random>
 
@@ -59,6 +60,17 @@ int main() try {
             else Check(p.code.empty() && !error.empty(),"failed mutation clears output");
         } else Check(c.Count()==0 && !error.empty(),"failed mutation clears container");
     }
-    std::cout << checks << " checks passed; compressed/raw/cross-block and malformed input covered\n";
+    gx::shader::LegacyContainer legacy;
+    Bytes old(12+16+8+16);Put(old,0,0x47585348);Put(old,4,0x10003);Put(old,8,2);
+    Put(old,12,23);Put(old,24,8);Put(old,28,0xfffe0300);Put(old,32,0x0000ffff);
+    Check(legacy.Open(old.data(),old.size(),error)&&legacy.Permutations().size()==2,"legacy two-permutation container");
+    Check(legacy.Permutations()[0].flags==23&&legacy.Permutations()[0].code.size()==8&&legacy.Permutations()[1].code.empty(),"legacy metadata and explicit empty permutation");
+    auto rejectLegacy=[&](Bytes input,const char* label){Check(!legacy.Open(input.data(),input.size(),error)&&legacy.Permutations().empty()&&!error.empty(),label);};
+    for(size_t n=0;n<old.size();++n)rejectLegacy(Bytes(old.begin(),old.begin()+n),"legacy truncation refusal");
+    for(const auto& mutation:std::vector<std::pair<size_t,uint32_t>>{{0,0},{4,0x10004},{8,0},{8,65537},{24,0xffffffff},{24,1024*1024+1}}){
+        auto input=old;Put(input,mutation.first,mutation.second);rejectLegacy(input,"legacy invalid magic/version/count/length");}
+    auto trailing=old;trailing.push_back(0);rejectLegacy(trailing,"legacy trailing data");
+    Check(legacy.Open(old.data(),old.size(),error),"legacy reload after failure");
+    std::cout << checks << " checks passed; v3/v4, compressed/raw/cross-block and malformed input covered\n";
     return 0;
 } catch (const std::exception& e) { std::cerr << "FAIL: " << e.what() << '\n'; return 1; }
