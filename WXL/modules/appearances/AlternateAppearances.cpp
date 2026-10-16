@@ -1,5 +1,6 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "AlternateAppearances.hpp"
+#include "wxl/AppearanceProtocol.hpp"
 #include "AppearanceCompat.hpp"
 #include "AppearanceSession.hpp"
 #include "RetailChoices.hpp"

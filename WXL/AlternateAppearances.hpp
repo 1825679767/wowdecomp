@@ -1,7 +1,7 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #pragma once
 #include <cstdint>
-#include "wxl/AppearanceProtocol.hpp"
+namespace wxl::appearance {struct Selection;}
 class CCharacterComponent;
 namespace wxl::native::alternate_appearances {
 struct Stamp {
