@@ -146,6 +146,10 @@ if(WXL_ENABLE_DX11)
     add_executable(NativeDx11BackendTests Tools/Dx11Research/NativeBackendTests.cpp)
     target_include_directories(NativeDx11BackendTests PRIVATE ${CMAKE_SOURCE_DIR})
     target_link_libraries(NativeDx11BackendTests PRIVATE Gx Tempest Storm Os Base BlizzardCore zlib)
+    # Current Gx teardown owns WXL custom programs and refraction resources.
+    # Link the real client module graph so tests exercise those owners too.
+    get_target_property(_wxl_native_test_libraries WowClient LINK_LIBRARIES)
+    target_link_libraries(NativeDx11BackendTests PRIVATE ${_wxl_native_test_libraries})
     target_link_options(NativeDx11BackendTests PRIVATE "/MAP:${CMAKE_BINARY_DIR}/NativeDx11BackendTests.map")
     add_custom_command(TARGET NativeDx11BackendTests POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${WXL_DX11_SIGNER_DLL}" "$<TARGET_FILE_DIR:NativeDx11BackendTests>/dxbcSigner.dll")
