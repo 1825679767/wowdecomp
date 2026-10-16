@@ -21,7 +21,7 @@ The exact donor VisualEffect aggregate, attachment IDs, model paths, scales, tar
 | Shaman | Ghost Wolf model/skin, return, four persistent elemental totems, Windfury/fire strike, lightning/lava precast/releases | Ghost Wolf force-visible sibling composition and class-specific weapon/attachment parity |
 | Mage | Pyroblast/Frostbolt, Water Elemental + two texture slots, Blizzard 5/sec for 16 impacts, Arcane Explosion | Mounted models/textures and native render timing/particle parity |
 | Warlock | Persistent Imp with independent prepare/release Firebolt cycles, Shadow Bolt, exact retail Chaos Bolt path/InFlight144, 12 Rain of Fire falling missiles | Actual Chaos asset availability, mounted dependencies, shader/particle parity |
-| Druid | Unsupported; no guessed forms or abbreviated substitute timeline | Full authored 17-phase shapeshift/flight/decay lifecycle needs independent native form ownership |
+| Druid | Full donor17-phase Bear/Cat/Moonkin/Tree sequence, timed morph clouds, attacks, Wrath/Moonfire/Rejuvenation and Tranquility open/loop/Decay | Asset/animation/placement acceptance remains pending; no player form/network mutation |
 
 These are translated authored phases, not a claim that any whole class is complete or visually accepted. Missing mounted models or required monster textures skip the visual. The bounded existence memo uses real `SFile::FileExists`; .mdx names canonicalize to .m2 without guessing aliases. Newly created effects remain alpha-zero until native load completion and exact normalized `CM2Shared::m_fileName` validation, so errorcube fallback is rejected. Asset changes require a restart to refresh the bounded memo.
 
@@ -49,3 +49,7 @@ Alternate appearance editing explicitly suspends through `alternate_appearances:
 No build/source binding exists until root compiles the merged exact source. First run should exercise native load failure/fallback suppression, every class phase, all mounted race/sex animation variants, rapid class/race/sex switching, hide/show, customization open/close, alternate-form switching, UI rebuild, and actor/background destruction under active missiles/emitters. Verify all original references and parent references retire without stale access; verify lighting/textures/particles/ribbons in the target native renderer. Inspect missing-asset cases rather than approving an effect solely because its phase executes.
 
 Rollback is source-only: remove the two owned files and inverse only the listed integration hunks, preserving unrelated dirty source. Nothing has been installed or published. Root must include this source stage, its manifest and unresolved gates in the combined pending release-control intake; no independent candidate promotion is authorized.
+
+## Native Druid form ownership
+
+The complete donor form recipe/timing table is integrated through creation-owned native sibling actors. The player actor hides only after the exact selected form has loaded and published its transform; a missing or rejected form restores it. Form references survive ordinary phase cleanup and retire on form replacement/session shutdown. The17th decay phase preserves both Tranquility actors until the final29.9s cleanup; opening transitions loop after1867ms, morph clouds retire at2800ms. No CGUnit shapeshift flags, appearance wire values or gameplay form state are changed.

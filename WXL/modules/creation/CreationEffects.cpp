@@ -35,6 +35,9 @@ uint32_t classId=0, race=0, sex=0, start=0;
 size_t nextStep=0;
 bool finished=false, hidden=false;
 bool customizationOpen=false;
+uint32_t g_druidMorphStart=0, g_druidTranquilityStart=0;
+const char* g_druidFormPath=nullptr;
+uint32_t g_druidFormAnimation=0;
 float savedAlpha=1.0f;
 struct Emitter { bool active=false; uint32_t nextMs=0, emitted=0; bool preparing=false; };
 Emitter g_blizzardEmitter,g_priestChannelEmitter,g_warlockImpEmitter,g_warlockRainEmitter;
@@ -104,6 +107,7 @@ void Dispose(OwnedVisual& v) { v.model->SetEmittersEnabled(0); v.model->SetRibbo
 void ClearVisuals(bool all=true) {
  g_blizzardEmitter.active=g_priestChannelEmitter.active=false;
  if(all)g_warlockImpEmitter.active=g_warlockRainEmitter.active=false;
+ if(all){g_druidMorphStart=g_druidTranquilityStart=0;g_druidFormPath=nullptr;g_druidFormAnimation=0;}
  if(all){for(auto* model:warm)model->Release();warm.clear();}
  for(auto it=visuals.begin();it!=visuals.end();) {
   if(!all&&it->effect.persistAcrossPhases){++it;continue;}
@@ -1037,6 +1041,143 @@ void UpdateVisuals() {
     }
 
 
+    void UpdateDruidEffectLifecycle() noexcept
+    {
+        const uint32_t now = Now();
+        if (g_druidMorphStart && now - g_druidMorphStart >= 2800)
+        {
+            RemoveActiveVisualsByPath("Spells\\DruidMorph_Impact_Base.m2");
+            g_druidMorphStart = 0;
+        }
+        if (g_druidTranquilityStart && now - g_druidTranquilityStart >= 1867)
+        {
+            RestartActiveVisualAnimation("Spells\\Tranquility_Area.m2", 158, 1.0f, 1);
+            RestartActiveVisualAnimation("Spells\\Tranquility_Impact_Base.m2", 158, 1.0f, 1);
+            g_druidTranquilityStart = 0;
+        }
+    }
+
+    bool PlayWotlkDruidVisuals(uint32_t stage) noexcept
+    {
+        if (stage < 1 || stage > 17) return false;
+        if (stage == 16)
+        {
+            // Begin the authored cloud before swapping the form 450 ms later.
+            RemoveActiveVisualsByPath("Spells\\DruidMorph_Impact_Base.m2");
+            VisualEffect morph{"Spells\\DruidMorph_Impact_Base.m2", kAttachBase, 1.1f,
+                0.0f, 0.0f, 0, 0.0f, 0.05f, 0.05f};
+            morph.forceVisible = true;
+            morph.persistAcrossPhases = true;
+            morph.modelAnimation = 0;
+            morph.modelAnimationLoop = 0;
+            g_druidMorphStart = Now();
+            if (g_druidFormPath)
+            {
+                g_druidFormAnimation = 0;
+                RestartActiveVisualAnimation(g_druidFormPath, 0, 1.0f, 1);
+            }
+            return AttachVisual(morph);
+        }
+        if (stage == 17)
+        {
+            // End the eight-second channel using the authored Decay sequences.
+            g_druidTranquilityStart = 0;
+            RestartActiveVisualAnimation("Spells\\Tranquility_Area.m2", 159, 1.0f, 0);
+            RestartActiveVisualAnimation("Spells\\Tranquility_Impact_Base.m2", 159, 1.0f, 0);
+            g_druidFormAnimation = 0;
+            if (g_druidFormPath) RestartActiveVisualAnimation(g_druidFormPath, 0, 1.0f, 1);
+            return g_druidFormPath != nullptr;
+        }
+        static const char* const forms[] = {
+            "Creature\\DruidBear\\DruidBear.m2", "Creature\\DruidCat\\DruidCat.m2",
+            "Creature\\DruidOwlbear\\DruidOwlBear.m2", "Creature\\Ent\\Ent.m2"
+        };
+        static const char* const skins[] = {
+            "Creature\\DruidBear\\DruidBearSkin.blp", "Creature\\DruidCat\\DruidCatSkinBlack.blp",
+            "Creature\\DruidOwlbear\\DruidOwlBearNESkin1.blp", "Creature\\Ent\\EntSkinBrown.blp"
+        };
+        static constexpr float scales[] = {0.85f, 0.85f, 0.75f, 0.70f};
+        const uint32_t form = stage <= 3 ? 0 : stage <= 6 ? 1 : stage <= 10 ? 2 : 3;
+        for (uint32_t i = 0; i < 4; ++i)
+            if (i != form) RemoveActiveVisualsByPath(forms[i]);
+        if (!HasActiveVisual(forms[form]))
+        {
+            VisualEffect body{forms[form], kAttachBase, scales[form],
+                0.0f, 0.0f, 0, 0.0f, 0.05f, 0.0f, skins[form], 11};
+            if (form == 2)
+            {
+                body.secondaryTexturePath = "Creature\\DruidOwlbear\\DruidOwlBearNESkin2.blp";
+                body.secondaryTextureType = 12;
+            }
+            body.modelAnimation = 0;
+            body.persistAcrossPhases = true;
+            body.forceVisible = true;
+            if (!AttachVisual(body)) return false;
+        }
+        // Animate the visible form itself, never just the hidden player actor.
+        uint32_t animation = 0;
+        if (stage == 2) animation = 176;       // DruidBearSwipe
+        else if (stage == 3) animation = 55;   // BattleRoar
+        else if (stage == 5) animation = 16;   // Cat swipe
+        else if (stage == 6) animation = 174;  // DruidCatClaw / Mangle
+        else if (stage == 8 || stage == 12 || stage == 14) animation = 52;
+        else if (stage == 9) animation = 53;
+        else if (stage == 10) animation = 54;
+        else if (stage == 13) animation = 54;
+        else if (stage == 15) animation = 124;
+        g_druidFormPath = forms[form];
+        g_druidFormAnimation = animation;
+        RestartActiveVisualAnimation(forms[form], animation, 1.0f,
+            animation == 0 || animation == 52 || animation == 124 ? 1 : 0);
+        const auto effect = [](const char* path, float scale, float z) noexcept {
+            VisualEffect visual{path, kAttachBase, scale,
+                0.0f, 0.0f, 0, 0.0f, 0.05f, z};
+            visual.forceVisible = true;
+            return AttachVisual(visual);
+        };
+        if (stage == 1 || stage == 4 || stage == 7 || stage == 11)
+            return true; // The persistent morph cloud already covers the swap.
+        if (stage == 2 || stage == 5)
+            return effect("Spells\\SwipeCaster.m2", 1.0f, 0.60f);
+        if (stage == 3)
+            return effect("Spells\\DemoralizingShout_Cast_Base.m2", 1.0f, 0.10f);
+        if (stage == 6)
+            return effect("Spells\\Mangle_Impact.m2", 1.0f, 0.65f);
+        if (stage == 8)
+            return effect("Spells\\Wrath_PreCast_Hand.m2", 1.0f, 1.20f);
+        if (stage == 9)
+        {
+            VisualEffect missile{"Spells\\Wrath_Missile.m2", kAttachBase, 1.0f,
+                -7.2f, 4.3f, 1400, 0.35f, 0.0f, 1.15f};
+            missile.forceVisible = true;
+            return AttachVisual(missile);
+        }
+        if (stage == 10)
+        {
+            VisualEffect moonfire{"Spells\\Moonfire_Impact_Base.m2", kAttachBase, 1.0f,
+                0.0f, 0.0f, 0, -2.4f, 0.15f, 0.05f};
+            moonfire.forceVisible = true;
+            return AttachVisual(moonfire);
+        }
+        if (stage == 12 || stage == 14)
+            return effect("Spells\\Nature_PreCast_Low_Hand.m2", 1.0f, 1.0f);
+        if (stage == 13)
+            return effect("Spells\\Rejuvenation_Impact_Base.m2", 1.15f, 0.10f);
+        bool ok = true;
+        for (const char* path : {"Spells\\Tranquility_Area.m2", "Spells\\Tranquility_Impact_Base.m2"})
+        {
+            VisualEffect tranquility{path, kAttachBase, 1.1f,
+                0.0f, 0.0f, 0, 0.0f, 0.05f, 0.10f};
+            tranquility.forceVisible = true;
+            tranquility.modelAnimation = 0;
+            tranquility.modelAnimationLoop = 0;
+            ok &= AttachVisual(tranquility);
+        }
+        g_druidTranquilityStart = Now();
+        return ok;
+    }
+
+
 struct Step {uint32_t at, animation, phase; int visible=0;};
 constexpr uint32_t NoAnimation=UINT32_MAX;
 // Times are relative to the donor's animationBase, after its 3s landing window.
@@ -1049,10 +1190,11 @@ constexpr Step deathKnight[]={{0,54,1},{1350,33,2},{2750,18,3},{3900,58,4},{5050
 constexpr Step shaman[]={{0,54,1,-1},{2000,54,2,1},{2500,33,3},{4050,58,4},{5450,18,5},{6900,52,6},{7750,53,7},{8950,52,8},{9800,53,9},{11500,26,0,1}};
 constexpr Step mage[]={{0,51,1},{1450,53,2},{2450,51,3},{3750,53,4},{4750,52,5},{6200,54,6},{8000,52,7},{9300,125,8},{12500,54,9},{13650,26,0}};
 constexpr Step warlock[]={{0,54,1},{1250,52,2},{2350,53,3},{2800,28,255},{3850,52,4},{5350,53,5},{5800,52,255},{6850,124,6},{10400,28,0}};
+constexpr Step druid[]={{0,NoAnimation,16},{450,NoAnimation,1},{1600,NoAnimation,2},{2900,NoAnimation,3},{4300,NoAnimation,16},{4750,NoAnimation,4},{5800,NoAnimation,5},{7000,NoAnimation,6},{8400,NoAnimation,16},{8850,NoAnimation,7},{9900,NoAnimation,8},{11000,NoAnimation,9},{12600,NoAnimation,10},{14800,NoAnimation,16},{15250,NoAnimation,11},{16300,NoAnimation,12},{17300,NoAnimation,13},{19000,NoAnimation,14},{20000,NoAnimation,15},{28000,NoAnimation,17},{29900,0,0,1}};
 struct Timeline {const Step* data=nullptr;size_t count=0;};
 template<size_t N> Timeline Line(const Step (&steps)[N]) {return {steps,N};}
 Timeline GetTimeline(uint32_t id) {
- switch(id){case 1:return Line(warrior);case 2:return Line(paladin);case 3:return Line(hunter);case 4:return Line(rogue);case 5:return Line(priest);case 6:return Line(deathKnight);case 7:return Line(shaman);case 8:return Line(mage);case 9:return Line(warlock);default:return {};}
+ switch(id){case 1:return Line(warrior);case 2:return Line(paladin);case 3:return Line(hunter);case 4:return Line(rogue);case 5:return Line(priest);case 6:return Line(deathKnight);case 7:return Line(shaman);case 8:return Line(mage);case 9:return Line(warlock);case 11:return Line(druid);default:return {};}
 }
 void Visible(bool show) {
  auto* owner=CCharacterCreation::m_character;
@@ -1082,8 +1224,10 @@ else
 end
 )lua";
 void PlayPhase(uint32_t phase) {
+ // Tranquility Decay retains both running channel models through its exit.
+ if(classId==11&&phase==17){PlayWotlkDruidVisuals(phase);return;}
  ClearVisuals(false);
- switch(classId){case 1:PlayWotlkWarriorVisuals(phase);break;case 2:PlayWotlkPaladinVisuals(phase);break;case 3:PlayWotlkHunterVisuals(phase);break;case 4:PlayWotlkRogueVisuals(phase);break;case 5:PlayWotlkPriestVisuals(phase);break;case 6:PlayWotlkDeathKnightVisuals(phase);break;case 7:PlayWotlkShamanVisuals(phase);break;case 8:PlayWotlkMageVisuals(phase);break;case 9:PlayWotlkWarlockVisuals(phase);break;}
+ switch(classId){case 1:PlayWotlkWarriorVisuals(phase);break;case 2:PlayWotlkPaladinVisuals(phase);break;case 3:PlayWotlkHunterVisuals(phase);break;case 4:PlayWotlkRogueVisuals(phase);break;case 5:PlayWotlkPriestVisuals(phase);break;case 6:PlayWotlkDeathKnightVisuals(phase);break;case 7:PlayWotlkShamanVisuals(phase);break;case 8:PlayWotlkMageVisuals(phase);break;case 9:PlayWotlkWarlockVisuals(phase);break;case 11:PlayWotlkDruidVisuals(phase);break;}
 }
 }
 void Register() {enabled=CVar::Register("wxlCreationEffects","WXL native character creation class choreography",2,WXL_ENABLE_CREATION_EFFECTS?"1":"0",nullptr,0,false,nullptr,false);}
@@ -1123,6 +1267,17 @@ void UpdateCreation() {
   if(!step.phase){ClearVisuals();Visible(true);finished=true;break;}
   if(step.phase!=255)PlayPhase(step.phase);
  }
- UpdateWotlkBlizzardEmitter();UpdateWotlkPriestChannelEmitter();UpdateWotlkWarlockImpEmitter();UpdateWotlkWarlockRainEmitter();UpdateVisuals();
+ UpdateWotlkBlizzardEmitter();UpdateWotlkPriestChannelEmitter();UpdateWotlkWarlockImpEmitter();UpdateWotlkWarlockRainEmitter();
+ if(classId==11){
+  UpdateDruidEffectLifecycle();
+  if(g_druidFormPath)EnsureActiveVisualAnimation(g_druidFormPath,g_druidFormAnimation,1.0f,(g_druidFormAnimation==0||g_druidFormAnimation==52||g_druidFormAnimation==124)?1:0);
+ }
+ UpdateVisuals();
+ if(classId==11){
+  bool loadedForm=false;
+  if(g_druidFormPath)for(const auto& visual:visuals)
+   if(!std::strcmp(visual.effect.path,g_druidFormPath)&&visual.model->IsLoaded(0,0)&&visual.model->m_shared&&Canonical(visual.model->m_shared->m_fileName)==Canonical(g_druidFormPath)&&visual.originCaptured){loadedForm=true;break;}
+  Visible(!loadedForm);
+ }
 }
 }
