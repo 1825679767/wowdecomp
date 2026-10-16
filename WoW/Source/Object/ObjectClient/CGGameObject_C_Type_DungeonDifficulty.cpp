@@ -1,4 +1,5 @@
 #include "CGGameObject_C_Type_DungeonDifficulty.h"
+#include "WXL/ChallengeMode.hpp"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/MapRec.h"
 #include "WoW/Source/Object/GameObjectDef.h"
@@ -92,6 +93,8 @@ void CGGameObject_C_Type_DungeonDifficulty::UpdateDisplay(uint32_t time) {
         }
     }
 
+    hidden = wxl::native::challenge_mode::PortalHidden(*this->m_owner, hidden);
+    wxl::native::challenge_mode::RefreshPortal(*this->m_owner);
     World::ObjectSetHidden(this->m_owner->m_worldObject, hidden);
 
     if (hidden && SI2::IsPlaying(&this->m_sound)) {

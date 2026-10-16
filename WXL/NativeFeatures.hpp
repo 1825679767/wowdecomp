@@ -6,6 +6,8 @@ bool NativeEnabled() noexcept;
 bool Db2Enabled() noexcept;
 bool WmoEnabled() noexcept;
 bool ClientExtensionsEnabled() noexcept;
+bool ChallengeModeEnabled() noexcept;
+bool MythicDifficultyEnabled() noexcept;
 bool QuestMarkerEnabled() noexcept;
 bool RadialPingEnabled() noexcept;
 bool SplitAdtEnabled() noexcept;

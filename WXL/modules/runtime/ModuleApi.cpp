@@ -15,6 +15,8 @@ const Entry entries[]{
  {"appearance-session","appearances,protocol",&AppearanceSaveEnabled},
  {"creation-effects","runtime,appearances,storage",&creation_effects::Enabled},
  {"quest-marker","runtime,protocol,client-extensions",&QuestMarkerEnabled},
+ {"challenge-mode","runtime,protocol,client-extensions",&ChallengeModeEnabled},
+ {"mythic-difficulty","runtime,client-extensions",&MythicDifficultyEnabled},
  {"radial-ping","runtime,protocol,client-extensions",&RadialPingEnabled},{"client-extensions","runtime,protocol",&ClientExtensionsEnabled},{"world-wmo","storage,db2",&WmoEnabled},{"world-adt","storage,db2",&SplitAdtEnabled}};
 int LuaModules(lua_State* L){
  lua_createtable(L,int(ModuleCount()),0);

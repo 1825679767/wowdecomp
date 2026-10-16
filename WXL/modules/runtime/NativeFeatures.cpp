@@ -6,8 +6,8 @@
 #include <cstdint>
 #include <cstdlib>
 namespace wxl::native {namespace {
-constexpr uint32_t Assets=1,Blp=2,Materials=4,Particles=8,Appearances=16,Protocol=32,Db2=64,AppearanceSave=128,Wmo=256,SplitAdt=512,ClientExtensions=1024,RadialPing=2048,QuestMarker=4096;
-constexpr uint32_t Compiled=(WXL_ENABLE_NATIVE?1u:0u)*((WXL_ENABLE_ASSETS?Assets:0)|(WXL_ENABLE_BLP?Blp:0)|(WXL_ENABLE_MATERIALS?Materials:0)|(WXL_ENABLE_PARTICLES?Particles:0)|(WXL_ENABLE_APPEARANCES?Appearances:0)|(WXL_ENABLE_PROTOCOL?Protocol:0)|(WXL_ENABLE_DB2?Db2:0)|(WXL_ENABLE_APPEARANCE_SAVE?AppearanceSave:0)|(WXL_ENABLE_WMO?Wmo:0)|(WXL_ENABLE_SPLIT_ADT?SplitAdt:0)|(WXL_ENABLE_CLIENT_EXTENSIONS?ClientExtensions:0)|(WXL_ENABLE_RADIAL_PING?RadialPing:0)|(WXL_ENABLE_QUEST_MARKER?QuestMarker:0));
+constexpr uint32_t Assets=1,Blp=2,Materials=4,Particles=8,Appearances=16,Protocol=32,Db2=64,AppearanceSave=128,Wmo=256,SplitAdt=512,ClientExtensions=1024,RadialPing=2048,QuestMarker=4096,ChallengeMode=8192,MythicDifficulty=16384;
+constexpr uint32_t Compiled=(WXL_ENABLE_NATIVE?1u:0u)*((WXL_ENABLE_ASSETS?Assets:0)|(WXL_ENABLE_BLP?Blp:0)|(WXL_ENABLE_MATERIALS?Materials:0)|(WXL_ENABLE_PARTICLES?Particles:0)|(WXL_ENABLE_APPEARANCES?Appearances:0)|(WXL_ENABLE_PROTOCOL?Protocol:0)|(WXL_ENABLE_DB2?Db2:0)|(WXL_ENABLE_APPEARANCE_SAVE?AppearanceSave:0)|(WXL_ENABLE_WMO?Wmo:0)|(WXL_ENABLE_SPLIT_ADT?SplitAdt:0)|(WXL_ENABLE_CLIENT_EXTENSIONS?ClientExtensions:0)|(WXL_ENABLE_RADIAL_PING?RadialPing:0)|(WXL_ENABLE_QUEST_MARKER?QuestMarker:0)|(WXL_ENABLE_CHALLENGE_MODE?ChallengeMode:0)|(WXL_ENABLE_MYTHIC_DIFFICULTY?MythicDifficulty:0));
 std::atomic<uint32_t> enabled{Compiled};
 bool Changed(CVar*,const char*,const char* value,void* arg){
  const auto bit=uint32_t(reinterpret_cast<uintptr_t>(arg));
@@ -23,6 +23,8 @@ void RegisterFeatures(){
  CVar::Register("wxlAreaLootQuality","WXL minimum automatic area loot quality",2,"0",nullptr,0,false,nullptr,false);
  struct Feature{const char* name;const char* help;uint32_t bit;};
  const Feature features[]{
+  {"wxlChallengeMode","WXL native server-authoritative Mythic+ API; reload UI after changing",ChallengeMode},
+  {"wxlMythicDifficulty","WXL third dungeon difficulty and portal models; reload world/UI after changing",MythicDifficulty},
   {"wxlQuestMarker","WXL native quest marker and objective rings",QuestMarker},
   {"wxlRadialPing","WXL native world radial pings",RadialPing},
   {"wxlClientExtensions","WXL addon helper and legacy packet facade; reload UI after changing",ClientExtensions},
@@ -40,6 +42,8 @@ void RegisterFeatures(){
   if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,reinterpret_cast<void*>(uintptr_t(f.bit)));
  }
 }
+bool ChallengeModeEnabled() noexcept{return On(ChallengeMode) && ClientExtensionsEnabled() && ProtocolEnabled();}
+bool MythicDifficultyEnabled() noexcept{return On(MythicDifficulty) && ClientExtensionsEnabled();}
 bool QuestMarkerEnabled() noexcept{return On(QuestMarker) && ClientExtensionsEnabled() && ProtocolEnabled();}
 bool RadialPingEnabled() noexcept{return On(RadialPing) && ClientExtensionsEnabled() && ProtocolEnabled();}
 bool ClientExtensionsEnabled() noexcept{return On(ClientExtensions);}

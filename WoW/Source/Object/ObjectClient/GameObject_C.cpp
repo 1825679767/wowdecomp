@@ -1,4 +1,5 @@
 #include "GameObject_C.h"
+#include "WXL/ChallengeMode.hpp"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
 #include <cmath>
 #include <cstring>
@@ -526,11 +527,14 @@ C44Matrix CGGameObject_C::GetMatrix() const {
 // VERIFY: 728f32b7 manual
 // OFFSET: 0x0070EE30
 const char* CGGameObject_C::GetModelFileNameInternal() const {
+    if (const char* authored = wxl::native::challenge_mode::SelectModel(*this, nullptr)) {
+        return authored;
+    }
     int32_t displayID = this->m_gameObject->m_displayID;
     GameObjectDisplayInfoRec* rec = g_gameObjectDisplayInfoDB.GetRecord(displayID);
 
     if (rec) {
-        return rec->m_modelName;
+        return wxl::native::challenge_mode::SelectModel(*this, rec->m_modelName);
     }
 
     SysMsgPrintf(STATUS_ERROR, 2, "Game object id %d is missing its display record %d", this->m_obj->m_entryID, displayID);
