@@ -227,10 +227,12 @@ class CM2Model {
     // A dependent retains its source; the source's reverse list is non-owning.
     CM2Model* m_skinningSource = nullptr;
     std::vector<uint16_t> m_skinningBoneMap; // dependent index -> source index
+    bool m_skinningBindCorrection = false;
+    float m_skinningGeometryScale = 1.0f;
     std::vector<CM2Model*> m_skinnedDependents;
     // Native user-level effects controls follow owned appearance dependents.
     bool m_wxlEmittersEnabled = true, m_wxlRibbonsEnabled = true;
-    bool SetSkinningSource(CM2Model* source);
+    bool SetSkinningSource(CM2Model* source, bool collection = false, float geometryScaleOverride = 0.0f);
     void SynchronizeSkinnedDependentsMT(const C44Matrix* view);
 
     static void (*s_transformVertices[5])(CM2Model*, M2SkinSection*, uint8_t*, int32_t);

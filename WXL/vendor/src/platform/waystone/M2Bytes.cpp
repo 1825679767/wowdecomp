@@ -333,7 +333,7 @@ bool ConvertSkin(std::span<const uint8_t> input,std::vector<uint8_t>& output,boo
     if(split){if(result.size()%2)result.push_back(0);const auto newOffset=uint32_t(result.size());result.insert(result.end(),batches.begin(),batches.end());d::Wr32(result.data()+36,uint32_t(batches.size()/24));d::Wr32(result.data()+40,newOffset);}
     output.swap(result);return true;
 }
-static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit,PartitionedPair* partitioned,bool wxlFirstTextureApproximation=false,bool nativeSequenceHash=false,bool nativeRuntimeSequences=false) {
+static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit,PartitionedPair* partitioned,bool wxlFirstTextureApproximation=false,bool nativeSequenceHash=false,bool nativeRuntimeSequences=false,std::vector<std::vector<uint8_t>>* nativeSkins=nullptr) {
     stats={};auto fail=[&](const char* why){stats.reason=why;return false;};
     if(paletteLimit<3 || paletteLimit>75)return fail("invalid native palette budget");
     if(!path || !resolve || !read || input.size()<8 || input.size()>Limit || d::Rd32(input.data())!=f::kMagicMD21) return false;
@@ -401,6 +401,57 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
     std::string stem=path;auto dot=stem.find_last_of('.');
     if(dot==std::string::npos || stem.size()>900) return fail("invalid model path");
     stem.resize(dot);std::vector<uint8_t> skin;skin::Owned rebuilt;
+    std::vector<uint8_t> nativeBody;std::vector<std::vector<uint8_t>> nativeSourceSkins,nativeConvertedSkins;
+    if(nativeRuntimeSequences && nativeSkins && !partitioned){
+        bool needsPartition=false;nativeSourceSkins.resize(source->numSkinProfiles);
+        for(uint32_t i=0;i<source->numSkinProfiles;++i){
+            char suffix[16]{};std::snprintf(suffix,sizeof(suffix),"%02u.skin",i);
+            auto& bytes=nativeSourceSkins[i];
+            if(!read((stem+suffix).c_str(),bytes)||bytes.size()>Limit)return fail("native topology missing/overbudget SKIN");
+            Stats probe;
+            if(!Skin(bytes,*source,body,probe,extendedIndices,paletteLimit)){
+                if(probe.reason!="skin palette/influence budget"){stats.reason=probe.reason;return false;}
+                needsPartition=true;
+            }
+        }
+        if(needsPartition){
+            if(!extendedIndices)return fail("native topology requires extended section starts");
+            // Rebuild every LOD from the same assembled skeleton, then join
+            // only the vertex/combo arrays. Each SKIN retains its complete
+            // triangle stream, section IDs, order and duplicated batch rows.
+            // Native uint16 lookup/combos bound the joined arrays explicitly.
+            std::vector<uint8_t> vertices,combos;
+            std::vector<std::vector<uint8_t>> candidates;
+            candidates.reserve(nativeSourceSkins.size());
+            for(const auto& original:nativeSourceSkins){
+                skin::Owned current;
+                if(!skin::Rebuild(body,original,source->bones.count,true,current,stats.reason,paletteLimit))return false;
+                if(current.plan.draws.empty()||current.plan.draws.size()>16384||!current.plan.sourceTriangles)return fail("native topology empty/overbudget geometry");
+                const auto* header=reinterpret_cast<const f::M2Header*>(current.body.data());
+                const auto vertexBase=uint32_t(vertices.size()/48),comboBase=uint32_t(combos.size()/2);
+                if(uint64_t(vertexBase)+header->vertices.count>65535||uint64_t(comboBase)+header->boneCombos.count>65535)return fail("native topology joined vertex/combo budget");
+                const auto lookupN=d::Rd32(current.skin.data()+4),lookupAt=d::Rd32(current.skin.data()+8);
+                for(uint32_t j=0;j<lookupN;++j){auto* value=current.skin.data()+lookupAt+2*j;d::Wr16(value,uint16_t(vertexBase+d::Rd16(value)));}
+                const auto sectionN=d::Rd32(current.skin.data()+28),sectionAt=d::Rd32(current.skin.data()+32);
+                for(uint32_t j=0;j<sectionN;++j){auto* value=current.skin.data()+sectionAt+j*48+14;d::Wr16(value,uint16_t(comboBase+d::Rd16(value)));}
+                vertices.insert(vertices.end(),current.body.begin()+header->vertices.offset,current.body.begin()+header->vertices.offset+size_t(header->vertices.count)*48);
+                combos.insert(combos.end(),current.body.begin()+header->boneCombos.offset,current.body.begin()+header->boneCombos.offset+size_t(header->boneCombos.count)*2);
+                candidates.push_back(std::move(current.skin));
+            }
+            if(body.size()+vertices.size()+combos.size()+6>Limit)return fail("native topology joined body budget");
+            nativeBody.assign(body.begin(),body.end());
+            while(nativeBody.size()%4)nativeBody.push_back(0);
+            auto offset=uint32_t(nativeBody.size());nativeBody.insert(nativeBody.end(),vertices.begin(),vertices.end());
+            d::Wr32(nativeBody.data()+0x3c,uint32_t(vertices.size()/48));d::Wr32(nativeBody.data()+0x40,offset);
+            while(nativeBody.size()%4)nativeBody.push_back(0);
+            offset=uint32_t(nativeBody.size());nativeBody.insert(nativeBody.end(),combos.begin(),combos.end());
+            d::Wr32(nativeBody.data()+0x78,uint32_t(combos.size()/2));d::Wr32(nativeBody.data()+0x7c,offset);
+            body=nativeBody;source=reinterpret_cast<const f::M2Header*>(body.data());
+            if(!Validate(body,true,stats.reason))return false;
+            nativeSourceSkins.swap(candidates);
+            nativeConvertedSkins.resize(nativeSourceSkins.size());
+        }
+    }
     if(partitioned){
         if(source->numSkinProfiles!=1)return fail("partitioned pair requires exactly one named SKIN");
         // Preserve the existing generic material conversion, and expose its
@@ -429,7 +480,10 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
     }
     for(uint32_t i=0;!partitioned && i<source->numSkinProfiles;++i) {
         char suffix[16]{};std::snprintf(suffix,sizeof(suffix),"%02u.skin",i);
-        if(!read((stem+suffix).c_str(),skin) || !Skin(skin,*source,body,stats,extendedIndices,paletteLimit)) {if(stats.reason.empty())stats.reason="missing or unsupported named skin";return false;}
+        if(!nativeSourceSkins.empty())skin=nativeSourceSkins[i];
+        else if(!read((stem+suffix).c_str(),skin))return fail("missing named skin");
+        if(!Skin(skin,*source,body,stats,extendedIndices,paletteLimit)) {if(stats.reason.empty())stats.reason="unsupported named skin";return false;}
+        if(!nativeConvertedSkins.empty()&&!ConvertSkin(skin,nativeConvertedSkins[i],true))return fail("native topology SKIN conversion");
         stats.skinFingerprints[i]=Fingerprint(skin);++stats.skins;
     }
     if(stats.twoStageBatches && body.size()+8>Limit)return fail("expanded header exceeds byte limit");
@@ -539,6 +593,7 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
         d::Wr32(result.data()+8,uint32_t(length));d::Wr32(result.data()+12,at);
         if(!Validate(result,false,stats.reason,screenBlend,nativeSequenceHash||nativeRuntimeSequences))return false;
     }
+    if(nativeSkins)nativeSkins->swap(nativeConvertedSkins);
     output.swap(result);return true;
 }
 bool Convert(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit){
@@ -548,8 +603,8 @@ bool Convert(const char* path,std::span<const uint8_t> input,Resolve resolve,Rea
 // modern action IDs after owned external/alias assembly and the bounded native
 // hash rebuild; all geometry/material/track validations still apply. The old
 // bridge/generic Convert entry remains strict.
-bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit){
- return ConvertImpl(path,input,resolve,read,output,stats,screenBlend,extendedIndices,paletteLimit,nullptr,false,false,true);
+bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit,std::vector<std::vector<uint8_t>>* rebuiltSkins){
+ return ConvertImpl(path,input,resolve,read,output,stats,screenBlend,extendedIndices,paletteLimit,nullptr,false,false,true,rebuiltSkins);
 }
 bool ConvertWithNativeSequenceHash(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend,bool extendedIndices,uint32_t paletteLimit){
  return ConvertImpl(path,input,resolve,read,output,stats,screenBlend,extendedIndices,paletteLimit,nullptr,false,true);

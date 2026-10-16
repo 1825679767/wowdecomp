@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
 
 namespace {
 constexpr uint16_t NoParent = 0xffff;
@@ -129,11 +130,47 @@ bool BuildBoneMap(const M2Array<M2CompBone>& source, const M2Array<M2CompBone>& 
     output.swap(map);
     return true;
 }
+
+// Equipment collections use the donor's canonical key/name/parent policy,
+// separately from exact bind-topology appearance children. Ambiguous IDs are
+// never selected by array order. Unmapped helpers retain their own native pose.
+bool BuildCollectionMap(const M2Array<M2CompBone>& source,const M2Array<M2CompBone>& child,
+                        std::vector<uint16_t>& output,float& scale) {
+    BoneTopology from,to;
+    if(!ReadTopology(source,from)||!ReadTopology(child,to)||source.m_count>1024||child.m_count>256)return false;
+    std::vector<uint16_t> map(child.m_count,NoParent);
+    auto unique=[&](uint32_t value,bool name){
+        uint16_t result=NoParent;
+        for(uint32_t j=0;j<source.m_count;++j)if((name?source[j].m_boneNameCRC:source[j].m_boneId)==value){if(result!=NoParent)return NoParent;result=uint16_t(j);}
+        return result;
+    };
+    for(uint32_t i=0;i<child.m_count;++i)if(child[i].m_boneId!=UINT32_MAX)map[i]=unique(child[i].m_boneId,false);
+    for(uint32_t i=0;i<child.m_count;++i)if(map[i]==NoParent&&child[i].m_boneNameCRC)map[i]=unique(child[i].m_boneNameCRC,true);
+    for(uint32_t pass=0;pass<child.m_count;++pass){bool changed=false;
+        for(uint32_t i=0;i<child.m_count;++i)if(map[i]==NoParent){const auto parent=child[i].m_parentIndex;if(parent!=NoParent&&map[parent]!=NoParent){map[i]=map[parent];changed=true;}}
+        if(!changed)break;
+    }
+    if(std::all_of(map.begin(),map.end(),[](uint16_t value){return value==NoParent;}))return false;
+    float lowChild[3],highChild[3],lowSource[3],highSource[3];
+    for(unsigned axis=0;axis<3;++axis){lowChild[axis]=lowSource[axis]=(std::numeric_limits<float>::max)();highChild[axis]=highSource[axis]=-(std::numeric_limits<float>::max)();}
+    uint32_t count=0;
+    for(uint32_t i=0;i<child.m_count;++i)if(map[i]!=NoParent&&child[i].m_boneId!=UINT32_MAX){
+        const auto& a=child[i].m_pivot;const auto& b=source[map[i]].m_pivot;
+        const float av[]={a.x,a.y,a.z},bv[]={b.x,b.y,b.z};
+        for(unsigned axis=0;axis<3;++axis){lowChild[axis]=(std::min)(lowChild[axis],av[axis]);highChild[axis]=(std::max)(highChild[axis],av[axis]);lowSource[axis]=(std::min)(lowSource[axis],bv[axis]);highSource[axis]=(std::max)(highSource[axis],bv[axis]);}++count;
+    }
+    scale=1.0f;
+    if(count>=4){float a=0,b=0;for(unsigned axis=0;axis<3;++axis){const float ac=highChild[axis]-lowChild[axis],bc=highSource[axis]-lowSource[axis];a+=ac*ac;b+=bc*bc;}
+        if(std::isfinite(a)&&std::isfinite(b)&&a>0.0001f&&b>0.0001f)scale=std::clamp(std::sqrt(b/a),0.55f,1.45f);
+    }
+    output.swap(map);return true;
+}
 }
 
-bool CM2Model::SetSkinningSource(CM2Model* source) {
+bool CM2Model::SetSkinningSource(CM2Model* source,bool collection,float geometryScaleOverride) {
     if (source == this->m_skinningSource) return true;
     std::vector<uint16_t> boneMap;
+    float geometryScale=1.0f;bool bindCorrection=false;
     if (source) {
         if (source == this || source->m_skinningSource || !this->m_skinnedDependents.empty()
             || this->m_attachParent || this->m_attachList || source->m_scene != this->m_scene
@@ -145,8 +182,14 @@ bool CM2Model::SetSkinningSource(CM2Model* source) {
         // owner after its matrices are replaced by the verified source pose.
         // Attached descendants need another pose-propagation level; cameras
         // must not acquire view authority merely by being a customization mesh.
-        if (to.m_attachments.m_count || to.m_cameras.m_count
-            || !BuildBoneMap(from.m_bones,to.m_bones,boneMap)) return false;
+        if ((!collection&&to.m_attachments.m_count) || to.m_cameras.m_count) return false;
+        if(!BuildBoneMap(from.m_bones,to.m_bones,boneMap)){
+            if(!collection||!BuildCollectionMap(from.m_bones,to.m_bones,boneMap,geometryScale))return false;
+            // The donor corrects bind pivots only against classic source
+            // bodies. Modern source bodies already use their authored poses.
+            bindCorrection=source->m_shared->m_wxlAssets==nullptr;
+            if(std::isfinite(geometryScaleOverride)&&geometryScaleOverride>0)geometryScale=geometryScaleOverride;
+        }
         if ((to.m_particles.m_count && !this->m_particleEmitters)
             || (to.m_ribbons.m_count && !this->m_ribbonEmitters)
             || (to.m_lights.m_count && !this->m_lights)) return false;
@@ -164,6 +207,8 @@ bool CM2Model::SetSkinningSource(CM2Model* source) {
     CM2Model* previous = this->m_skinningSource;
     this->m_skinningSource = source;
     this->m_skinningBoneMap.swap(boneMap);
+    this->m_skinningBindCorrection=bindCorrection;
+    this->m_skinningGeometryScale=geometryScale;
     if (previous) {
         auto& children = previous->m_skinnedDependents;
         children.erase(std::remove(children.begin(),children.end(),this),children.end());
@@ -193,8 +238,23 @@ void CM2Model::SynchronizeSkinnedDependentsMT(const C44Matrix* view) {
             child->AnimateMTSimple(view,this->m_diffuseColor,this->m_emissiveColor,this->m_effectiveAlpha,this->m_alpha);
         else
             child->AnimateMT(view,this->m_diffuseColor,this->m_emissiveColor,this->m_effectiveAlpha,this->m_alpha);
-        for (size_t i = 0; i < child->m_skinningBoneMap.size(); ++i)
-            child->m_boneMatrices[i] = this->m_boneMatrices[child->m_skinningBoneMap[i]];
+        for (size_t i = 0; i < child->m_skinningBoneMap.size(); ++i) {
+            const auto source=child->m_skinningBoneMap[i];if(source==NoParent)continue;
+            auto matrix=this->m_boneMatrices[source];
+            if(child->m_skinningBindCorrection){
+                const auto& character=this->m_shared->m_data->m_bones[source].m_pivot;
+                const auto& collection=child->m_shared->m_data->m_bones[uint32_t(i)].m_pivot;
+                const float scale=child->m_skinningGeometryScale;
+                const float x=character.x-scale*collection.x,y=character.y-scale*collection.y,z=character.z-scale*collection.z;
+                matrix.d0+=x*matrix.a0+y*matrix.b0+z*matrix.c0;
+                matrix.d1+=x*matrix.a1+y*matrix.b1+z*matrix.c1;
+                matrix.d2+=x*matrix.a2+y*matrix.b2+z*matrix.c2;
+                matrix.a0*=scale;matrix.a1*=scale;matrix.a2*=scale;
+                matrix.b0*=scale;matrix.b1*=scale;matrix.b2*=scale;
+                matrix.c0*=scale;matrix.c1*=scale;matrix.c2*=scale;
+            }
+            child->m_boneMatrices[i]=matrix;
+        }
         child->m_matrixF4 = this->m_matrixF4;
         child->m_scaleSq = this->m_scaleSq;
         child->m_effectiveAlpha = this->m_effectiveAlpha;

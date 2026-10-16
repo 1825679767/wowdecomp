@@ -74,7 +74,8 @@ bool PrepareModel(CM2Shared& shared){
    paletteLimit=(std::min)(75u,(constants-(constants>0xc0?64u:32u))/3u);
    if(paletteLimit<3)return false;
   }
-  if(!wxl::waystone::m2bytes::ConvertForNativeRuntime(shared.m_fileName,{raw,shared.m_fileSize},&ResolveTexture,&ReadCompanion,converted,stats,ParticlesEnabled(),true,paletteLimit)){
+  std::vector<std::vector<uint8_t>> rebuiltSkins;
+  if(!wxl::waystone::m2bytes::ConvertForNativeRuntime(shared.m_fileName,{raw,shared.m_fileSize},&ResolveTexture,&ReadCompanion,converted,stats,ParticlesEnabled(),true,paletteLimit,&rebuiltSkins)){
    WLOG_WARN("native-modern-model: refused path=%s reason=%s",shared.m_fileName,stats.reason.c_str());return false;
   }
   std::string particleReason;
@@ -87,11 +88,24 @@ bool PrepareModel(CM2Shared& shared){
    WLOG_WARN("native-modern-particles: refused path=%s reason=%s",shared.m_fileName,particleReason.c_str());return false;
   }
   PreserveMaterials({raw,shared.m_fileSize},converted);
+  if(!rebuiltSkins.empty()){
+   // Publish only model-owned output paired to the exact named source. The
+   // normal native SKIN file read is still compared against original bytes.
+   auto stem=Key(shared.m_fileName);const auto dot=stem.find_last_of('.');if(dot==std::string::npos)return false;stem.resize(dot);
+   for(uint32_t profile=0;profile<rebuiltSkins.size();++profile){char suffix[16]{};std::snprintf(suffix,sizeof(suffix),"%02u.skin",profile);
+    const auto it=assets->skins.find(stem+suffix);if(it==assets->skins.end()||rebuiltSkins[profile].empty())return false;
+    // Renderer recipes contain original per-batch/section identities. A
+    // topology rewrite must not silently reuse those identities after a split.
+    if(it->second.mesh||it->second.donor)return false;
+    it->second.converted=std::move(rebuiltSkins[profile]);
+   }
+   WLOG_INFO("native-modern-model: full topology repartitioned model=%s profiles=%zu device-palette=%u",shared.m_fileName,rebuiltSkins.size(),paletteLimit);
+  }
   for(const auto& [name,skin]:assets->skins)if(skin.mesh&&!mesh_materials::ApplyPreparedMaterials(*skin.mesh,converted))return false;
   for(auto& [name,skin]:assets->skins){
    const auto& prepared=!skin.prepared.empty()?skin.prepared:skin.original;
    if(skin.donor && wxl::waystone::m2bytes::Fingerprint(prepared)!=skin.donor->preparedSkinFingerprint)return false;
-   if(!wxl::waystone::m2bytes::ConvertSkin(prepared,skin.converted,true))return false;
+   if(skin.converted.empty()&&!wxl::waystone::m2bytes::ConvertSkin(prepared,skin.converted,true))return false;
    if(skin.mesh&&!mesh_materials::ConvertedMatches(*skin.mesh,skin.converted))return false;
    if(skin.donor){
     std::string reason;

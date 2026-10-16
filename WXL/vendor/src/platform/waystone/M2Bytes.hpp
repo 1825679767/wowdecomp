@@ -38,7 +38,10 @@ bool Convert(const char* path,std::span<const uint8_t> input,Resolve resolve,Rea
 // bounded owned assembly, curated classic-role mapping and native hash rebuild.
 // No injected-host capability or single-508 fixture contract is used. All other
 // source/track/topology/texture/material limits remain identical to Convert.
-bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend=false,bool extendedIndices=false,uint32_t paletteLimit=75);
+// Optional source-native SKIN output owns rebuilt full topology for every LOD
+// when a palette exceeds the actual device budget. Empty means no rebuild.
+// All profiles share one bounded native vertex/combo array; no archive alias.
+bool ConvertForNativeRuntime(const char* path,std::span<const uint8_t> input,Resolve resolve,Read read,std::vector<uint8_t>& output,Stats& stats,bool screenBlend=false,bool extendedIndices=false,uint32_t paletteLimit=75,std::vector<std::vector<uint8_t>>* rebuiltSkins=nullptr);
 // Explicit unpublished CPU byte policy. Caller must separately obtain the exact
 // verified native capability before publication. No owner/renderer grant here.
 // Requires fully embedded/noalias source and validated supplied native hash;

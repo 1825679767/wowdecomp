@@ -168,7 +168,7 @@ bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t s
   auto* model=child->model;
   if(!model||!model->IsLoaded(1,0)||!model->m_shared||!model->m_shared->m_data||!model->m_textures||Key(model->m_shared->m_fileName)!=path)return false;
   if(!Materials(*model,row,materials,owner.race,owner.fallback,owner.sex)||!Filter(*model,row,inventory,skinned))return false;
-  if(skinned){if(!model->SetSkinningSource(owner.model))return false;claimed.push_back(variant);}
+  if(skinned){if(!model->SetSkinningSource(owner.model,true,wire==18&&owner.sex==1?1.0f:0.0f))return false;claimed.push_back(variant);}
   else {model->AttachToParent(owner.model,row.attachId,nullptr,0);if(model->m_attachParent!=owner.model)return false;}
   model->SetBoneSequence(0xffffffffu,0,0xffffffffu,0,1.0f,1,1);
   output.children.push_back(std::move(child));
