@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cmath>
 #include <set>
+#include <map>
 #include <cstdio>
 namespace wxl::waystone::m2bytes {
 namespace {
@@ -421,6 +422,7 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
             // triangle stream, section IDs, order and duplicated batch rows.
             // Native uint16 lookup/combos bound the joined arrays explicitly.
             std::vector<uint8_t> vertices,combos;
+            std::map<std::array<uint8_t,48>,uint16_t> vertexMap;
             std::vector<std::vector<uint8_t>> candidates;
             candidates.reserve(nativeSourceSkins.size());
             for(const auto& original:nativeSourceSkins){
@@ -428,13 +430,22 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
                 if(!skin::Rebuild(body,original,source->bones.count,true,current,stats.reason,paletteLimit))return false;
                 if(current.plan.draws.empty()||current.plan.draws.size()>16384||!current.plan.sourceTriangles)return fail("native topology empty/overbudget geometry");
                 const auto* header=reinterpret_cast<const f::M2Header*>(current.body.data());
-                const auto vertexBase=uint32_t(vertices.size()/48),comboBase=uint32_t(combos.size()/2);
-                if(uint64_t(vertexBase)+header->vertices.count>65535||uint64_t(comboBase)+header->boneCombos.count>65535)return fail("native topology joined vertex/combo budget");
+                const auto comboBase=uint32_t(combos.size()/2);
+                if(uint64_t(comboBase)+header->boneCombos.count>65535)return fail("native topology joined combo budget");
+                std::vector<uint16_t> remap(header->vertices.count);
+                for(uint32_t j=0;j<header->vertices.count;++j){
+                    std::array<uint8_t,48> value;std::memcpy(value.data(),current.body.data()+header->vertices.offset+size_t(j)*48,48);
+                    auto found=vertexMap.find(value);
+                    if(found==vertexMap.end()){
+                        if(vertices.size()/48>=65535)return fail("native topology joined vertex budget");
+                        const auto index=uint16_t(vertices.size()/48);vertices.insert(vertices.end(),value.begin(),value.end());found=vertexMap.emplace(value,index).first;
+                    }
+                    remap[j]=found->second;
+                }
                 const auto lookupN=d::Rd32(current.skin.data()+4),lookupAt=d::Rd32(current.skin.data()+8);
-                for(uint32_t j=0;j<lookupN;++j){auto* value=current.skin.data()+lookupAt+2*j;d::Wr16(value,uint16_t(vertexBase+d::Rd16(value)));}
+                for(uint32_t j=0;j<lookupN;++j){auto* value=current.skin.data()+lookupAt+2*j;const auto originalIndex=d::Rd16(value);if(originalIndex>=remap.size())return fail("native topology rebuilt lookup");d::Wr16(value,remap[originalIndex]);}
                 const auto sectionN=d::Rd32(current.skin.data()+28),sectionAt=d::Rd32(current.skin.data()+32);
                 for(uint32_t j=0;j<sectionN;++j){auto* value=current.skin.data()+sectionAt+j*48+14;d::Wr16(value,uint16_t(comboBase+d::Rd16(value)));}
-                vertices.insert(vertices.end(),current.body.begin()+header->vertices.offset,current.body.begin()+header->vertices.offset+size_t(header->vertices.count)*48);
                 combos.insert(combos.end(),current.body.begin()+header->boneCombos.offset,current.body.begin()+header->boneCombos.offset+size_t(header->boneCombos.count)*2);
                 candidates.push_back(std::move(current.skin));
             }
