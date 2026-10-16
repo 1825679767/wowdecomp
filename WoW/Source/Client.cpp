@@ -1,3 +1,4 @@
+#include "WXL/ItemGraph.hpp"
 #include "WXL/NativeFeatures.hpp"
 #include <cstdint>
 #include <cstdio>
@@ -508,6 +509,7 @@ void ZoneDebugDestroy() {
 // VERIFY: a6d33d4d auto
 // OFFSET: 0x00402910
 static void WowClientDestroy() {
+    wxl::native::StopItemGraph();
     ValidateNameDestroy();
     DeclinedWordsDestroy();
     SpellVisualsShutdown();
@@ -765,6 +767,7 @@ int ForEveryRunOnceWTF::FileNameCompare(const void* a, const void* b) {
 // VERIFY: f04c040b auto
 // OFFSET: 0x00403340
 static int32_t ClientIdle(const void* data, void* param) {
+    wxl::native::PumpItemGraph();
     ClientGameTimeTickHandler(data, param);
     Player_C_ZoneUpdateHandler(data, param);
 
@@ -1010,6 +1013,7 @@ static void InitializeClient() {
     WowSysMessageOutput::Initialize();
     ClientRegisterConsoleCommands();
     ClientDBInitialize();
+    wxl::native::StartItemGraph();
     LoadingScreenInitialize();
     FrameScript_Initialize(0);
     SI2::Init(0);
@@ -1141,6 +1145,7 @@ static bool OpenArchiveWithRetry(const char* name, int32_t priority, uint32_t sl
 // VERIFY: 47b56ac0 manual
 // OFFSET: 0x00404AD0
 static void CloseAllArchives() {
+    wxl::native::StopItemGraph();
     for (uint32_t i = s_archiveHandles.Count(); i; i--) {
         if (s_archiveHandles[i - 1]) {
             SFile::CloseArchive(s_archiveHandles[i - 1]);

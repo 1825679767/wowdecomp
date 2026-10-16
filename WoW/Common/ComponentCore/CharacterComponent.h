@@ -23,7 +23,7 @@ class CTexture;
 struct CVar;
 class ItemDisplayInfoRec;
 struct st_race;
-namespace wxl::native {struct AppearanceAssets;struct RetailChoiceState;struct PrivateAppearanceState;}
+namespace wxl::native {struct AppearanceAssets;struct RetailChoiceState;struct PrivateAppearanceState;struct EquipmentAttachmentState;}
 
 struct CharacterBaseVariation {
     /* 0000 */ void* m_texture [3];
@@ -161,6 +161,10 @@ class CCharacterComponent {
     wxl::native::AppearanceAssets* m_wxlAppearance = nullptr;
     wxl::native::RetailChoiceState* m_wxlChoices = nullptr;
     wxl::native::PrivateAppearanceState* m_wxlPrivateAppearance = nullptr;
+    uint32_t m_wxlPendingItemDisplay[12]{};
+    int32_t m_wxlPendingItemVisual[12]{};
+    uint64_t m_wxlItemGeneration=0;
+    wxl::native::EquipmentAttachmentState* m_wxlEquipmentAttachments = nullptr;
     uint64_t m_wxlSerial = 0; // Native component lifetime; pool addresses can be reused.
 
     CCharacterComponent();

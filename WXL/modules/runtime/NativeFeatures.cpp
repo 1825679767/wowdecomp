@@ -1,3 +1,4 @@
+#include "WXL/EquipmentAttachments.hpp"
 #include "WXL/PrivateAppearances.hpp"
 #include "WXL/BarberAppearance.hpp"
 #include "WXL/Skyriding.hpp"
@@ -5,6 +6,7 @@
 #include "NativeFeatures.hpp"
 #include "MeshMaterials.hpp"
 #include "ParticleRefraction.hpp"
+#include "ParticleLayers.hpp"
 #include "CreationEffects.hpp"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include <atomic>
@@ -23,8 +25,10 @@ bool Changed(CVar*,const char*,const char* value,void* arg){
 bool On(uint32_t bit) noexcept{return (enabled.load(std::memory_order_acquire)&Compiled&bit)!=0;}
 }
 void RegisterFeatures(){
+ equipment_attachments::Register();
  mesh_materials::RegisterDndMaterials();
  RegisterParticleRefraction();
+ RegisterBloodSpriteMaterials();
  private_appearances::Register();
  barber_appearance::Register();
  skyriding::Register();

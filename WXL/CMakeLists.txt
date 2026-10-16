@@ -1,5 +1,6 @@
 # Native WXL modules are object libraries, collected once into a static facade.
 # This retains independent build targets without cross-archive linker cycles.
+option(WXL_ENABLE_EQUIPMENT_ATTACHMENTS "Enable native retail equipment attachment consumer" ON)
 option(WXL_ENABLE_NATIVE "Enable native WXL features" ON)
 option(WXL_ENABLE_ASSETS "Enable modern M2 assets" ON)
 option(WXL_ENABLE_DB2 "Enable retail DB2/FDID data" ON)
@@ -22,7 +23,7 @@ option(WXL_ENABLE_CREATION_EFFECTS "Enable native character creation choreograph
 option(WXL_ENABLE_SKYRIDING "Enable native server-authorized Skyriding" ON)
 option(WXL_ENABLE_BARBER_PREVIEW "Enable native barber retail-detail previews" ON)
 option(WXL_ENABLE_PRIVATE_APPEARANCES "Enable authored private creature appearance profiles" ON)
-foreach(feature BARBER_PREVIEW SKYRIDING CREATION_EFFECTS NATIVE ASSETS DB2 BLP MATERIALS PARTICLES APPEARANCES PROTOCOL APPEARANCE_SAVE WMO SPLIT_ADT CLIENT_EXTENSIONS RADIAL_PING QUEST_MARKER CHALLENGE_MODE MYTHIC_DIFFICULTY)
+foreach(feature EQUIPMENT_ATTACHMENTS BARBER_PREVIEW SKYRIDING CREATION_EFFECTS NATIVE ASSETS DB2 BLP MATERIALS PARTICLES APPEARANCES PROTOCOL APPEARANCE_SAVE WMO SPLIT_ADT CLIENT_EXTENSIONS RADIAL_PING QUEST_MARKER CHALLENGE_MODE MYTHIC_DIFFICULTY)
  if(WXL_ENABLE_${feature})
   add_compile_definitions(WXL_ENABLE_${feature}=1)
  else()
@@ -41,6 +42,8 @@ wxl_module(WxlRuntime Runtime modules/runtime/NativeFeatures.cpp modules/runtime
  "${V}/src/common/Log.cpp" "${V}/src/common/Config.cpp")
 wxl_module(WxlStorage Storage modules/storage/NativeStorage.cpp)
 wxl_module(WxlDB2 DB2 modules/db2/FdidCompat.cpp
+ modules/db2/items/RetailItemIndex.cpp modules/db2/items/RetailItemCatalog.cpp
+ modules/db2/items/ItemDisplayIndex.cpp modules/db2/items/NativeItemRows.cpp
  "${V}/extensions/wxl-db2/src/decode/DB2File.cpp" "${V}/extensions/wxl-db2/src/decode/Db2Decode.cpp"
  "${V}/extensions/wxl-db2/src/decode/Wdc5.cpp" "${V}/extensions/wxl-db2/src/decode/Wdc5Table.cpp"
  "${V}/extensions/wxl-db2/src/api/Db2.cpp" "${V}/extensions/wxl-db2/src/schemas/AppearanceStore.cpp")
@@ -57,6 +60,8 @@ wxl_module(WxlM2 M2 modules/m2/AssetCompat.cpp
 wxl_module(WxlAppearances Appearances modules/private-appearances/PrivateAppearances.cpp modules/barber-preview/BarberAppearance.cpp modules/appearances/AppearanceCompat.cpp modules/appearances/RetailChoices.cpp modules/appearances/AlternateAppearances.cpp
  "${V}/src/platform/waystone/CharacterAtlas.cpp")
 target_compile_definitions(WxlAppearances PRIVATE WXL_ENABLE_PRIVATE_APPEARANCES=$<BOOL:${WXL_ENABLE_PRIVATE_APPEARANCES}>)
+wxl_module(WxlEquipmentAttachments EquipmentAttachments modules/equipment/EquipmentAttachments.cpp)
+add_dependencies(WxlEquipmentAttachments WxlRuntime WxlM2 WxlDB2 WxlBlp)
 wxl_module(WxlProtocol Protocol modules/protocol/NativeProtocol.cpp modules/protocol/ProtocolConsumers.cpp)
 wxl_module(WxlAppearanceSession AppearanceSession modules/appearance-session/AppearanceSession.cpp)
 wxl_module(WxlWorld World modules/world/WmoNative.cpp modules/world/SplitAdtNative.cpp
@@ -86,6 +91,7 @@ add_dependencies(WxlM2 WxlStorage WxlDB2 WxlBlp WxlMaterials WxlParticles)
 add_dependencies(WxlAppearances WxlM2 WxlDB2 WxlBlp)
 add_dependencies(WxlProtocol WxlRuntime)
 add_library(WxlNative STATIC
+ $<TARGET_OBJECTS:WxlEquipmentAttachments>
  $<TARGET_OBJECTS:WxlRuntime> $<TARGET_OBJECTS:WxlStorage> $<TARGET_OBJECTS:WxlDB2>
  $<TARGET_OBJECTS:WxlBlp> $<TARGET_OBJECTS:WxlMaterials> $<TARGET_OBJECTS:WxlParticles>
  $<TARGET_OBJECTS:WxlSkyriding> $<TARGET_OBJECTS:WxlM2> $<TARGET_OBJECTS:WxlAppearances> $<TARGET_OBJECTS:WxlProtocol> $<TARGET_OBJECTS:WxlAppearanceSession> $<TARGET_OBJECTS:WxlWorld> $<TARGET_OBJECTS:WxlClientExtensions> $<TARGET_OBJECTS:WxlRadialPing> $<TARGET_OBJECTS:WxlQuestMarker> $<TARGET_OBJECTS:WxlCreationEffects> $<TARGET_OBJECTS:WxlChallengeMode>)

@@ -1,0 +1,201 @@
+// Typed native consumer of the owned retail item graph. No renderer hooks.
+// Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
+#include "WXL/EquipmentAttachments.hpp"
+#include "WXL/ItemGraph.hpp"
+#include "WXL/RetailChoices.hpp"
+#include "WXL/NativeFeatures.hpp"
+#include "Engine/Source/BlizzardCore/SFile2-Core.h"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
+#include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
+#include "Engine/Source/Model2/M2Model.h"
+#include "Engine/Source/Model2/M2Scene.h"
+#include "Engine/Source/Model2/M2Shared.h"
+#include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/Services/Texture.h"
+#include "WoW/Common/ComponentCore/CharacterComponent.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
+#include "WoW/Source/DB/Rec/ChrRacesRec.h"
+#include "WoW/Source/DB/Rec/ItemVisualsRec.h"
+#include "WoW/Source/DB/Rec/ItemVisualEffectsRec.h"
+#include <algorithm>
+#include <array>
+#include <memory>
+#include <string>
+#include <vector>
+#ifndef WXL_ENABLE_EQUIPMENT_ATTACHMENTS
+#define WXL_ENABLE_EQUIPMENT_ATTACHMENTS 1
+#endif
+namespace wxl::native {
+namespace {
+constexpr uint32_t Missing=0xffffffffu;
+CVar* enabled=nullptr;
+std::string Key(std::string value){for(auto& c:value){if(c=='/')c='\\';if(c>='A'&&c<='Z')c=char(c-'A'+'a');}if(value.size()>4&&value.compare(value.size()-4,4,".mdx")==0)value.replace(value.size()-4,4,".m2");return value;}
+bool SafePart(const std::string& value){return !value.empty()&&value.size()<240&&value.find("..") == std::string::npos&&value.find(':')==std::string::npos&&value.front()!='\\'&&value.front()!='/';}
+std::string ObjectPath(const std::string& folder,const std::string& name,bool texture){
+ if(!SafePart(folder)||!SafePart(name))return {};auto path=Key("Item\\ObjectComponents\\"+folder+"\\"+name);
+ if(texture&&(path.size()<4||path.compare(path.size()-4,4,".blp")))path+=".blp";return path.size()<260?path:std::string{};
+}
+struct Child {
+ CM2Model* model=nullptr;bool skinned=false;std::string path,variant;
+ ~Child(){if(model){model->SetEmittersEnabled(0);model->SetRibbonsEnabled(0);if(skinned)model->SetSkinningSource(nullptr);else model->DetachFromParent();model->Release();}}
+};
+struct Slot {
+ uint32_t display=0,retryAt=0;uint64_t generation=0;bool ready=false;
+ std::vector<std::unique_ptr<Child>> children;
+};
+template<class T> int Rank(const T& row,uint32_t race,uint32_t fallback,uint32_t sex){
+ int rank=0;if(row.raceId){if(row.raceId==race)rank=6;else if(row.raceId==fallback)rank=4;else return -1;}
+ if(row.genderId!=Missing&&row.genderId!=sex)return -1;return rank+(row.genderId==sex?1:0);
+}
+bool Preferred(const std::vector<ItemGraphModel>& entries,const ItemGraphModel& row,uint32_t race,uint32_t fallback,uint32_t sex){
+ const auto rank=Rank(row,race,fallback,sex);if(rank<0)return false;
+ for(const auto& other:entries){if(&other==&row||other.modelSlot!=row.modelSlot||other.attachId!=row.attachId||other.modelIndex!=row.modelIndex)continue;
+  const auto next=Rank(other,race,fallback,sex);if(next>rank||(next==rank&&other.model<row.model))return false;}
+ return true;
+}
+bool HasSlot(CM2Model& model,uint32_t type){for(uint32_t i=0;i<model.m_shared->m_data->m_textures.m_count;++i)if(model.m_shared->m_data->m_textures[i].m_type==type)return true;return false;}
+bool BindTexture(CM2Model& model,uint32_t type,const std::string& path){
+ if(path.empty()||!HasSlot(model,type)||!SFile::FileExists(path.c_str()))return false;
+ CStatus status;auto* texture=TextureCreate(path.c_str(),CGxTexFlags(),&status,0);if(!texture)return false;
+ const bool valid=Key(texture->m_filename)==path&&texture->m_status.m_highestSeverity<STATUS_ERROR&&TextureGetGxTex(texture,0,nullptr);
+ if(valid)model.ReplaceTexture(type,texture);HandleClose(reinterpret_cast<HOBJECT>(texture));return valid;
+}
+bool Materials(CM2Model& model,const ItemGraphModel& entry,const std::vector<ItemGraphMaterial>& rows,uint32_t race,uint32_t fallback,uint32_t sex){
+ if(!entry.texture.empty()&&!BindTexture(model,2,ObjectPath(entry.folder,entry.texture,true)))return false;
+ std::array<const ItemGraphMaterial*,32> selected{};std::array<int,32> ranks;ranks.fill(-1);
+ for(const auto& row:rows){if(!row.textureType||row.textureType>=32||(row.modelIndex!=Missing&&row.modelIndex!=entry.modelIndex))continue;
+  const auto rank=Rank(row,race,fallback,sex);if(rank<0||rank<ranks[row.textureType])continue;
+  selected[row.textureType]=&row;ranks[row.textureType]=rank;}
+ for(uint32_t type=1;type<32;++type)if(selected[type]&&!BindTexture(model,type,ObjectPath(selected[type]->folder,selected[type]->texture,true)))return false;
+ return true;
+}
+bool SlotOwnsGroup(uint32_t inventory,uint32_t group){
+ switch(inventory){case 1:return group==27;case 3:return group==26;case 4:return group==10;case 5:return group==22||group==28;
+ case 6:return group==18;case 7:return group==11||group==13;case 8:return group==5||group==20;case 9:return group==8;
+ case 10:return group==4||group==23;case 16:return group==15;case 19:return group==9;case 20:return group==22||group==13;default:return false;}
+}
+bool Filter(CM2Model& model,const ItemGraphModel& entry,uint32_t inventory,bool skinned){
+ if(entry.geoFilter.count>16||!model.m_shared->m_skinData||!model.m_skinSections)return false;
+ if(!entry.geoFilter.count&&!skinned){model.SetGeometryVisible(0,65535,1);model.OptimizeVisibleGeometry();return true;}
+ const auto& sections=model.m_shared->m_skinData->m_skinSections;
+ for(uint32_t i=0;i<entry.geoFilter.count;++i){bool found=false;for(uint32_t j=0;j<sections.m_count;++j)found|=sections[j].m_skinSectionId==entry.geoFilter.ids[i];if(!found)return false;}
+ std::vector<uint16_t> selected;
+ for(uint32_t i=0;i<sections.m_count;++i){const auto id=sections[i].m_skinSectionId;
+  bool keep=!entry.geoFilter.count;for(uint32_t j=0;j<entry.geoFilter.count;++j)keep|=id==entry.geoFilter.ids[j];
+  if(keep&&(!skinned||(id&&SlotOwnsGroup(inventory,id/100))))selected.push_back(id);}
+ if(selected.empty())return false;
+ model.SetGeometryVisible(0,65535,0);for(auto id:selected)model.SetGeometryVisible(id,id,1);model.OptimizeVisibleGeometry();return true;
+}
+uint32_t Fallback(uint32_t race,uint32_t nativeRace){
+ // The actual mounted model owns native suffix identity. Only the donor's
+ // explicit allied-family fallback applies when that identity is unavailable.
+ if(race==24)return 3;if(race==27)return 4;
+ const auto* rec=nativeRace?g_chrRacesDB.GetRecord(nativeRace):nullptr;
+ const auto prefix=rec&&rec->m_clientPrefix?Key(rec->m_clientPrefix):std::string{};
+ struct Family{const char* prefix;const char* shortName;uint32_t race;};
+ constexpr Family families[]={{"hum","hu",1},{"orc","or",2},{"dwa","dw",3},{"nig","ni",4},{"sco","sc",5},{"und","sc",5},{"tau","ta",6},{"gno","gn",7},{"tro","tr",8},{"gob","go",9},{"blo","be",10},{"dra","dr",11}};
+ for(const auto& family:families)if(prefix==family.shortName||prefix.compare(0,3,family.prefix)==0)return family.race;
+ switch(race){case 24:return 3;case 27:return 4;case 22:case 26:return 24;case 12:return 22;case 9:return 35;case 13:return 27;case 15:return 29;case 18:return 31;case 20:case 30:case 84:return 11;case 29:return 34;case 31:return 32;case 34:return 3;case 36:return 2;default:return race;}
+}
+bool SameOwner(const CCharacterComponent& c,const EquipmentAttachmentState& state);
+}
+struct EquipmentAttachmentState {
+ CM2Model* model=nullptr;uint32_t handle=0,race=0,fallback=0,sex=0;uint64_t serial=0;uint32_t lastWork=0;bool worked=false;
+ std::array<Slot,11> slots;
+};
+namespace {
+bool SameOwner(const CCharacterComponent& c,const EquipmentAttachmentState& s){auto* model=c.m_data.m_model;return model&&model==s.model&&model->m_handle==s.handle&&c.m_wxlSerial==s.serial;}
+bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t slot,uint32_t display,Slot& output){
+ std::vector<ItemGraphModel> models;std::vector<ItemGraphMaterial> materials;
+ if(!ItemGraphModels(display,models)||!ItemGraphMaterials(display,materials))return false;
+ uint32_t inventory=0;if(!ItemGraphInventoryType(display,inventory)||models.size()>256||materials.size()>256)return false;
+ // Donor Murloc has weapon-only equipment; dragon forms support shoulders
+ // and waist attachments only. Humanoid body layers remain native-owned.
+ const auto wire=c.m_data.m_preferences.m_raceID;
+ if(wire==28||((owner.race==52||owner.race==70)&&slot!=1&&slot!=4)){output.ready=true;return true;}
+ std::vector<std::string> claimed;
+ for(uint32_t prior=0;prior<slot;++prior)for(const auto& child:owner.slots[prior].children)if(child->skinned)claimed.push_back(child->variant);
+ for(const auto& row:models){
+  if((row.modelSlot!=Missing&&row.modelSlot!=slot)||row.attachId==Missing||!Preferred(models,row,owner.race,owner.fallback,owner.sex))continue;
+  const bool skinned=row.attachId==19;const auto path=ObjectPath(row.folder,row.model,false);
+  if(path.empty()||!SFile::FileExists(path.c_str()))return false;
+  const auto variant=skinned?path+"|"+std::to_string(inventory):path;
+  if(skinned&&std::find(claimed.begin(),claimed.end(),variant)!=claimed.end())continue;
+  if(!skinned&&!owner.model->HasAttachment(row.attachId))return false;
+  auto child=std::make_unique<Child>();child->path=path;child->variant=variant;child->skinned=skinned;child->model=owner.model->m_scene->CreateModel(path.c_str(),0);
+  auto* model=child->model;
+  if(!model||!model->IsLoaded(1,0)||!model->m_shared||!model->m_shared->m_data||!model->m_textures||Key(model->m_shared->m_fileName)!=path)return false;
+  if(!Materials(*model,row,materials,owner.race,owner.fallback,owner.sex)||!Filter(*model,row,inventory,skinned))return false;
+  if(skinned){if(!model->SetSkinningSource(owner.model))return false;claimed.push_back(variant);}
+  else {model->AttachToParent(owner.model,row.attachId,nullptr,0);if(model->m_attachParent!=owner.model)return false;}
+  model->SetBoneSequence(0xffffffffu,0,0xffffffffu,0,1.0f,1,1);
+  output.children.push_back(std::move(child));
+ }
+ output.ready=true;return true;
+}
+}
+namespace equipment_attachments {
+void Register(){enabled=CVar::Register("wxlEquipmentAttachments","WXL native retail armor models and native item visual validation",2,WXL_ENABLE_EQUIPMENT_ATTACHMENTS?"1":"0",nullptr,0,false,nullptr,false);}
+bool Enabled() noexcept{return WXL_ENABLE_EQUIPMENT_ATTACHMENTS&&NativeEnabled()&&AssetsEnabled()&&Db2Enabled()&&BlpEnabled()&&enabled&&enabled->m_intValue;}
+bool SuppressNativeArmor(const CCharacterComponent& c,uint32_t slot) noexcept{
+ if(!Enabled()||slot>=11||(c.m_data.m_flags&1u))return false;
+ const auto race=RetailRecipeRace(c);return c.m_data.m_preferences.m_raceID==28||race==52||race==70;
+}
+void InvalidateSlot(CCharacterComponent& c,uint32_t slot) noexcept{
+ if(!c.m_wxlEquipmentAttachments||slot>=11)return;
+ auto& slots=c.m_wxlEquipmentAttachments->slots;slots[slot]=Slot{};
+ for(uint32_t next=slot+1;next<11;++next){slots[next].ready=false;slots[next].retryAt=0;}
+}
+void BindNativeMaterials(CM2Model* model,uint32_t display) noexcept{try{
+ if(!Enabled()||!model)return;std::vector<ItemGraphModel> entries;std::vector<ItemGraphMaterial> materials;
+ if(!ItemGraphModels(display,entries)||!ItemGraphMaterials(display,materials))return;
+ if(!model->IsLoaded(1,0)||!model->m_shared||!model->m_shared->m_data||!model->m_textures)return;
+ const auto actual=Key(model->m_shared->m_fileName);
+ auto stem=[](const std::string& path){const auto start=path.find_last_of("\\/");auto value=path.substr(start==std::string::npos?0:start+1);const auto ext=value.find_last_of('.');return value.substr(0,ext);};
+ for(const auto& entry:entries)if(entry.modelSlot==Missing&&entry.attachId==Missing&&entry.raceId==0&&entry.genderId==Missing&&stem(Key(entry.model))==stem(actual)){
+  Materials(*model,entry,materials,0,0,Missing);return;
+ }
+ }catch(...){}}
+void Release(CCharacterComponent& c) noexcept{delete c.m_wxlEquipmentAttachments;c.m_wxlEquipmentAttachments=nullptr;}
+void Apply(CCharacterComponent& c) noexcept{try{
+ auto* model=c.m_data.m_model;const auto& prefs=c.m_data.m_preferences;
+ if(!Enabled()||(c.m_data.m_flags&1u)||prefs.m_sexID>1||!model){Release(c);return;}
+ bool needed=false;for(uint32_t slot=0;slot<11;++slot)needed|=c.m_itemDisplayID[slot]&&ItemGraphOwnsDisplay(c.m_itemDisplayID[slot]);if(!needed){Release(c);return;}
+ if(!model->IsLoaded(0,0)||!model->m_shared||!model->m_shared->m_data||!model->m_scene||!g_theGxDevicePtr||!g_theGxDevicePtr->CapsHasContext(-1))return;
+ auto race=RetailRecipeRace(c);if(!race)race=RetailRaceId(prefs.m_raceID);const auto fallback=Fallback(prefs.m_raceID,RetailEquipmentRace(c));const auto sex=(race==52||race==70)?0u:prefs.m_sexID;
+ auto* state=c.m_wxlEquipmentAttachments;
+ if(state&&(!SameOwner(c,*state)||state->race!=race||state->fallback!=fallback||state->sex!=sex)){Release(c);state=nullptr;}
+ if(!state){auto next=std::make_unique<EquipmentAttachmentState>();next->model=model;next->handle=model->m_handle;next->serial=c.m_wxlSerial;next->race=race;next->fallback=fallback;next->sex=sex;c.m_wxlEquipmentAttachments=state=next.release();}
+ // Clear unequipped/replaced slot children before any asynchronous graph work.
+ for(uint32_t slot=0;slot<11;++slot)if(state->slots[slot].display!=c.m_itemDisplayID[slot]){state->slots[slot]=Slot{};state->slots[slot].display=c.m_itemDisplayID[slot];
+  // Lower slots own shared collection paths; changed lower ownership wakes
+  // higher slots previously suppressed by that owner, independent of equip order.
+  for(uint32_t higher=slot+1;higher<11;++higher){state->slots[higher].ready=false;state->slots[higher].retryAt=0;}}
+ for(auto& slot:state->slots)if(slot.ready)for(const auto& child:slot.children){
+  if(child->skinned?child->model->m_skinningSource!=model:child->model->m_attachParent!=model){slot.ready=false;slot.retryAt=0;break;}}
+ const auto now=OsGetAsyncTimeMs();if(state->worked&&uint32_t(now-state->lastWork)<16)return;state->worked=true;state->lastWork=now;
+ uint32_t work=0;
+ for(uint32_t slot=0;slot<11&&work<2;++slot){auto& old=state->slots[slot];if(!old.display||old.ready||(old.retryAt&&int32_t(now-old.retryAt)<0))continue;
+  const auto id=old.display;
+  if(id<=uint32_t(INT32_MAX)&&g_itemDisplayInfoDB.m_loaded&&int32_t(id)>=g_itemDisplayInfoDB.m_minID&&int32_t(id)<=g_itemDisplayInfoDB.m_maxID&&g_itemDisplayInfoDB.m_recordsById&&g_itemDisplayInfoDB.m_recordsById[id-g_itemDisplayInfoDB.m_minID]){old.ready=true;continue;}
+  ++work;Slot next;next.display=old.display;next.generation=ItemGraphGeneration();
+  if(BuildSlot(c,*state,slot,old.display,next)){old=std::move(next);}else{old.children.clear();old.retryAt=now+500;}
+ }
+ }catch(...){Release(c);}}
+void ApplyItemVisual(CM2Model* parent,int32_t visual) noexcept{try{
+ if(!parent)return;
+ // Preserve the native owner contract: this item owns its visual children.
+ while(parent->m_attachList){auto* child=parent->m_attachList;child->SetEmittersEnabled(0);child->SetRibbonsEnabled(0);child->DetachFromParent();}
+ if(visual<=0||!parent->m_scene)return;auto* record=g_itemVisualsDB.GetRecord(visual);if(!record)return;
+ for(uint32_t point=0;point<5;++point){if(!parent->IsLoaded(1,0)||!parent->HasAttachment(point))continue;
+  const auto* effect=g_itemVisualEffectsDB.GetRecord(record->m_slot[point]);if(!effect||!effect->m_model||!*effect->m_model)continue;
+  const auto path=Key(effect->m_model);if(path.size()>=260||!SFile::FileExists(path.c_str()))continue;
+  auto child=std::make_unique<Child>();child->model=parent->m_scene->CreateModel(path.c_str(),0);
+  if(!child->model||!child->model->IsLoaded(1,0)||!child->model->m_shared||Key(child->model->m_shared->m_fileName)!=path)continue;
+  child->model->AttachToParent(parent,point,nullptr,0);
+  // Scene attachment retains the visual. Drop only our creation reference.
+  if(child->model->m_attachParent==parent){child->model->Release();child->model=nullptr;}
+ }
+ }catch(...){}}
+}
+}

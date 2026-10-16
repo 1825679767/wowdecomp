@@ -14,7 +14,11 @@ class CParticle2;
 class CTexture;
 namespace wxl::native {
 // Complete source record retained before normalization; no borrowed source bytes.
+enum class BloodSpriteFamily : uint8_t {None,BoilSmoke,BoilScreen,PlagueSmoke};
+void RegisterBloodSpriteMaterials();
 struct ParticleLayerRecipe {
+ BloodSpriteFamily bloodFamily=BloodSpriteFamily::None;
+ std::array<uint32_t,3> sourceTextureIds{};
  uint32_t sourceFlags{};
  uint8_t sourceBlend{};
  uint16_t packedIndices{};
@@ -31,7 +35,7 @@ struct ParticleLayerBinding {
  std::array<CTexture*,3> textures{};
  ~ParticleLayerBinding();
 };
-bool CaptureParticleLayers(const uint8_t*,size_t,ParticleLayerSet&,std::string&);
+bool CaptureParticleLayers(const char*,const uint8_t*,size_t,ParticleLayerSet&,std::string&);
 std::shared_ptr<const ParticleLayerRecipe> ParticleLayersFor(const CM2Shared&,uint32_t) noexcept;
 std::shared_ptr<const ParticleLayerBinding> BindParticleLayers(const CM2Model&,uint32_t) noexcept;
 // Called around native BuildVertex; result order follows native sort/twinkle.

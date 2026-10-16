@@ -44,7 +44,7 @@ bool PrepareModel(CM2Shared& shared){
  try{auto assets=std::make_unique<ModelAssets>();assets->meshPath=shared.m_fileName;assets->meshInput=raw;assets->meshInputSize=shared.m_fileSize;std::vector<uint8_t> converted;wxl::waystone::m2bytes::Stats stats;
   assets->refraction=CaptureParticleRefraction(shared.m_fileName,raw,shared.m_fileSize);
   std::string layerReason;
-  if(!CaptureParticleLayers(raw,shared.m_fileSize,assets->layers,layerReason)){
+  if(!CaptureParticleLayers(shared.m_fileName,raw,shared.m_fileSize,assets->layers,layerReason)){
    WLOG_WARN("native-modern-layers: refused path=%s reason=%s",shared.m_fileName,layerReason.c_str());return false;
   }
   struct Scope{ModelAssets* prior{loading};explicit Scope(ModelAssets* value){loading=value;}~Scope(){loading=prior;}} scope(assets.get());

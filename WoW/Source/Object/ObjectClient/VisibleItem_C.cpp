@@ -1,5 +1,5 @@
 #include "VisibleItem_C.h"
-#include <cstdlib>
+#include "WXL/ItemGraph.hpp"
 #include "WoW/Source/DB/DBClient/DBCacheInstances.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/ItemRec.h"
@@ -17,31 +17,35 @@ static void VisibleItemCacheCallback(int32_t id, const WOWGUID& guid, void* para
 // OFFSET: 0x00758D30
 uint32_t VisibleItem_C::GetClassID() {
     WOWGUID guid = WOWGUID();
-    ItemStats_C* stats = g_itemDBCache.GetRecord(abs(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
+    ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
-    return stats ? stats->m_class : 0;
+    if (stats) return stats->m_class;
+    auto* row = g_itemDB.GetRecord(wxl::native::VisibleItemKey(this->m_itemId));
+    return row ? row->m_classID : 0;
 }
 
 // VERIFY: da6c80bd auto
 // OFFSET: 0x00758D80
 uint32_t VisibleItem_C::GetSubtypeID() {
     WOWGUID guid = WOWGUID();
-    ItemStats_C* stats = g_itemDBCache.GetRecord(abs(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
+    ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
-    return stats ? stats->m_subClass : 0;
+    if (stats) return stats->m_subClass;
+    auto* row = g_itemDB.GetRecord(wxl::native::VisibleItemKey(this->m_itemId));
+    return row ? row->m_subclassID : 0;
 }
 
 // VERIFY: 0eef7107 auto
 // OFFSET: 0x00758DD0
 uint32_t VisibleItem_C::GetInventoryType() {
     WOWGUID guid = WOWGUID();
-    ItemStats_C* stats = g_itemDBCache.GetRecord(abs(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
+    ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
     if (stats) {
         return stats->m_inventoryType;
     }
 
-    ItemRec* rec = g_itemDB.GetRecord(abs(this->m_itemId));
+    ItemRec* rec = g_itemDB.GetRecord(wxl::native::VisibleItemKey(this->m_itemId));
     return rec ? rec->m_inventoryType : 0;
 }
 
@@ -49,13 +53,13 @@ uint32_t VisibleItem_C::GetInventoryType() {
 // OFFSET: 0x00758E50
 uint32_t VisibleItem_C::GetDisplayID() {
     WOWGUID guid = WOWGUID();
-    ItemStats_C* stats = g_itemDBCache.GetRecord(abs(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
+    ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
     if (stats) {
         return stats->m_displayId;
     }
 
-    ItemRec* rec = g_itemDB.GetRecord(abs(this->m_itemId));
+    ItemRec* rec = g_itemDB.GetRecord(wxl::native::VisibleItemKey(this->m_itemId));
     return rec ? rec->m_displayInfoID : 0;
 }
 
@@ -63,13 +67,13 @@ uint32_t VisibleItem_C::GetDisplayID() {
 // OFFSET: 0x00758ED0
 uint32_t VisibleItem_C::GetMaterial() {
     WOWGUID guid = WOWGUID();
-    ItemStats_C* stats = g_itemDBCache.GetRecord(abs(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
+    ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
     if (stats) {
         return stats->m_material;
     }
 
-    ItemRec* rec = g_itemDB.GetRecord(abs(this->m_itemId));
+    ItemRec* rec = g_itemDB.GetRecord(wxl::native::VisibleItemKey(this->m_itemId));
     return rec ? rec->m_material : 0;
 }
 
@@ -77,13 +81,13 @@ uint32_t VisibleItem_C::GetMaterial() {
 // OFFSET: 0x00758F50
 uint32_t VisibleItem_C::GetSheatheType() {
     WOWGUID guid = WOWGUID();
-    ItemStats_C* stats = g_itemDBCache.GetRecord(abs(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
+    ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
     if (stats) {
         return stats->m_sheatheType;
     }
 
-    ItemRec* rec = g_itemDB.GetRecord(abs(this->m_itemId));
+    ItemRec* rec = g_itemDB.GetRecord(wxl::native::VisibleItemKey(this->m_itemId));
     return rec ? rec->m_sheatheType : 0;
 }
 
@@ -91,13 +95,13 @@ uint32_t VisibleItem_C::GetSheatheType() {
 // OFFSET: 0x00758FD0
 uint32_t VisibleItem_C::GetSoundOverrideSubclassID() {
     WOWGUID guid = WOWGUID();
-    ItemStats_C* stats = g_itemDBCache.GetRecord(abs(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
+    ItemStats_C* stats = g_itemDBCache.GetRecord(wxl::native::VisibleItemKey(this->m_itemId), guid, &VisibleItemCacheCallback, nullptr, true);
 
     if (stats) {
         return stats->m_soundOverrideSubclass;
     }
 
-    ItemRec* rec = g_itemDB.GetRecord(abs(this->m_itemId));
+    ItemRec* rec = g_itemDB.GetRecord(wxl::native::VisibleItemKey(this->m_itemId));
     return rec ? rec->m_soundOverrideSubclassID : 0;
 }
 

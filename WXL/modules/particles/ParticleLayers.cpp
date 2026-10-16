@@ -1,6 +1,7 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ParticleLayers.hpp"
 #include "ParticleLayerMaterial.hpp"
+#include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
@@ -16,9 +17,13 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <atomic>
+#include <cstdlib>
 namespace wxl::native {
 namespace {
 namespace programs=wxl::modern::particlelayers::programs;
+std::atomic<bool> bloodModulation{true};
+bool BloodModulationChanged(CVar*,const char*,const char* text,void*){char* end=nullptr;const long n=text?std::strtol(text,&end,10):0;bloodModulation.store(text&&end!=text&&!*end&&n==1,std::memory_order_release);return true;}
 uint32_t Mix(uint32_t x){x^=x>>16;x*=0x7feb352du;x^=x>>15;x*=0x846ca68bu;return x^(x>>16);}
 float Unit(uint32_t x){return float(Mix(x)>>8)*(1.0f/16777216.0f);}
 struct ShaderPair {
@@ -78,6 +83,7 @@ struct DrawScope {
  }
 };
 }
+void RegisterBloodSpriteMaterials(){auto* cv=CVar::Register("wxlBloodSpriteModulation","Experimental named Blood Boil/Plague RGB4x donor candidate: 0 unity, 1 source modulation",2,"1",BloodModulationChanged,0,false,nullptr,false);if(cv)BloodModulationChanged(cv,nullptr,cv->m_stringValue.m_str,nullptr);}
 ParticleLayerBinding::~ParticleLayerBinding(){for(auto* texture:textures)if(texture)HandleClose(reinterpret_cast<HOBJECT>(texture));}
 std::shared_ptr<const ParticleLayerBinding> BindParticleLayers(const CM2Model& model,uint32_t index) noexcept{
  try{
@@ -146,6 +152,16 @@ bool DrawParticleLayers(CParticleEmitter2& emitter){
  if(!ResolveParticleLayerMaterial(binding->recipe->sourceBlend,material) ||
     emitter.m_params.m_materialBlend!=uint32_t(material.nativeBlend) ||
     device->m_appRenderStates[GxRs_BlendingMode].m_value.m_data.i[0]!=int32_t(material.nativeBlend))return false;
+ const bool blood=binding->recipe->bloodFamily!=BloodSpriteFamily::None;
+ const bool bloodScreen=binding->recipe->bloodFamily==BloodSpriteFamily::BoilScreen;
+ if(blood){
+  if(lit||binding->recipe->sourceFlags!=((binding->recipe->sourceFlags&0x1000u)?0x70831011u:0x70830011u)||
+     binding->recipe->sourceBlend!=(bloodScreen?7:2)||binding->recipe->packedIndices!=(bloodScreen?4227:2113)||
+     binding->recipe->txac!=(bloodScreen?std::array<uint8_t,2>{0,0}:std::array<uint8_t,2>{1,1}))return false;
+  const auto& ids=binding->recipe->sourceTextureIds;
+  if(bloodScreen ? ids!=std::array<uint32_t,3>{1601199,1601200,1601200} :
+     ids!=(binding->recipe->bloodFamily==BloodSpriteFamily::PlagueSmoke?std::array<uint32_t,3>{1601219,1601220,1601220}:std::array<uint32_t,3>{1601219,1602396,1602396}))return false;
+ }
  if(emitter.m_renderedParticles>16384u/perParticle)return false;
  const auto vertices=emitter.m_renderedParticles*perParticle;
  if(!vertices || vertices>16384 || emitter.m_wxlLayerVertices.size()!=size_t(vertices)*stride ||
@@ -158,6 +174,9 @@ bool DrawParticleLayers(CParticleEmitter2& emitter){
   DrawScope scope(*device);std::array<CGxTex*,3> textures{};
   for(unsigned i=0;i<3;++i){textures[i]=TextureGetGxTex(binding->textures[i],0,nullptr);if(!textures[i] || textures[i]->m_target!=GxTex_2d)return false;}
   scope.SaveTextures(textures);
+  // Exact named donor material path, kept separate from generic native Screen.
+  // Typed Gx BlendAdd is ONE/INV_SRC_ALPHA with ADD and no separate alpha.
+  if(bloodScreen){device->RsSet(GxRs_BlendingMode,GxBlend_BlendAdd);device->RsSet(GxRs_AlphaRef,0);device->RsSet(GxRs_DepthWrite,0);}
   if(!lit){if(!shaders.Load(shaders.vertex,GxSh_Vertex,"WXL.NativeLayer.Unlit.v1",programs::Unlit))return false;}
   else switch(CShaderEffect::s_localLightCount){
    case 0:if(!shaders.Load(shaders.vertex,GxSh_Vertex,"WXL.NativeLayer.Directional.v1",programs::Directional))return false;break;
@@ -197,13 +216,16 @@ bool DrawParticleLayers(CParticleEmitter2& emitter){
   device->PrimVertexFormat(buffer,attribs,attribCount);device->PrimVertexMask((1u<<GxVA_Position)|(lit?(1u<<GxVA_Normal):0u)|(1u<<GxVA_Color0)|(1u<<GxVA_TexCoord0)|(1u<<GxVA_TexCoord1)|(1u<<GxVA_TexCoord2));
   device->PrimIndexPtr(CParticleEmitter2::s_indexBuf);device->RsSet(GxRs_VertexShader,shaders.vertex);device->RsSet(GxRs_PixelShader,shaders.pixel);
   for(size_t begin=0;begin<emitter.m_renderedParticles;){
-   const auto cutoffAt=[&](size_t i){return (std::max)(CShaderEffect::s_fogColorAlphaRef.w,emitter.m_params.m_wxlCutoff?emitter.m_wxlRenderedCutoffs[i]:0.0f);};
+   const auto cutoffAt=[&](size_t i){return blood?1.0f/255.0f:(std::max)(CShaderEffect::s_fogColorAlphaRef.w,emitter.m_params.m_wxlCutoff?emitter.m_wxlRenderedCutoffs[i]:0.0f);};
    const float cutoff=cutoffAt(begin);if(!std::isfinite(cutoff)||cutoff<0||cutoff>1)return false;
    size_t end=begin+1;while(end<emitter.m_renderedParticles && cutoffAt(end)==cutoff)++end;
    // RGB/alpha extension multipliers were already baked into native keys.
    // Weighted additive applies alpha exactly once in the native blend stage;
    // unweighted additive/Screen preserve independent RGB and opacity.
-   const float parameters[4]{1,1,cutoff,0};device->ShaderConstantsSet(GxSh_Pixel,0,parameters,1);
+   // Full existing donor approximation: RGB-only Modx4 candidate, independent
+   // opacity, material cutoff, and the BlendAdd layer0 test on exact2/5 only.
+   // TXAC UV composition remains approximate; no new retail equation is claimed.
+   const float parameters[4]{blood&&bloodModulation.load(std::memory_order_acquire)?4.0f:1.0f,1,cutoff,bloodScreen?1.0f:0.0f};device->ShaderConstantsSet(GxSh_Pixel,0,parameters,1);
    // One lifetime cutoff covers the logical particle, including both quads.
    // Native shared quad indices stay consecutive:4/6 or8/12 per particle.
    CGxBatch batch;batch.m_primType=GxPrim_Triangles;batch.m_start=uint32_t(begin)*indicesPerParticle;batch.m_count=uint32_t(end-begin)*indicesPerParticle;

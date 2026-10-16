@@ -1,3 +1,5 @@
+#include "WXL/EquipmentAttachments.hpp"
+#include "WXL/ItemGraph.hpp"
 #include "WXL/PrivateAppearances.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -2005,6 +2007,7 @@ void CCharacterComponent::FreeSectionTexture(COMPONENT_SECTIONS section, int32_t
 // VERIFY: edb8c917 auto
 // OFFSET: 0x004EA8F0
 void CCharacterComponent::ComponentUtilAddItemVisual(CM2Model* model, int32_t itemVisual) {
+    if (wxl::native::equipment_attachments::Enabled()) {wxl::native::equipment_attachments::ApplyItemVisual(model,itemVisual);return;}
     while (model->m_attachList) {
         model->m_attachList->DetachFromParent();
     }
@@ -2076,6 +2079,7 @@ void CCharacterComponent::AddLink(CM2Model* parent, GEOCOMPONENTLINKS link, cons
     model->ReplaceTexture(2, texture);
     HandleClose(reinterpret_cast<HOBJECT>(texture));
 
+    wxl::native::equipment_attachments::BindNativeMaterials(model,uint32_t(displayRec->m_id));
     if (itemVisual > 0) {
         CCharacterComponent::ComponentUtilAddItemVisual(model, itemVisual);
     }
@@ -2136,6 +2140,7 @@ CM2Model* CCharacterComponent::MakeAmmoModel(CM2Model* model, const ItemDisplayI
 
     ammoModel->ReplaceTexture(2, texture);
     HandleClose(reinterpret_cast<HOBJECT>(texture));
+    wxl::native::equipment_attachments::BindNativeMaterials(ammoModel,uint32_t(displayRec->m_id));
     CCharacterComponent::ComponentUtilAddItemVisual(ammoModel, displayRec->m_itemVisual);
 
     return ammoModel;
@@ -3457,7 +3462,7 @@ static bool __stdcall ItemDisplayHasGeosetGroup(uint32_t displayID, int32_t grou
 // VERIFY: 197cf0f7 manual
 // OFFSET: 0x004ED900
 void CCharacterComponent::GeosRenderPrep() {
-    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);} } privatePost{*this};
+    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);wxl::native::equipment_attachments::Apply(c);} } privatePost{*this};
     bool eyeGlow = false;
 
     if (this->m_data.m_preferences.m_classId == 6) {
@@ -3730,6 +3735,8 @@ inline ITEM_SLOT CCharacterComponent::GetItemSlotForInvSlot(INVENTORY_SLOTS invS
 // VERIFY: d14b01cc manual
 // OFFSET: 0x004EE460
 void CCharacterComponent::RemoveItem(ITEM_SLOT itemSlot) {
+    wxl::native::equipment_attachments::InvalidateSlot(*this,uint32_t(itemSlot));
+    if (uint32_t(itemSlot)<12) { m_wxlPendingItemDisplay[uint32_t(itemSlot)]=0; m_wxlPendingItemVisual[uint32_t(itemSlot)]=0; }
     if (!this->m_itemDisplayID[itemSlot]) {
         return;
     }
@@ -4254,6 +4261,7 @@ CCharacterComponent::CCharacterComponent() {
 // VERIFY: 4f3c1a66 manual
 // OFFSET: 0x004EFCA0
 CCharacterComponent::~CCharacterComponent() {
+    wxl::native::equipment_attachments::Release(*this);
     wxl::native::private_appearances::Release(*this);
     wxl::native::ReleaseAppearance(*this);
     wxl::native::ReleaseRetailChoices(*this);
@@ -4963,7 +4971,7 @@ void CCharacterComponent::RenderPrepFO() {
 // VERIFY: 3f0fe5f0 auto
 // OFFSET: 0x004F0E80
 void CCharacterComponent::ProcessFinishedRequest() {
-    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);} } privatePost{*this};
+    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);wxl::native::equipment_attachments::Apply(c);} } privatePost{*this};
     CCharacterComponent::s_bInRenderPrep = 1;
 
     if (this->m_flags & 0x4) {
@@ -5140,7 +5148,7 @@ uint32_t STORMAPI CCharacterComponent::ThreadProc(void* param) {
 // VERIFY: 39b04695 auto
 // OFFSET: 0x004F14A0
 void CCharacterComponent::RenderPrepSections() {
-    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);} } privatePost{*this};
+    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);wxl::native::equipment_attachments::Apply(c);} } privatePost{*this};
     CCharacterComponent::s_bInRenderPrep = 1;
 
     if (this->m_flags & 0x4) {
@@ -5162,7 +5170,8 @@ void CCharacterComponent::RenderPrepSections() {
 // VERIFY: e78118c6 manual
 // OFFSET: 0x004F1520
 bool CCharacterComponent::RenderPrep(int32_t wait) {
-    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);} } privatePost{*this};
+    wxl::native::RetryItemGraph(*this);
+    struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);wxl::native::equipment_attachments::Apply(c);} } privatePost{*this};
     if (wxl::native::ApplyAppearance(*this)) {
         this->m_link.Unlink();
         return true;
@@ -5570,6 +5579,7 @@ bool CCharacterComponent::Destroy() {
 // VERIFY: 0acf5d15 manual
 // OFFSET: 0x004F24D0
 bool CCharacterComponent::Init(ComponentData* data, const char* debug) {
+    wxl::native::equipment_attachments::Release(*this);
     wxl::native::ReleaseAppearance(*this);
     wxl::native::ReleaseRetailChoices(*this);
     if (this->m_data.m_model) {
@@ -5618,6 +5628,13 @@ bool CCharacterComponent::Init(ComponentData* data, const char* debug) {
 // VERIFY: 474cb696 manual
 // OFFSET: 0x004F2640
 void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, const ItemDisplayInfoRec* displayRec, int32_t itemVisual) {
+    if (displayRec && wxl::native::equipment_attachments::SuppressNativeArmor(*this,uint32_t(itemSlot))) {
+        this->RemoveItem(itemSlot);
+        this->m_itemDisplayID[itemSlot]=displayRec->m_id;
+        this->m_flags|=4u;
+        return;
+    }
+    if (uint32_t(itemSlot)<12) { m_wxlPendingItemDisplay[uint32_t(itemSlot)]=0; m_wxlPendingItemVisual[uint32_t(itemSlot)]=0; }
     this->m_flags |= 0x4;
     this->m_itemDisplayID[itemSlot] = displayRec->m_id;
 
@@ -5690,6 +5707,9 @@ void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, int32_t displayID, int32_t
 
     if (g_itemDisplayInfoDB.GetRecord(displayID, &rec)) {
         this->AddItem(itemSlot, &rec, itemVisual);
+    } else if (uint32_t(itemSlot)<12) {
+        m_wxlPendingItemDisplay[uint32_t(itemSlot)]=uint32_t(displayID);
+        m_wxlPendingItemVisual[uint32_t(itemSlot)]=itemVisual;
     }
 }
 

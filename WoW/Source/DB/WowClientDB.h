@@ -3,6 +3,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
+#include "WXL/ItemGraph.hpp"
 #include <cstring>
 #include <new>
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -280,13 +282,11 @@ void* WowClientDB<T>::GetRecordIndex() {
 // OFFSET: [0x0065C290<LiquidTypeRec>]
 template <class T>
 T* WowClientDB<T>::GetRecord(int32_t id) const {
-    if (id < this->m_minID || id > this->m_maxID) {
-        return nullptr;
-    }
-
-    return this->m_recordsById[id - this->m_minID];
+    T* row = this->m_recordsById && id>=this->m_minID && id<=this->m_maxID ? this->m_recordsById[id-this->m_minID] : nullptr;
+    if (row) return row;
+    if constexpr (std::is_same_v<T,ItemRec>) return wxl::native::MissingItemRecord(id);
+    return nullptr;
 }
-
 // INLINED
 template <class T>
 WowClientDB_RLE<T>::WowClientDB_RLE() {
@@ -432,16 +432,14 @@ int32_t WowClientDB_RLE<T>::GetRecordByIndex(int32_t index, T* rec) const {
 // OFFSET: [0x004CFD20<SpellRec>, 0x004CFD90<ItemDisplayInfoRec>, 0x007EB210]
 template <class T>
 int32_t WowClientDB_RLE<T>::GetRecord(int32_t id, T* rec) const {
-    if (id < this->m_minID || id > this->m_maxID) {
+    auto missing=[&]() -> int32_t {
+        if constexpr (std::is_same_v<T,ItemDisplayInfoRec>) return wxl::native::MissingItemDisplayRecord(id,rec)?1:0;
         return 0;
-    }
-
-    T** slot = &this->m_recordsById[id - this->m_minID];
-
-    if (!*slot) {
-        return 0;
-    }
-
+    };
+    if (!rec) return 0;
+    if (!this->m_recordsById || id<this->m_minID || id>this->m_maxID) return missing();
+    T** slot=&this->m_recordsById[id-this->m_minID];
+    if (!*slot) return missing();
     if (g_clientDbPerformCompress) {
         DecompressRow(reinterpret_cast<const uint8_t*>(*slot), sizeof(T), reinterpret_cast<uint8_t*>(rec));
     } else {
