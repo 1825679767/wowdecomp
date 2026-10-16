@@ -468,6 +468,7 @@ bool CMapObj::Read(char* fileName) {
 // VERIFY: a3a005c2 manual
 // OFFSET: 0x007D81C0
 void CMapObjGroup::HandleAntiportal() {
+    if(wxl::native::world::IsPreparedWmo(this->m_parent)){this->m_intBatchCount=0;this->m_extBatchCount=0;return;}
     for (uint32_t i = 0; i < static_cast<uint32_t>(this->m_polyListSize); i++) {
         C3Vector* verts[3];
         verts[0] = &this->m_vertexList[this->m_indices[3 * i]];
