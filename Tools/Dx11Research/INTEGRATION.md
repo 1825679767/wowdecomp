@@ -1,9 +1,13 @@
 # Combined native x64 / DX11 integration
 
-Branch `integration/dx11-x64-20261016` starts from current x64 commit
+Branch `integration/dx11-x64-20261016` starts from captured x64 commit
 `a6e243bb257d00241c22aa48cf522c7326560964`, preserves its captured uncommitted
 custom-material visibility ownership fix, and merges all eight DX11 commits
 through `c524e6a55360cf90e61e275ce2686c60d3b9a162`.
+The subsequent merge includes x64 `f4f8382bd124d9cc92d934a106f800647cba30b0`:
+native CPU custom material draws, rebuilt topology/section ownership, procedural
+enchant composition, timed phases and clone lifetimes. CPU state restoration
+also uses the typed backend dispatcher on DX11.
 
 The active x64 and original DX11 repositories remain independent. Later active
 x64 changes require a reviewed subsequent merge; this branch names an exact
@@ -29,3 +33,7 @@ layered custom strides, DnD programs, stage-local sampler state, scene capture
 pixels and donor refraction. These automated proofs do not establish visual
 or authenticated world acceptance. Retain D3D9/default-OFF builds and private
 offline fixtures; no active-client installation or publication is implied.
+The optional `fullscreen` backend test also exercises exclusive mode entry,
+focus loss/return, gamma application/restoration paths and return to a window.
+GPU target pixels and successful API transitions do not establish monitor
+colour calibration, visible gamma correctness or performance acceptance.
