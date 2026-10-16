@@ -2454,7 +2454,7 @@ void CGGameUI::ClearCursor(int32_t a1, int32_t a2) {
             CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPEMASK_ITEM, __FILE__, __LINE__));
 
             if (item) {
-                SndInterfacePlayItemSound(1, item);
+                SndInterfacePlayItemSound(ITEMSOUND_DROP, item);
             }
 
             CGGameUI::m_cursorItem = WOWGUID();
@@ -2487,7 +2487,7 @@ void CGGameUI::ClearCursor(int32_t a1, int32_t a2) {
         case 6:
         case 7:
         case 9:
-            SI2::PlayItemSound(1, CGGameUI::m_cursorVirtualDisplay);
+            SI2::PlayItemSound(ITEMSOUND_DROP, CGGameUI::m_cursorVirtualDisplay);
             CGGameUI::m_cursorVirtualID = 0;
             CGGameUI::m_cursorVirtualDisplay = 0;
             CGGameUI::m_cursorVirtualSlot = 0;
@@ -2505,7 +2505,7 @@ void CGGameUI::ClearCursor(int32_t a1, int32_t a2) {
             break;
 
         case 11:
-            SI2::PlayItemSound(1, CGGameUI::m_cursorVirtualDisplay);
+            SI2::PlayItemSound(ITEMSOUND_DROP, CGGameUI::m_cursorVirtualDisplay);
 
             if (a1 && CGGameUI::m_cursorVirtualID) {
                 CGGuildBankInfo::Unlock(CGGameUI::m_cursorVirtualID, CGGameUI::m_cursorVirtualSlot);
@@ -3354,7 +3354,7 @@ void CGGameUI::SetCursorVirtualItem(int32_t id, int32_t displayId, int32_t slot,
     }
 
     CursorGrabVirtualItem(displayId);
-    SI2::PlayItemSound(0, displayId);
+    SI2::PlayItemSound(ITEMSOUND_PICKUP, displayId);
     FrameScript_SignalEvent(SCRIPT_EVENT_CURSOR_UPDATE, nullptr);
 }
 
@@ -3553,7 +3553,7 @@ void OnItemPushResult(WOWGUID guid, uint8_t bag, uint32_t slot, uint32_t itemId,
             CGTutorial::TriggerTutorial(11);
         }
 
-        SI2::PlayItemSound(1, stats->m_displayId);
+        SI2::PlayItemSound(ITEMSOUND_DROP, stats->m_displayId);
     } else if ((!received || created) && showInChat) {
         if (static_cast<int32_t>(count) > 1) {
             const char* format = FrameScript_GetText(created ? "CREATED_ITEM_MULTIPLE" : "LOOT_ITEM_MULTIPLE", -1, GENDER_NOT_APPLICABLE);
@@ -5829,7 +5829,7 @@ void CGGameUI::SetCursorItem(WOWGUID item, WOWGUID container, uint32_t slot, int
         }
 
         if (playSound) {
-            SndInterfacePlayItemSound(0, itemObject);
+            SndInterfacePlayItemSound(ITEMSOUND_PICKUP, itemObject);
         }
     }
 

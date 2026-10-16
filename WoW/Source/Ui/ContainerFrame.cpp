@@ -294,7 +294,7 @@ int32_t UpdateContainerContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fie
         ItemRec* item = g_itemDB.GetRecord(CGGameUI::m_autoStoreItemID);
 
         if (item) {
-            SI2::PlayItemSound(1, item->m_displayInfoID);
+            SI2::PlayItemSound(ITEMSOUND_DROP, item->m_displayInfoID);
         }
     }
 
@@ -347,7 +347,7 @@ int32_t UpdateInvContents(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize
         ItemRec* item = g_itemDB.GetRecord(CGGameUI::m_autoStoreItemID);
 
         if (item) {
-            SI2::PlayItemSound(1, item->m_displayInfoID);
+            SI2::PlayItemSound(ITEMSOUND_DROP, item->m_displayInfoID);
         }
     }
 

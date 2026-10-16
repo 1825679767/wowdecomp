@@ -8449,7 +8449,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
     }
 
     if (item) {
-        SndInterfacePlayItemSound(2, const_cast<CGItem_C*>(item));
+        SndInterfacePlayItemSound(ITEMSOUND_USE, const_cast<CGItem_C*>(item));
     } else if (spell.m_attributes & 0x10) {
         SI2::PlaySoundKit("GAMEABILITYACTIVATE", nullptr, nullptr, nullptr);
     } else {
