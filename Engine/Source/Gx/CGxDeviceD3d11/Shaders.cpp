@@ -205,6 +205,20 @@ bool CGxDeviceD3d11::SyncDraw(EGxPrim primitive){
     m->context->IASetInputLayout(found->second.Get());m->context->IASetVertexBuffers(0,UINT(streams.size()),buffers,strides,offsets);
     m->context->VSSetShader(vertex->vertex.Get(),nullptr,0);m->context->PSSetShader(pixel->pixel.Get(),nullptr,0);
     if(!m->UploadConstants(*vertex,true)||!m->UploadConstants(*pixel,false)||!m->States())return false;
+    char traceState[8]{};if(m->presentedFrames==90&&GetEnvironmentVariableA("WXL_DX11_TRACE_DRAWS",traceState,sizeof(traceState))){
+        static uint32_t stateDraw=0;++stateDraw;
+        if(stateDraw==5){
+            for(uint32_t stage=0;stage<2;++stage){
+                char name[128];std::snprintf(name,sizeof(name),"Logs/dx11-state-%u-constants.bin",stage);
+                FILE* file=nullptr;fopen_s(&file,name,"wb");if(file){fwrite(ShaderConstantsLock(stage?GxSh_Pixel:GxSh_Vertex),1,4096,file);fclose(file);}
+                const auto& shader=stage?pixel:vertex;ComPtr<ID3DBlob> code;
+                if(SUCCEEDED(D3DDisassemble(shader->translated.dxbc.data(),shader->translated.dxbc.size(),0,nullptr,&code))){
+                    std::snprintf(name,sizeof(name),"Logs/dx11-state-%u-shader.txt",stage);fopen_s(&file,name,"wb");
+                    if(file){fwrite(code->GetBufferPointer(),1,code->GetBufferSize(),file);fclose(file);}
+                }
+            }
+        }
+    }
     for(uint32_t i=0;i<16;++i){auto* t=static_cast<CGxTex*>(m_appRenderStates[GxRs_Texture0+i].m_value.m_data.p);
         ID3D11ShaderResourceView* srv=nullptr;
         if(t&&t!=m_textureTarget[GxBuffers_Color].m_texture&&t!=m_textureTarget[GxBuffers_Depth].m_texture)srv=m->textures[t].srv.Get();
