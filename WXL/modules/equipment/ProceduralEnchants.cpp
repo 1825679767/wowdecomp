@@ -3,10 +3,12 @@
 #include "WXL/ProceduralEnchants.hpp"
 #include "WXL/EquipmentAttachments.hpp"
 #include "WXL/ItemGraph.hpp"
+#include "WXL/ProceduralPayload.hpp"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Scene.h"
 #include <array>
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <memory>
@@ -16,7 +18,7 @@
 #endif
 namespace wxl::native {
 struct ProceduralEnchantState {
- CM2Model* model=nullptr;CM2Scene* scene=nullptr;uint32_t handle=0;
+ CM2Model* model=nullptr;CM2Scene* scene=nullptr;uint32_t handle=0,startTime=0;
  ProceduralEnchantState* previous=nullptr;ProceduralEnchantState* next=nullptr;
  std::array<float,4> baseline{},last{},wanted{};std::array<bool,4> owned{};
  // Retain exact modern link/procedure/source-selector payload ownership.
@@ -26,21 +28,31 @@ namespace procedural_enchants {namespace {
 CVar* enabled=nullptr;
 constexpr uint32_t MaxOwners=1024,MaxProcedures=256;
 std::array<float*,4> Fields(CM2Model& m){return {&m.m_diffuseTintR,&m.m_diffuseTintG,&m.m_diffuseTintB,&m.m_fadeAlpha};}
-bool Shape(const ItemGraphProcedural& row,std::array<float,4>& value){
- for(uint32_t i=0;i<4;++i){value[i]=std::bit_cast<float>(row.rawValues[i]);if(!std::isfinite(value[i]))return false;}
- if(value[1]!=0||value[2]!=0||value[3]!=0)return false;
- // Root-approved cross-generation compatibility mapping only. Other modern
- // procedure numbers are not dispatched as native CharProc enum values.
- return (row.type==1&&value[0]>=0&&value[0]<=16777215&&std::trunc(value[0])==value[0])
-     ||(row.type==14&&value[0]>=0&&value[0]<=1);
+bool SameSource(const ItemGraphProcedural& a,const ItemGraphProcedural& b){
+ if(a.kitId!=b.kitId||a.kitEffectId!=b.kitEffectId||a.procedureId!=b.procedureId||a.type!=b.type||a.displayWeaponSubclassId!=b.displayWeaponSubclassId||a.sourceEffectId!=b.sourceEffectId)return false;
+ for(uint32_t i=0;i<4;++i)if(a.rawValues[i]!=b.rawValues[i])return false;return true;
 }
 void Write(ProceduralEnchantState& s){
  const auto fields=Fields(*s.model);
- for(uint32_t i=0;i<4;++i)if(s.owned[i]){
-  // Adopt an intervening native writer's value as the new rollback baseline.
-  if(*fields[i]!=s.last[i])s.baseline[i]=*fields[i];
-  *fields[i]=s.wanted[i];s.last[i]=s.wanted[i];
+ for(uint32_t i=0;i<4;++i)if(s.owned[i]&&*fields[i]!=s.last[i])s.baseline[i]=*fields[i];
+ s.wanted=s.baseline;const auto elapsed=uint32_t(s.scene->m_time-s.startTime);
+ for(const auto& row:s.sources){std::array<float,4> value;if(!DecodeProceduralPayload(row,value))continue;
+  if(row.type==1||row.type==13){
+   const auto rgb=uint32_t(value[0]);const float color[]={float((rgb>>16)&255)/255,float((rgb>>8)&255)/255,float(rgb&255)/255};float factor=1;
+   if(row.type==13){
+    const auto delay=uint32_t(double(value[1])*1000.0),duration=uint32_t(double(value[2])*1000.0);
+    if(elapsed>=uint64_t(delay)+duration)continue;
+    // Native GetFlashColor holds full flash until delay, then quantizes its fade.
+    if(elapsed>=delay){const auto level=int((1.0-double(elapsed-delay)/duration)*255.0);factor=float(std::clamp(level,0,255))/255.0f;}
+   }
+   for(uint32_t i=0;i<3;++i)s.wanted[i]+=(color[i]-s.wanted[i])*factor;
+  }else if(row.type==14){
+   const auto fade=uint32_t(double(value[2])*1000.0);
+   const auto factor=fade?std::min(1.0,double(elapsed)/fade):1.0;
+   s.wanted[3]=float(s.wanted[3]+(value[0]-s.wanted[3])*factor);
+  }
  }
+ for(uint32_t i=0;i<4;++i)if(s.owned[i]){*fields[i]=s.wanted[i];s.last[i]=s.wanted[i];}
 }
 }
 void Register(){enabled=CVar::Register("wxlProceduralEnchants","WXL bounded legacy-compatible retail enchant tint/alpha payloads",2,WXL_ENABLE_PROCEDURAL_ENCHANTS?"1":"0",nullptr,0,false,nullptr,false);}
@@ -55,14 +67,15 @@ void Release(CM2Model* model) noexcept{try{
  delete state;
  }catch(...){}}
 void Apply(CM2Model* model,const ItemGraphVisual& visual,uint32_t subclass) noexcept{try{
- Release(model);if(!Enabled()||!model||!model->m_scene||visual.procedurals.size()>MaxProcedures||model->m_scene->m_wxlProceduralEnchantCount>=MaxOwners)return;
- auto next=std::make_unique<ProceduralEnchantState>();next->model=model;next->handle=model->m_handle;next->scene=model->m_scene;
+ if(!Enabled()||!model||!model->m_scene||visual.procedurals.size()>MaxProcedures){Release(model);return;}
+ std::vector<ItemGraphProcedural> selected;selected.reserve(visual.procedurals.size());
+ for(const auto& row:visual.procedurals){if(row.displayWeaponSubclassId!=UINT32_MAX&&row.displayWeaponSubclassId!=subclass)continue;std::array<float,4> value;if(DecodeProceduralPayload(row,value))selected.push_back(row);}
+ if(const auto* old=model->m_wxlProceduralEnchant;old&&old->scene==model->m_scene&&old->handle==model->m_handle&&old->sources.size()==selected.size()&&std::equal(old->sources.begin(),old->sources.end(),selected.begin(),SameSource))return;
+ Release(model);if(model->m_scene->m_wxlProceduralEnchantCount>=MaxOwners)return;
+ auto next=std::make_unique<ProceduralEnchantState>();next->model=model;next->handle=model->m_handle;next->scene=model->m_scene;next->startTime=model->m_scene->m_time;next->sources=std::move(selected);
  const auto fields=Fields(*model);for(uint32_t i=0;i<4;++i)next->baseline[i]=next->last[i]=next->wanted[i]=*fields[i];
- for(const auto& row:visual.procedurals){if(row.displayWeaponSubclassId!=UINT32_MAX&&row.displayWeaponSubclassId!=subclass)continue;
-  std::array<float,4> value;if(!Shape(row,value))continue;next->sources.push_back(row);
-  if(row.type==1){const auto rgb=uint32_t(value[0]);next->wanted[0]=float((rgb>>16)&255)/255;next->wanted[1]=float((rgb>>8)&255)/255;next->wanted[2]=float(rgb&255)/255;next->owned[0]=next->owned[1]=next->owned[2]=true;}
-  else if(row.type==14){next->wanted[3]=value[0];next->owned[3]=true;}
- }
+ for(const auto& row:next->sources){if(row.type==1||row.type==13)next->owned[0]=next->owned[1]=next->owned[2]=true;else if(row.type==14)next->owned[3]=true;}
+
  if(next->sources.empty())return;
  auto* scene=next->scene;next->next=scene->m_wxlProceduralEnchantHead;if(next->next)next->next->previous=next.get();scene->m_wxlProceduralEnchantHead=next.get();++scene->m_wxlProceduralEnchantCount;
  model->m_wxlProceduralEnchant=next.release();Write(*model->m_wxlProceduralEnchant);
@@ -71,6 +84,7 @@ void Clone(const CM2Model& source,CM2Model& destination) noexcept {try{
  const auto* state=source.m_wxlProceduralEnchant;if(!state)return;ItemGraphVisual visual;visual.procedurals=state->sources;
  // Stored rows have already passed the source subclass selector.
  for(auto& row:visual.procedurals)row.displayWeaponSubclassId=UINT32_MAX;Apply(&destination,visual,UINT32_MAX);
+ if(auto* copied=destination.m_wxlProceduralEnchant;copied&&source.m_scene){copied->startTime=destination.m_scene->m_time-uint32_t(source.m_scene->m_time-state->startTime);Write(*copied);}
  }catch(...){Release(&destination);}}
 void TickScene(CM2Scene* scene) noexcept{try{
  if(!scene)return;auto* state=scene->m_wxlProceduralEnchantHead;uint32_t count=0;

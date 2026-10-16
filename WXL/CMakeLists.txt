@@ -50,7 +50,7 @@ target_compile_definitions(WxlSpellVisuals PRIVATE WXL_ENABLE_RETAIL_SPELL_VISUA
 wxl_module(WxlDB2 DB2 modules/db2/FdidCompat.cpp
  modules/db2/items/RetailItemIndex.cpp modules/db2/items/RetailItemCatalog.cpp
  modules/db2/items/ItemDisplayIndex.cpp modules/db2/items/NativeItemRows.cpp
- modules/db2/items/ItemVisualGraph.cpp
+ modules/db2/items/ItemVisualGraph.cpp modules/db2/items/PositionerGraph.cpp
  "${V}/extensions/wxl-db2/src/decode/DB2File.cpp" "${V}/extensions/wxl-db2/src/decode/Db2Decode.cpp"
  "${V}/extensions/wxl-db2/src/decode/Wdc5.cpp" "${V}/extensions/wxl-db2/src/decode/Wdc5Table.cpp"
  "${V}/extensions/wxl-db2/src/api/Db2.cpp" "${V}/extensions/wxl-db2/src/schemas/AppearanceStore.cpp")
