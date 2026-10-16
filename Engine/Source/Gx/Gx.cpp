@@ -9,6 +9,9 @@
 #include "Engine/Source/Gx/Buffer.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxPool.h"
+#ifdef WXL_ENABLE_DX11
+#include "Engine/Source/Gx/CGxDeviceD3d11/CGxDeviceD3d11.h"
+#endif
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
@@ -127,6 +130,10 @@ EGxApi GxDefaultApi() {
 // OFFSET: 0x006811D0
 int32_t GxApiSupported(EGxApi api) {
     switch (api) {
+#ifdef WXL_ENABLE_DX11
+        case GxApi_D3d11:
+            return CGxDeviceD3d11::Available();
+#endif
         case GxApi_OpenGl:
         case GxApi_D3d9:
         case GxApi_D3d9Ex:
@@ -182,7 +189,7 @@ int32_t GxVertexHasAttrib(EGxVertexBufferFormat format, EGxVertexAttrib attrib) 
 // VERIFY: ca53a8f5 auto
 // OFFSET: 0x00681290
 CGxDevice* CreateGxDevice(EGxApi api, GxWindowProc windowProc, const CGxFormat& format) {
-    CGxDevice* device;
+    CGxDevice* device = nullptr;
 
     switch (api) {
         case GxApi_OpenGl:
@@ -199,13 +206,19 @@ CGxDevice* CreateGxDevice(EGxApi api, GxWindowProc windowProc, const CGxFormat& 
             device = CreateCGxDeviceD3d9Ex();
             g_theGxDevicePtr = device;
             break;
+#ifdef WXL_ENABLE_DX11
+        case GxApi_D3d11:
+            device = CreateCGxDeviceD3d11();
+            g_theGxDevicePtr = device;
+            break;
+#endif
 
         default:
             device = g_theGxDevicePtr;
             break;
     }
 
-    if (device->DeviceCreate(windowProc, format)) {
+    if (device && device->DeviceCreate(windowProc, format)) {
         wxl::native::wmo_materials::DeviceReady(*device);
         return g_theGxDevicePtr;
     }

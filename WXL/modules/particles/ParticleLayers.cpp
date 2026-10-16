@@ -1,6 +1,7 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ParticleLayers.hpp"
 #include "ParticleLayerMaterial.hpp"
+#include "MaterialBackend.hpp"
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
@@ -53,14 +54,14 @@ struct DrawScope {
  float pixel0[4],pixel2[4],vertex2[24],vertex10[12],vertex17[44],vertex29[4],vertex30[4],vertex31[16];C44Matrix view;
  explicit DrawScope(CGxDevice& d):device(d),mask(d.m_primVertexMask),indices(d.m_primIndexBuf){
   std::memcpy(attribs,d.m_primVertexFormatAttrib,sizeof(attribs));std::memcpy(buffers,d.m_primVertexFormatBuf,sizeof(buffers));
-  std::memcpy(pixel0,CGxDevice::s_shadowConstants[0].constants,sizeof(pixel0));
-  std::memcpy(pixel2,CGxDevice::s_shadowConstants[0].constants+2*4,sizeof(pixel2));
-  std::memcpy(vertex2,CGxDevice::s_shadowConstants[1].constants+2*4,sizeof(vertex2));
-  std::memcpy(vertex10,CGxDevice::s_shadowConstants[1].constants+10*4,sizeof(vertex10));
-  std::memcpy(vertex17,CGxDevice::s_shadowConstants[1].constants+17*4,sizeof(vertex17));
-  std::memcpy(vertex29,CGxDevice::s_shadowConstants[1].constants+29*4,sizeof(vertex29));
-  std::memcpy(vertex30,CGxDevice::s_shadowConstants[1].constants+30*4,sizeof(vertex30));
-  std::memcpy(vertex31,CGxDevice::s_shadowConstants[1].constants+31*4,sizeof(vertex31));
+  ReadMaterialConstants(d,GxSh_Pixel,0,1,pixel0);
+  ReadMaterialConstants(d,GxSh_Pixel,2,1,pixel2);
+  ReadMaterialConstants(d,GxSh_Vertex,2,6,vertex2);
+  ReadMaterialConstants(d,GxSh_Vertex,10,3,vertex10);
+  ReadMaterialConstants(d,GxSh_Vertex,17,11,vertex17);
+  ReadMaterialConstants(d,GxSh_Vertex,29,1,vertex29);
+  ReadMaterialConstants(d,GxSh_Vertex,30,1,vertex30);
+  ReadMaterialConstants(d,GxSh_Vertex,31,4,vertex31);
   view=d.m_xforms[GxXform_View].m_mtx[d.m_xforms[GxXform_View].m_level];d.RsPush();
  }
  void SaveTextures(const std::array<CGxTex*,3>& value){textures=value;for(unsigned i=0;i<3;++i)flags[i]=textures[i]->m_flags;}
@@ -79,8 +80,7 @@ struct DrawScope {
   device.PrimVertexMask(mask);device.PrimIndexPtr(indices);
   device.RsPop();
   for(unsigned i=0;i<3;++i)device.IRsForceUpdate(static_cast<EGxRenderState>(GxRs_Texture0+i));
-  if(device.DeviceApi()==GxApi_D3d9)static_cast<CGxDeviceD3d&>(device).IStateSync();
-  else static_cast<CGxDeviceD3d9Ex&>(device).IStateSync();
+  SyncMaterialState(device);
  }
 };
 }
@@ -133,7 +133,7 @@ bool AppendParticleLayerQuad(const ParticleLayerRecipe& recipe,const CParticle2&
 }
 bool DrawParticleLayers(CParticleEmitter2& emitter){
  auto* device=g_theGxDevicePtr;const auto& binding=emitter.m_params.m_wxlLayers;
- if(!device || (device->DeviceApi()!=GxApi_D3d9 && device->DeviceApi()!=GxApi_D3d9Ex) ||
+ if(!LegacyMaterialBackend(device,3) ||
     device->Caps().m_shaderTargets[GxSh_Vertex]<3 || device->Caps().m_shaderTargets[GxSh_Pixel]<4 ||
     !CShaderEffect::s_enableShaders || !CShaderEffect::s_curEffect || !emitter.m_wxlLayerValid ||
     !binding || binding->recipe!=emitter.m_params.m_wxlLayerRecipe || emitter.m_params.m_hasModel)return false;

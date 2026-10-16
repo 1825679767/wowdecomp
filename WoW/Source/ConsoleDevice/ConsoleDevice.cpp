@@ -401,6 +401,14 @@ void ConsoleDeviceInitialize(const char* title, bool unused_a2, bool unused_a3) 
         api = GxApi_D3d9Ex;
     }
 
+#ifdef WXL_ENABLE_DX11
+    // Launch either backend from the same matching runtime family without
+    // rewriting the user's saved graphics or account settings.
+    if (CmdLineGetBool(static_cast<CMDOPT>(CMD_D3D11)) && GxApiSupported(GxApi_D3d11)) {
+        api = GxApi_D3d11;
+    }
+#endif
+
     s_requestedFormat.m_fixLag = s_cvGxFixLag->m_intValue != 0;
     s_requestedFormat.m_hwTnL = !CmdLineGetBool(CMD_SW_TNL);
 

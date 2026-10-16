@@ -1,6 +1,6 @@
 # Native modular WXL for WotLK x64
 
-Active goal: integrate WXL into the native WotLK x64 source. DX11 is deferred at the human's request. Existing native D3D9/D3D9Ex/OpenGL remain the renderer. Native fog, liquids, weather and postprocessing are not replaced by WXL.
+This separate integration branch combines native WotLK x64/WXL with the optional `WXL_ENABLE_DX11` backend. Existing D3D9/D3D9Ex/OpenGL paths remain available, and the default build keeps DX11 disabled. WXL rendering policy stays with its native modules; native fog, liquids, weather and postprocessing are not replaced by WXL. See [the DX11 integration notes](../Tools/Dx11Research/README.md) for dependencies, tests and remaining gameplay acceptance.
 
 WotLK base: SatyPardus/wowdecomp cd29da38b9162419ee0fa29c6b16e07e10f6c4f0. Portable WXL vendor provenance is recorded in VENDORED-SOURCE.json and APPEARANCE-VENDOR-SOURCE.json. No executable addresses, injected host, Win32 proxy or binary signature hooks are used in this integration.
 

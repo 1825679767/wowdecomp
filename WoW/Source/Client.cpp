@@ -149,6 +149,9 @@ static const _ARGLIST s_wowArgList[] = {
     { 0, CMD_HW_DETECT, "hwdetect", nullptr },
     { 0, CMD_CONSOLE, "console", nullptr },
     { 0x20000, CMD_GX_OVERRIDE, "gxoverride", nullptr },
+#ifdef WXL_ENABLE_DX11
+    { SCMD_TYPE_BOOL, CMD_D3D11, "d3d11", nullptr },
+#endif
 };
 
 // STATIC: 0x00AB6164

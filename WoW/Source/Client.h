@@ -36,6 +36,7 @@ enum WOWCMDOPT {
     CMD_CONSOLE = 35,
     CMD_HW_DETECT = 36,
     CMD_GX_OVERRIDE = 39,
+    CMD_D3D11 = 40,
 };
 
 struct ARCHIVEINFO {

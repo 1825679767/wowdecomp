@@ -4,6 +4,7 @@
 #include "DndMaterials.hpp"
 #include "AssetCompat.hpp"
 #include "NativeFeatures.hpp"
+#include "MaterialBackend.hpp"
 #include "platform/waystone/M2Bytes.hpp"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDevice/CGxShader.h"
@@ -33,7 +34,7 @@ namespace {
 template<class T>T Read(const uint8_t* p,size_t at){T value{};std::memcpy(&value,p+at,sizeof(T));return value;}
 bool Range(size_t size,uint32_t offset,uint32_t count,uint32_t stride){return offset<=size&&uint64_t(count)*stride<=size-offset;}
 bool D3D9(){
- if(!g_theGxDevicePtr||(g_theGxDevicePtr->m_api!=GxApi_D3d9&&g_theGxDevicePtr->m_api!=GxApi_D3d9Ex))return false;
+ if(!LegacyMaterialBackend(g_theGxDevicePtr))return false;
  // Source preparation can execute on a loader worker. Native cached caps are
  // immutable device metadata; do not invoke a COM device method from here.
  const auto& caps=g_theGxDevicePtr->Caps();
@@ -284,6 +285,11 @@ CGxShader* WeightedProgram(CGxDevice& device){
 }
 bool WeightedDeclaration(const CGxDevice& device){
  if(device.m_primVertexFormat!=GxVBF_PBNT2||device.m_primVertexSize!=48)return false;
+#ifdef WXL_ENABLE_DX11
+ // Native DX11 maps the same PBNT2 descriptor to UINT byte indices and
+ // normalized byte weights; it never reads a D3D9 declaration table.
+ if(device.m_api==GxApi_D3d11)return true;
+#endif
  const auto* types=device.m_api==GxApi_D3d9?CGxDeviceD3d::s_gxAttribToD3dAttribType:CGxDeviceD3d9Ex::s_gxAttribToD3dAttribType;
  return types[1]==D3DDECLTYPE_UBYTE4&&types[2]==D3DDECLTYPE_UBYTE4N;
 }
@@ -294,11 +300,11 @@ void UploadPalette(CGxDevice& device,const CM2Model& model,const SectionSource& 
  }
  device.ShaderConstantsUnlock(GxSh_Vertex,31,uint32_t(section.palette.size())*3);
 }
-void SyncCpuState(CGxDevice& device){if(device.m_api==GxApi_D3d9)static_cast<CGxDeviceD3d&>(device).IStateSync();else static_cast<CGxDeviceD3d9Ex&>(device).IStateSync();}
+void SyncCpuState(CGxDevice& device){SyncMaterialState(device);}
 struct CpuState {
  CGxDevice& device;CGxVertexAttrib attributes[14];CGxBuf* buffers[14];uint32_t mask,size;EGxVertexBufferFormat format;CGxBuf* vertices;CGxBuf* indices;float rows[12];
  explicit CpuState(CGxDevice& value):device(value),mask(value.m_primVertexMask),size(value.m_primVertexSize),format(value.m_primVertexFormat),vertices(value.m_primVertexBuf),indices(value.m_primIndexBuf){
-  std::memcpy(attributes,value.m_primVertexFormatAttrib,sizeof(attributes));std::memcpy(buffers,value.m_primVertexFormatBuf,sizeof(buffers));std::memcpy(rows,CGxDevice::s_shadowConstants[1].constants+31*4,sizeof(rows));device.RsPush();
+  std::memcpy(attributes,value.m_primVertexFormatAttrib,sizeof(attributes));std::memcpy(buffers,value.m_primVertexFormatBuf,sizeof(buffers));ReadMaterialConstants(value,GxSh_Vertex,31,4,rows);device.RsPush();
  }
  ~CpuState(){
   device.ShaderConstantsSet(GxSh_Vertex,31,rows,3);
@@ -339,7 +345,7 @@ bool DrawCpu(CM2SceneRender& context,const CGxBatch& draw,const SectionSource& s
 }
 struct StateScope {
  CGxDevice& device;explicit StateScope(CGxDevice& d):device(d){device.RsPush();}
- ~StateScope(){device.RsPop();if(device.m_api==GxApi_D3d9)static_cast<CGxDeviceD3d&>(device).IStateSync();else static_cast<CGxDeviceD3d9Ex&>(device).IStateSync();}
+ ~StateScope(){device.RsPop();SyncMaterialState(device);}
 };
 }
 bool OwnsBatch(const CM2Shared& shared,const M2Batch* batch) noexcept {

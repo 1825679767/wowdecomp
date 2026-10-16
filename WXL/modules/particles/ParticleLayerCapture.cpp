@@ -2,6 +2,7 @@
 #include "ParticleLayers.hpp"
 #include "ParticleLayerMaterial.hpp"
 #include "NativeFeatures.hpp"
+#include "MaterialBackend.hpp"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Model2/M2Data.h"
 #include "engine/assets/shared/models/m2/M2RecordWidths.hpp"
@@ -32,9 +33,9 @@ bool CaptureParticleLayers(const char* path,const uint8_t* raw,size_t size,Parti
  bool any=false;for(uint32_t i=0;i<count;++i)any|=(Read<uint32_t>(body,particlesAt+size_t(i)*stride+offsetof(M2Particle,m_flags))&wxl::structure::m2records::kParticleFlagMultiTex)!=0;
  if(!any)return true;
  auto* device=g_theGxDevicePtr;
- if(!device || (device->DeviceApi()!=GxApi_D3d9 && device->DeviceApi()!=GxApi_D3d9Ex) ||
+ if(!LegacyMaterialBackend(device,3) ||
     device->Caps().m_shaderTargets[GxSh_Vertex]<3 || device->Caps().m_shaderTargets[GxSh_Pixel]<4 ||
-    device->Caps().m_shaderConstants[GxSh_Vertex]<35 || device->Caps().m_numTmus<3)return fail("layer source requires native D3D9 SM3 backend; OpenGL/DX11 deferred");
+    device->Caps().m_shaderConstants[GxSh_Vertex]<35 || device->Caps().m_numTmus<3)return fail("layer source requires native SM3 conversion backend and three texture units");
  if(Read<uint32_t>(body,4)!=274)return fail("layer source version is not 274");
  const bool rift=MatchExactRiftSource(path,raw,size);
  const auto global=Read<uint32_t>(body,offsetof(M2Data,m_flags));

@@ -20,6 +20,10 @@ if (WOWCLIENT_CRASH_LOG)
 endif ()
 
 add_executable(WowClient WIN32 ${CLIENT_SOURCES} ${CLIENT_PLATFORM_SOURCES} ${CLIENT_TOOL_SOURCES})
+if(WXL_ENABLE_DX11)
+    add_custom_command(TARGET WowClient POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${WXL_DX11_SIGNER_DLL}" "$<TARGET_FILE_DIR:WowClient>/dxbcSigner.dll")
+endif()
 
 set_target_properties(WowClient PROPERTIES
     OUTPUT_NAME ${WOWCLIENT_OUTPUT_NAME}

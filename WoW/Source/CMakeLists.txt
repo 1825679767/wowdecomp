@@ -7,6 +7,10 @@ else ()
 endif ()
 
 add_executable(Wow WIN32 ${PRIVATE_SOURCES} ${PLATFORM_SOURCES})
+if(WXL_ENABLE_DX11)
+    add_custom_command(TARGET Wow POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${WXL_DX11_SIGNER_DLL}" "$<TARGET_FILE_DIR:Wow>/dxbcSigner.dll")
+endif()
 
 if (WOWDECOMP_ARCH_64)
     set(WOW_OUTPUT_NAME Wow64)

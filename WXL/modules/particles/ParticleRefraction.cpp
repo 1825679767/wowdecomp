@@ -2,6 +2,10 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #include "ParticleRefraction.hpp"
 #include "NativeFeatures.hpp"
+#include "MaterialBackend.hpp"
+#ifdef WXL_ENABLE_DX11
+#include "Engine/Source/Gx/CGxDeviceD3d11/CGxDeviceD3d11.h"
+#endif
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxDeviceD3d/CGxDeviceD3d.h"
@@ -34,8 +38,8 @@ constexpr const char* PixelName="WXL_BloodRefraction_PS_20261016";
 std::atomic<bool> enabled{WXL_ENABLE_BLOOD_REFRACTION!=0};
 std::atomic<bool> restoreFailed{false};
 bool Changed(CVar*,const char*,const char* text,void*){char* end=nullptr;const long n=text?std::strtol(text,&end,10):0;enabled.store(WXL_ENABLE_BLOOD_REFRACTION&&text&&end!=text&&!*end&&n==1,std::memory_order_release);return true;}
-bool Backend(CGxDevice& d){return (d.m_api==GxApi_D3d9||d.m_api==GxApi_D3d9Ex)&&d.Caps().m_shaderTargets[GxSh_Vertex]>=3&&d.Caps().m_shaderTargets[GxSh_Pixel]>=4&&d.Caps().m_numTmus>=2;}
-void Sync(CGxDevice& d){if(d.m_api==GxApi_D3d9)static_cast<CGxDeviceD3d&>(d).IStateSync();else static_cast<CGxDeviceD3d9Ex&>(d).IStateSync();}
+bool Backend(CGxDevice& d){return LegacyMaterialBackend(&d);}
+void Sync(CGxDevice& d){SyncMaterialState(d);}
 IDirect3DDevice9* Native(CGxDevice& d){return d.m_api==GxApi_D3d9?static_cast<CGxDeviceD3d&>(d).m_d3dDevice:static_cast<CGxDeviceD3d9Ex&>(d).m_d3dDevice;}
 template<class T>T Read(const uint8_t* p,size_t at){T v{};std::memcpy(&v,p+at,sizeof(v));return v;}
 bool Range(size_t n,uint32_t at,uint32_t count,size_t stride){return at<=n&&count<=(n-at)/stride;}
@@ -81,9 +85,29 @@ bool Capture(CGxDevice& owner,IDirect3DDevice9& d){
 }
 struct NativeState {
  CGxDevice& device;float pixel0[4];
- explicit NativeState(CGxDevice& d):device(d){std::memcpy(pixel0,CGxDevice::s_shadowConstants[0].constants,sizeof(pixel0));device.RsPush();}
+ explicit NativeState(CGxDevice& d):device(d){ReadMaterialConstants(d,GxSh_Pixel,0,1,pixel0);device.RsPush();}
  ~NativeState(){device.ShaderConstantsSet(GxSh_Pixel,0,pixel0,1);device.RsPop();Sync(device);}
 };
+#ifdef WXL_ENABLE_DX11
+ParticleRefractionDraw DrawDx11(CGxDeviceD3d11& d,CGxBatch& batch){
+ // DX11 consumes only the Gx-owned bytecode/state; no module writes its raw
+ // context. Validate the same donor program/stride/depth/texture contract.
+ if(!ExactMaterialProgram(d,GxRs_VertexShader,programs::NativeUnlit)||
+    !ExactMaterialProgram(d,GxRs_PixelShader,programs::NativePixel)||
+    d.m_primVertexFormat!=GxVBF_PCT||d.m_primVertexSize!=24||
+    !d.m_primVertexBuf||!d.m_appRenderStates[GxRs_Texture0].m_value.m_data.p||
+    d.m_appRenderStates[GxRs_DepthWrite].m_value.m_data.i[0])return ParticleRefractionDraw::Native;
+ auto* shader=Program(d);if(!shader)return ParticleRefractionDraw::Native;
+ auto* scene=d.CaptureCurrentColor();if(!scene)return ParticleRefractionDraw::Native;
+ NativeState state(d);
+ const float parameters[]={1.0f/scene->m_width,1.0f/scene->m_height,64.0f,4.0f};
+ d.RsSet(GxRs_PixelShader,shader);d.RsSet(GxRs_Texture1,scene);d.ShaderConstantsSet(GxSh_Pixel,0,parameters,1);
+ d.RsSet(GxRs_BlendingMode,GxBlend_Opaque);d.RsSet(GxRs_AlphaRef,0);d.RsSet(GxRs_Fog,0);
+ d.RsSet(GxRs_ColorWrite,d.m_appRenderStates[GxRs_ColorWrite].m_value.m_data.i[0]&7);
+ struct SamplerScope {CGxDeviceD3d11& d;CGxDeviceD3d11::SamplerOverride old;~SamplerScope(){d.ExchangeSamplerOverride(1,old);}} sampler{d,d.ExchangeSamplerOverride(1,{true,false})};
+ d.Draw(&batch,1);return ParticleRefractionDraw::Drawn;
+}
+#endif
 // These backend-only states have no complete native Gx state representation.
 // Their Gx caches stay untouched; capture and restore actual hardware values.
 struct BackendState {
@@ -147,6 +171,9 @@ ParticleRefractionDraw DrawParticleRefraction(CParticleEmitter2& emitter,CGxBatc
     batch.m_start||batch.m_minIndex||batch.m_maxIndex!=vertices-1)return ParticleRefractionDraw::Native;
  bool submitted=false;
  try{
+#ifdef WXL_ENABLE_DX11
+  if(d->m_api==GxApi_D3d11)return DrawDx11(static_cast<CGxDeviceD3d11&>(*d),batch);
+#endif
   Sync(*d);auto* native=Native(*d);if(!native||!Contract(*native))return ParticleRefractionDraw::Native;
   // All allocating work precedes the first custom state mutation.
   auto* shader=Program(*d);if(!shader||!Capture(*d,*native))return ParticleRefractionDraw::Native;
