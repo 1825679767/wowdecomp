@@ -58,6 +58,9 @@ static void TextureData(EGxTexCommand cmd,uint32_t,uint32_t,uint32_t,uint32_t,vo
 static void CompressedData(EGxTexCommand cmd,uint32_t,uint32_t,uint32_t,uint32_t,void*,uint32_t& stride,const void*& data){
     static const uint8_t redBlock[]={0,248,0,0,0,0,0,0};stride=8;data=cmd==GxTex_Latch?redBlock:nullptr;
 }
+static void AtlasTileData(EGxTexCommand cmd,uint32_t,uint32_t,uint32_t,uint32_t,void* arg,uint32_t& stride,const void*& data){
+    stride=32;data=cmd==GxTex_Latch?arg:nullptr;
+}
 static CGxTex* Texture(CGxDeviceD3d11& device,Pixels& pixels,bool target=false){
     CGxTexFlags flags(GxTex_Nearest,0,0,0,0,target?1:0);CGxTex* tex=nullptr;
     Check(device.TexCreate(GxTex_2d,pixels.width,pixels.height,1,GxTex_Argb8888,GxTex_Argb8888,flags,&pixels,TextureData,"DX11 test texture",tex)!=0,"create native texture");return tex;
@@ -84,6 +87,19 @@ static void Equal(CImVector actual,CImVector expected,const char* name,int toler
                  <<" expected="<<int(expected.r)<<','<<int(expected.g)<<','<<int(expected.b)<<','<<int(expected.a)<<'\n';Check(false,name);}
     Check(true,name);
 }
+static void AtlasFirstUpdateCheck(CGxDeviceD3d11& d){
+    // Pad with green blocks so the old oversized upload fails deterministically
+    // without reading out of bounds. The actual 8x8 source tile is red BC2.
+    std::vector<uint8_t> bytes(4096);
+    for(size_t i=0;i<bytes.size();i+=16){std::memset(bytes.data()+i,255,8);bytes[i+8]=0xe0;bytes[i+9]=7;}
+    for(size_t i=0;i<64;i+=16){bytes[i+8]=0;bytes[i+9]=248;}
+    CGxTexFlags flags(GxTex_Nearest);flags.m_bit15=1;CGxTex* atlas=nullptr;
+    Check(d.TexCreate(GxTex_2d,64,64,1,GxTex_Dxt3,GxTex_Dxt3,flags,bytes.data(),AtlasTileData,"first atlas tile",atlas)!=0,"first partial atlas creation");
+    d.TexMarkForUpdate(atlas,CiRect(28,28,36,36),1);d.RsSet(GxRs_Texture0,atlas);
+    Triangle(d,CImVector(255,255,255,255));Equal(Center(d),CImVector(0,0,255,255),"first atlas upload preserves tile rectangle and tile-relative source");
+    d.TexDestroy(atlas);
+}
+
 #include "WxlMaterialChecks.h"
 static void ConstantUpdateChecks(bool warp){
     CGxDeviceD3d11 d;g_theGxDevicePtr=&d;Check(d.CreateOffscreen(16,16,warp),"constant contract device");
@@ -163,6 +179,7 @@ int main(int argc,char** argv) try {
     Pixels data;data.data={CImVector(207,99,17,255)};auto* texture=Texture(device,data);
     device.RsSet(GxRs_Texture0,texture);device.SceneClear(3,clear);Triangle(device,CImVector(255,255,255,255),.25f,true);
     Equal(Center(device),data.data[0],"actual native UI texture/BGRA/indexed draw");
+    AtlasFirstUpdateCheck(device);device.RsSet(GxRs_Texture0,texture);
     for(uint32_t dimension:{1u,2u,4u}){
         CGxTexFlags flags(GxTex_Nearest,0,0,0,0,0);CGxTex* compressed=nullptr;
         Check(device.TexCreate(GxTex_2d,dimension,dimension,1,GxTex_Dxt1,GxTex_Dxt1,flags,nullptr,CompressedData,"small DXT1",compressed)!=0,"legacy compressed texture owner");

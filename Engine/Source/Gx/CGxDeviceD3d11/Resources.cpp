@@ -99,7 +99,8 @@ bool CGxDeviceD3d11::TextureReady(CGxTex* t){
             }
         }
         m->textures[t]=std::move(candidate);t->m_needsCreation=0;t->m_needsUpdate=1;
-        t->m_updateRect=CiRect(0,0,t->m_height,t->m_width);
+        // Creation must preserve a pending atlas tile update. With bit15 the
+        // callback supplies only that rectangle's bytes, not the whole atlas.
         t->m_apiSpecificData=m->textures[t].srv.Get();t->m_apiSpecificData2=m->textures[t].gpu.Get();
     }
     auto& texture=m->textures[t];
