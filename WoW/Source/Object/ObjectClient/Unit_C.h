@@ -986,7 +986,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t GetPrecastStartAnim();
     static void BowModelLoaded(CM2Model* model, void* arg);
     void PlayWoundAnimKit(int32_t crit);
-    void ShowBloodSpurt(const WOWGUID& attacker, int32_t a3);
+    void ShowBloodSpurt(const WOWGUID& attacker, int32_t large);
     UnitBloodRec* GetBloodRecord();
     void ModifyPredictedPower(POWER_TYPE powerType, int32_t delta);
     void AddWorldText(const WOWGUID& source, MISS_REASON reason, const SpellRec* spell, bool periodic);

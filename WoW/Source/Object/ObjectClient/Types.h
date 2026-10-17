@@ -21,6 +21,12 @@ enum UNITSTANDSTATE : uint32_t {
     // UNIT_NUMCHAIRSTATES = 3,
 };
 
+enum BLOODSPURTSIZES : int32_t {
+    BLOODSPURT_SMALL = 0,
+    BLOODSPURT_LARGE = 1,
+    // NUM_BLOODSPURTSIZES = 2,
+};
+
 enum VICTIMSTATES : uint32_t {
     VS_NONE = 0,
     VS_WOUND = 1,

@@ -3,6 +3,7 @@
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Tempest/CRandom.h"
+#include "WoW/Common/ComponentCore/Types.h"
 #include "WoW/Source/DB/DBClient/CreatureStats_C.h"
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/DB/Rec/SpellVisualKitRec.h"
@@ -252,14 +253,14 @@ void CGUnit_C::OnDeathAnimate() {
 
 // VERIFY: 4078ec8f manual
 // OFFSET: 0x00755380
-void CGUnit_C::ShowBloodSpurt(const WOWGUID& attacker, int32_t a3) {
+void CGUnit_C::ShowBloodSpurt(const WOWGUID& attacker, int32_t large) {
     UnitBloodRec* blood = this->GetBloodRecord();
 
     if (!blood) {
         return;
     }
 
-    int32_t attachType = 15;
+    GEOCOMPONENTLINKS attachType = ATTACH_TORSOBLOODFRONT;
     CGUnit_C* attackerUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
 
     if (attackerUnit) {
@@ -272,11 +273,12 @@ void CGUnit_C::ShowBloodSpurt(const WOWGUID& attacker, int32_t a3) {
         float sinFacing = sinf(facing);
 
         if (dy * sinFacing + dx * cosFacing < 0.0f) {
-            attachType = 16;
+            attachType = ATTACH_TORSOBLOODBACK;
         }
     }
 
-    int32_t effectId = attachType == 15 ? blood->m_combatBloodSpurtFront[a3 != 0] : blood->m_combatBloodSpurtBack[a3 != 0];
+    const BLOODSPURTSIZES size = large ? BLOODSPURT_LARGE : BLOODSPURT_SMALL;
+    int32_t effectId = attachType == ATTACH_TORSOBLOODFRONT ? blood->m_combatBloodSpurtFront[size] : blood->m_combatBloodSpurtBack[size];
     SpellVisualEffectNameRec* effectName = g_spellVisualEffectNameDB.GetRecord(effectId);
 
     if (!effectName) {
