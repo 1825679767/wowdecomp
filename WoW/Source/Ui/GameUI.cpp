@@ -4326,7 +4326,7 @@ void CGGameUI::CloseInteraction() {
     } else if (CGTaxiMap::m_unit == target) {
         CGTaxiMap::CloseMap();
     } else if (CGClassTrainer::m_trainer == target) {
-        CGClassTrainer::SetTrainer(none, 0);
+        CGClassTrainer::SetTrainer(none, TRAINER_TYPE_GENERAL);
     } else if (CGBankInfo::m_banker == target) {
         CGBankInfo::SetBanker(none);
     } else if (CGGuildBankInfo::m_banker == target) {

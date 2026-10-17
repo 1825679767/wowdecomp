@@ -30,7 +30,7 @@ WOWGUID CGClassTrainer::m_trainer;
 char CGClassTrainer::m_greetingText[2048];
 
 // STATIC: 0x00C0E498
-int32_t CGClassTrainer::m_trainerType;
+TRAINER_TYPE CGClassTrainer::m_trainerType;
 
 // STATIC: 0x00C0E49C
 int32_t CGClassTrainer::m_currentSelection;
@@ -63,7 +63,7 @@ void CGClassTrainer::InitializeGame() {
 
 // VERIFY: a50c2177 auto
 // OFFSET: 0x005940E0
-void CGClassTrainer::SetTrainer(const WOWGUID& trainer, int32_t type) {
+void CGClassTrainer::SetTrainer(const WOWGUID& trainer, TRAINER_TYPE type) {
     if (trainer == CGClassTrainer::m_trainer) {
         return;
     }
@@ -351,7 +351,7 @@ void CGClassTrainer::FilterAndSortServices() {
         }
     }
 
-    if (CGClassTrainer::m_trainerType == 2) {
+    if (CGClassTrainer::m_trainerType == TRAINER_TYPE_TRADESKILLS) {
         qsort(CGClassTrainer::m_services.m_data, CGClassTrainer::m_numServices, sizeof(TrainerServiceInfo*), QSortServices_Tradeskill);
     } else {
         qsort(CGClassTrainer::m_services.m_data, CGClassTrainer::m_numServices, sizeof(TrainerServiceInfo*), QSortServices_General);
@@ -613,7 +613,7 @@ const char* CGClassTrainer::GetServiceName(uint32_t index) {
     TrainerServiceInfo* service = CGClassTrainer::m_services.m_data[index];
 
     if (service->m_spellID < 0) {
-        if (CGClassTrainer::m_trainerType == 2) {
+        if (CGClassTrainer::m_trainerType == TRAINER_TYPE_TRADESKILLS) {
             return FrameScript_GetText(s_tradeSkillServiceHeaders[service->m_skillLine], -1, GENDER_NOT_APPLICABLE);
         }
 
@@ -768,7 +768,7 @@ void CGClassTrainer::AddServices(uint32_t count, const int32_t* spellIds, const 
         info->m_state = states[source];
         int32_t skillLine;
 
-        if (CGClassTrainer::m_trainerType != 2) {
+        if (CGClassTrainer::m_trainerType != TRAINER_TYPE_TRADESKILLS) {
             skillLine = GetSkillLineFromService(info->m_spellID);
         } else {
             skillLine = 2;
@@ -837,7 +837,7 @@ void CGClassTrainer::AddServices(uint32_t count, const int32_t* spellIds, const 
     }
 
     CGClassTrainer::m_numServices = count - skipped;
-    qsort(CGClassTrainer::m_skillLines.m_data, CGClassTrainer::m_numSkillLines, sizeof(TrainerSkillLineInfo*), CGClassTrainer::m_trainerType != 2 ? QSortSkillLines : QSortTradeSkillTypes);
+    qsort(CGClassTrainer::m_skillLines.m_data, CGClassTrainer::m_numSkillLines, sizeof(TrainerSkillLineInfo*), CGClassTrainer::m_trainerType != TRAINER_TYPE_TRADESKILLS ? QSortSkillLines : QSortTradeSkillTypes);
 
     for (uint32_t i = CGClassTrainer::m_services.Count(); i < CGClassTrainer::m_numSkillLines + CGClassTrainer::m_numServices; i++) {
         TrainerServiceInfo* info = static_cast<TrainerServiceInfo*>(SMemAlloc(sizeof(TrainerServiceInfo), __FILE__, __LINE__, 0));
@@ -864,5 +864,5 @@ void CGClassTrainer::AddServices(uint32_t count, const int32_t* spellIds, const 
 // OFFSET: 0x005947B0
 void CGClassTrainer::LeaveWorld() {
     WOWGUID trainer = { 0 };
-    CGClassTrainer::SetTrainer(trainer, 0);
+    CGClassTrainer::SetTrainer(trainer, TRAINER_TYPE_GENERAL);
 }

@@ -40,7 +40,7 @@ static int32_t Script_GetNumTrainerServices(lua_State* L) {
 // VERIFY: ea1fc55f auto
 // OFFSET: 0x00593D50
 static int32_t Script_IsTradeskillTrainer(lua_State* L) {
-    if (CGClassTrainer::m_trainerType == 2) {
+    if (CGClassTrainer::m_trainerType == TRAINER_TYPE_TRADESKILLS) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
@@ -326,7 +326,7 @@ static int32_t Script_GetTrainerServiceTypeFilter(lua_State* L) {
 // OFFSET: 0x00594370
 static int32_t Script_CloseTrainer(lua_State* L) {
     WOWGUID none = WOWGUID();
-    CGClassTrainer::SetTrainer(none, 0);
+    CGClassTrainer::SetTrainer(none, TRAINER_TYPE_GENERAL);
     return 0;
 }
 
@@ -402,7 +402,7 @@ static int32_t Script_GetTrainerServiceIcon(lua_State* L) {
 
     ItemRec* item;
 
-    if (CGClassTrainer::m_trainerType == 2 && (spell.m_effect[0] == 24 || spell.m_effect[0] == 157 || spell.m_effect[0] == 59) && (item = g_itemDB.GetRecord(spell.m_effectItemType[0]))) {
+    if (CGClassTrainer::m_trainerType == TRAINER_TYPE_TRADESKILLS && (spell.m_effect[0] == 24 || spell.m_effect[0] == 157 || spell.m_effect[0] == 59) && (item = g_itemDB.GetRecord(spell.m_effectItemType[0]))) {
         const char* path = ClientDBStringLookup(3);
         char texture[260];
         SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(item->m_displayInfoID));
@@ -864,7 +864,7 @@ static int32_t Script_GetTrainerServiceItemLink(lua_State* L) {
     if (index < CGClassTrainer::m_numServices && (service = CGClassTrainer::m_services.m_data[index])) {
         SpellRec spell;
 
-        if (g_spellDB.GetRecord(service->m_spellID, &spell) && CGClassTrainer::m_trainerType == 2 && (spell.m_effect[0] == 24 || spell.m_effect[0] == 157 || spell.m_effect[0] == 59) && spell.m_effectItemType[0]) {
+        if (g_spellDB.GetRecord(service->m_spellID, &spell) && CGClassTrainer::m_trainerType == TRAINER_TYPE_TRADESKILLS && (spell.m_effect[0] == 24 || spell.m_effect[0] == 157 || spell.m_effect[0] == 59) && spell.m_effectItemType[0]) {
             WOWGUID none = WOWGUID();
             ItemStats_C* stats = g_itemDBCache.GetRecord(spell.m_effectItemType[0], none, nullptr, nullptr, false);
 

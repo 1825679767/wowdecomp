@@ -6051,7 +6051,7 @@ void __stdcall CGPlayer_C::TalkToQuestUnit(const WOWGUID& guid) {
 void __stdcall CGPlayer_C::TalkToTrainer(const WOWGUID& guid) {
     s_lastTrainerRequest = guid;
     WOWGUID none = { 0 };
-    CGClassTrainer::SetTrainer(none, 0);
+    CGClassTrainer::SetTrainer(none, TRAINER_TYPE_GENERAL);
 
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_TRAINER_LIST));
@@ -13911,7 +13911,7 @@ int32_t __stdcall CGPlayer_C::OnTrainerList(CDataStore* msg) {
     const int32_t* abilityReqs[3] = { abilityReqs0, abilityReqs1, abilityReqs2 };
 
     if (trainer == s_lastTrainerRequest || trainer == CGGossipInfo::m_gossip) {
-        CGClassTrainer::SetTrainer(trainer, type);
+        CGClassTrainer::SetTrainer(trainer, static_cast<TRAINER_TYPE>(type));
         CGClassTrainer::AddServices(count, spellIds, moneyCosts, pointCosts, levelReqs, skillReqs, skillRankReqs, stepSpells, abilityReqs, states, greeting);
     }
 
