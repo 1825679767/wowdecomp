@@ -871,7 +871,7 @@ int32_t CGQuestInfo::QuestItemInfo(const char* type, uint32_t index, char* name,
         *quality = stats->m_inventoryType ? stats->m_quality : -1;
     }
 
-    const char* path = ClientDBStringLookup(3);
+    const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     SStrPrintf(s_questItemTexture, sizeof(s_questItemTexture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(displayId));
     SStrCopy(texture, s_questItemTexture, textureSize);
 

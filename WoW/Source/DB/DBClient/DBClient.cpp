@@ -1163,7 +1163,7 @@ int32_t LocaleNameToIndex(const char* locale) {
 
 // VERIFY: d0d3fe1b auto
 // OFFSET: 0x00634910
-const char* ClientDBStringLookup(uint32_t lookup) {
+const char* ClientDBStringLookup(STRINGLOOKUP lookup) {
     StringLookupsRec* rec = g_stringLookupsDB.GetRecord(lookup);
     return rec ? rec->m_string : nullptr;
 }

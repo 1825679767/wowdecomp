@@ -151,7 +151,7 @@ void GetCurrencyText(int32_t amount, char* buffer, uint32_t size, const char* se
 // VERIFY: b3b4c460 auto
 // OFFSET: 0x007E7CC0
 void GetCurrencyIcon(int32_t amount, char* buffer, uint32_t size) {
-    const char* path = ClientDBStringLookup(3);
+    const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     SStrPrintf(buffer, size, "%s%s", path, *path ? "\\" : "");
 
     if (amount < 10) {
@@ -336,7 +336,7 @@ const char* CGLootInfo::GetLootSlotTexture(uint32_t slot) {
         return nullptr;
     }
 
-    const char* path = ClientDBStringLookup(3);
+    const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     SStrPrintf(s_lootSlotTexture, sizeof(s_lootSlotTexture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(CGLootInfo::m_slots[slot].m_displayId));
     return s_lootSlotTexture;
 }

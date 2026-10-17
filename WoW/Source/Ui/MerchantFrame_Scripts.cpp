@@ -243,7 +243,7 @@ static int32_t Script_GetMerchantItemCostItem(lua_State* L) {
         return 2;
     }
 
-    const char* path = ClientDBStringLookup(3);
+    const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     char texture[260];
     SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(stats->m_displayId));
     lua_pushstring(L, texture);
@@ -299,7 +299,7 @@ static int32_t Script_GetMerchantItemInfo(lua_State* L) {
         lua_pushnil(L);
     }
 
-    const char* path = ClientDBStringLookup(3);
+    const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
     char texture[260];
     SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(item->m_displayID));
     lua_pushstring(L, texture);
@@ -351,7 +351,7 @@ static int32_t Script_GetBuybackItemInfo(lua_State* L) {
         item->GetFullItemName(buffer, sizeof(buffer));
         lua_pushstring(L, buffer);
 
-        const char* path = ClientDBStringLookup(3);
+        const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
         SStrPrintf(buffer, sizeof(buffer), "%s%s%s", path, *path ? "\\" : "", item->GetInventoryArt());
         lua_pushstring(L, buffer);
         lua_pushnumber(L, player->GetBuybackPrice(slot - 74));

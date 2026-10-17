@@ -5039,7 +5039,7 @@ static int32_t AddItemSocketLines(CGTooltip* tooltip, const ItemStats_C* stats, 
                 }
 
                 char texture[260];
-                const char* path = ClientDBStringLookup(3);
+                const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
                 SStrPrintf(texture, sizeof(texture), "%s%s%s", path, *path ? "\\" : "", CGItem_C::GetInventoryArt(gem->m_displayId));
                 CAaRect coords = { 0.0f, 0.0f, 1.0f, 1.0f };
                 uint32_t textureColor = 0xFFFFFFFF;

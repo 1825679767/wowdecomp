@@ -251,7 +251,7 @@ void CursorGrabVirtualItem(int32_t displayId) {
     }
 
     if (displayId) {
-        const char* path = ClientDBStringLookup(3);
+        const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
         const char* separator = "\\";
 
         if (!*path) {
@@ -347,7 +347,7 @@ void CursorSetHeldItem(WOWGUID item) {
     CGItem_C* itemObject = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__));
 
     if (itemObject) {
-        const char* path = ClientDBStringLookup(3);
+        const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
         const char* art = itemObject->GetInventoryArt();
         const char* separator = "\\";
 
