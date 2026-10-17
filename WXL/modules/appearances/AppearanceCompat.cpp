@@ -13,6 +13,7 @@
 #include "platform/waystone/AppearanceTexturePolicy.hpp"
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
 #include "WoW/Common/TextureCache.h"
+#include "WoW/Source/DB/DBClient/DBClient.h"
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Gx/CGxTexFlags.h"
@@ -125,9 +126,11 @@ std::vector<uint32_t> Signature(const CCharacterComponent& component) {
         for (auto id : section.m_layerItemDisplayId) values.push_back(id);
         // Display IDs can stay identical when the actor's component variant
         // changes. Preserve exact loaded cache identity in this immutable atlas key.
-        for (auto handle:section.m_layerTex) {
-            const auto* entry=static_cast<const CACHEENTRY*>(handle);
-            const char* path=entry?entry->m_fileName:"";
+        for (uint32_t layer=0;layer<7;++layer) {
+            const auto* entry=static_cast<const CACHEENTRY*>(section.m_layerTex[layer]);
+            // Native cleanup retires item handles after composition. Item IDs,
+            // actor identity and metadata generation retain their recipe identity.
+            const char* path=entry&&!section.m_layerItemDisplayId[layer]?entry->m_fileName:"";
             const auto length=std::strlen(path);values.push_back(uint32_t(length));
             for (size_t offset=0;offset<length;offset+=4) {
                 uint32_t word=0;for(size_t byte=0;byte<4&&offset+byte<length;++byte)word|=uint32_t(uint8_t(path[offset+byte]))<<(byte*8);
@@ -135,6 +138,8 @@ std::vector<uint32_t> Signature(const CCharacterComponent& component) {
             }
         }
     }
+    values.push_back(uint32_t(component.m_wxlItemGeneration));
+    values.push_back(uint32_t(component.m_wxlItemGeneration>>32));
     values.push_back(RetailChoiceRevision(component));
     return values;
 }
@@ -314,6 +319,16 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
         for (uint32_t priority = first; priority < last; ++priority) {
             if (!(nativeSection.m_layerMask & (1u << priority))) continue;
             void* handle = nativeSection.m_layerTex[priority];
+            struct TemporaryLayer {void* handle=nullptr;~TemporaryLayer(){if(handle)TextureCacheDestroyTexture(handle);}} temporary;
+            // Classic completion destroys transient item layer handles before
+            // the modern pass. Reacquire this exact actor-selected layer for
+            // composition instead of silently baking a naked body.
+            if(!handle&&nativeSection.m_layerItemDisplayId[priority]){
+                ItemDisplayInfoRec row;
+                if(!g_itemDisplayInfoDB.GetRecord(nativeSection.m_layerItemDisplayId[priority],&row))return false;
+                handle=temporary.handle=component.LoadItemComponentTexture(&row,static_cast<COMPONENT_SECTIONS>(region));
+                if(!handle)return false;
+            }
             if (!handle) continue;
             TCTEXTUREINFO info{};
             if (!TextureCacheGetInfo(handle,info,1)) return false;

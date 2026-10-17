@@ -75,7 +75,7 @@ bool BindTexture(CM2Model& model,uint32_t type,const std::string& path){
  // releasing it cancelled every first load, so retrying recreated the same
  // miss forever. Complete the native read before validating and handing off
  // its reference, matching the donor's model material LoadResource contract.
- const bool valid=Key(texture->m_filename)==path&&TextureGetGxTex(texture,1,&status)
+ const bool valid=TextureIsSame(texture,path.c_str())&&TextureGetGxTex(texture,1,&status)
      &&status.m_highestSeverity<STATUS_ERROR&&texture->m_status.m_highestSeverity<STATUS_ERROR;
  if(valid)model.ReplaceTexture(type,texture);HandleClose(reinterpret_cast<HOBJECT>(texture));return valid;
 }

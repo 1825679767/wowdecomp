@@ -621,6 +621,9 @@ void CCharacterSelection::ShowCharacter() {
         }
     }
 
+    // Re-entering selection can reuse a retained component. Republish its
+    // instance atlas/geosets after the background/parent ownership changed.
+    CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->m_flags|=4u;
     CGlueLoading::StartLoad(CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component, newComponent);
 }
 

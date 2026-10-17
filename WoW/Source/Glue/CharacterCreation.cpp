@@ -646,6 +646,7 @@ void CCharacterCreation::InitCharacterComponents(ComponentData* data, bool rando
     if (CCharacterCreation::m_charCustomizeFrame->m_model) {
         CCharacterCreation::m_character->m_data.m_model->AttachToParent(CCharacterCreation::m_charCustomizeFrame->m_model, 0, nullptr, 0);
     }
+    CGlueLoading::StartLoad(CCharacterCreation::m_character,0);
 }
 
 // VERIFY: 68a365e1 manual

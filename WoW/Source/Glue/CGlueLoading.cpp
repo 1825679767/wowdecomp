@@ -1,9 +1,27 @@
 #include "CGlueLoading.h"
+#include <algorithm>
+#include "WXL/AppearanceCompat.hpp"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "WoW/Common/ComponentCore/CharacterComponent.h"
 #include "WoW/Source/LoadingScreen.h"
+
+namespace {
+bool PreviewReady(CCharacterComponent* component) {
+    if(!component||!component->m_data.m_model)return true;
+    const bool prepared=component->RenderPrep(0);
+    return prepared&&!component->m_request&&!component->m_dirtySections&&!(component->m_flags&1u)
+        &&!wxl::native::AppearanceChildrenPending(*component)
+        &&component->m_data.m_model->IsDrawable(0,1);
+}
+void PreviewVisible(CCharacterComponent* component,bool visible) {
+    if(!component||!component->m_data.m_model)return;
+    auto* model=component->m_data.m_model;
+    const uint32_t mask=model->m_attachParent?(0x80u|0x20000u):(0x8u|0x10000u);
+    model->m_fFlags=(model->m_fFlags&~mask)|(visible?mask:0u);
+}
+}
 
 // STATIC: 0x00B6B4A0
 uint32_t CGlueLoading::m_loadStartTime;
@@ -59,27 +77,13 @@ int32_t CGlueLoading::Idle(CCharacterComponent* component) {
 
             bool done = false;
 
-            if (loaded == total) {
+            if (PreviewReady(component)) {
                 CGlueLoading::m_loadState = 2;
                 CGlueLoading::m_loadCompleteTime = time + 250;
                 done = true;
             }
 
-            if (component) {
-                CM2Model* model = component->m_data.m_model;
-
-                if (model->m_attachParent) {
-                    model->m_fFlags = (model->m_fFlags & ~0x80u) | (done << 7);
-                } else {
-                    model->m_fFlags = (model->m_fFlags & ~0x8u) | (done << 3);
-                }
-
-                if (model->m_attachParent) {
-                    model->m_fFlags = (model->m_fFlags & ~0x20000u) | (done << 17);
-                } else {
-                    model->m_fFlags = (model->m_fFlags & ~0x10000u) | (done << 16);
-                }
-            }
+            PreviewVisible(component,done);
 
             LoadingScreenMiniUpdate((CGlueLoading::m_loadProgress - CGlueLoading::m_startProgress) / (1.0f - CGlueLoading::m_startProgress));
             break;
@@ -113,42 +117,20 @@ int32_t CGlueLoading::Idle(CCharacterComponent* component) {
 // VERIFY: 57ed6fc9 manual
 // OFFSET: 0x004E6AE0
 void CGlueLoading::StartLoad(CCharacterComponent* component, int32_t keepProgress) {
-    if (SFile::IsTrial()) {
-        int64_t loaded;
-        int64_t total;
-        float progress = CGlueLoading::ComputeLoadProgress(component, loaded, total);
-
-        if (loaded == total) {
-            LoadingScreenMiniDisable();
-            CGlueLoading::m_loadState = 3;
-        } else {
-            if (component) {
-                CM2Model* model = component->m_data.m_model;
-
-                if (model->m_attachParent) {
-                    model->m_fFlags &= ~0x80u;
-                } else {
-                    model->m_fFlags &= ~0x8u;
-                }
-
-                if (model->m_attachParent) {
-                    model->m_fFlags &= ~0x20000u;
-                } else {
-                    model->m_fFlags &= ~0x10000u;
-                }
-            }
-
-            CGlueLoading::m_startProgress = keepProgress ? progress : 0.0f;
-            CGlueLoading::m_loadProgress = progress;
-            CGlueLoading::m_loadState = 1;
-            CGlueLoading::m_loadStartTime = OsGetAsyncTimeMs();
-        }
-    } else {
-        if (component) {
-            component->RenderPrep(1);
-            component->m_data.m_model->IsDrawable(1, 1);
-        }
-
-        CGlueLoading::m_loadState = 3;
+    int64_t loaded,total;
+    float progress=CGlueLoading::ComputeLoadProgress(component,loaded,total);
+    if(PreviewReady(component)){
+        PreviewVisible(component,true);
+        LoadingScreenMiniDisable();
+        CGlueLoading::m_loadState=3;
+        return;
     }
+    // The full client also has asynchronous retail metadata/children; its
+    // legacy blocking atlas call cannot establish outfit readiness.
+    PreviewVisible(component,false);
+    progress=std::min(progress,0.99f);
+    CGlueLoading::m_startProgress=keepProgress?progress:0.0f;
+    CGlueLoading::m_loadProgress=progress;
+    CGlueLoading::m_loadState=1;
+    CGlueLoading::m_loadStartTime=OsGetAsyncTimeMs();
 }
