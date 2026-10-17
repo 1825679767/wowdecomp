@@ -17851,9 +17851,9 @@ int32_t Packet_SMSG_AI_REACTION(void* param, NETMESSAGE msgId, uint32_t time, CD
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
     if (unit) {
-        if (!reaction) {
+        if (reaction == AI_REACT_ALERT) {
             unit->PlayUnitSound(UNITSOUNDTYPE_ALERT, 0);
-        } else if (reaction == 2) {
+        } else if (reaction == AI_REACT_HOSTILE) {
             unit->OnAiReaction(0);
         }
     }

@@ -106,6 +106,14 @@ enum LOOT_METHOD : int32_t {
     LOOT_METHOD_MAX = 5,
 };
 
+enum AI_REACTION : uint32_t {
+    AI_REACT_ALERT = 0,
+    AI_REACT_HOSTILE = 2,
+    // AI_REACT_FRIENDLY = 1,
+    // AI_REACT_AFRAID = 3,
+    // NUM_AI_REACTIONS = 4,
+};
+
 enum UNIT_REACTION : int32_t {
     UNIT_REACTION_HATED = 0,
     UNIT_REACTION_HOSTILE = 1,
