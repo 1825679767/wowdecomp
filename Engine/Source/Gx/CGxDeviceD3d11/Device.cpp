@@ -60,6 +60,8 @@ bool CGxDeviceD3d11::Initialize(bool warp){
         d.Usage=D3D11_USAGE_DEFAULT;d.BindFlags=D3D11_BIND_CONSTANT_BUFFER;
         if(!Check(m->device->CreateBuffer(&d,nullptr,&m->constants[stage][buffer]),"constant buffer"))return false;
     }
+    for(auto& fence:m->frameFences){D3D11_QUERY_DESC d{D3D11_QUERY_EVENT,0};
+        if(!Check(m->device->CreateQuery(&d,&fence),"frame retirement query"))return false;}
     if(!Resize(m->width,m->height))return false;
     if(!m->offscreen){
         if(!s_uiVertexShader[0])ShaderCreate(s_uiVertexShader,GxSh_Vertex,"Shaders\\Vertex","UI",2);
@@ -269,17 +271,40 @@ void CGxDeviceD3d11::ScenePresent(){
             }
         }
     }
-    if(m_format.m_fixLag){
-        if(!m->frameFence){D3D11_QUERY_DESC d{D3D11_QUERY_EVENT,0};Check(m->device->CreateQuery(&d,&m->frameFence),"frame fence");}
-        if(m->frameFence){m->context->End(m->frameFence.Get());m->context->Flush();const ULONGLONG begin=GetTickCount64();
-            while(m->context->GetData(m->frameFence.Get(),nullptr,0,0)==S_FALSE&&GetTickCount64()-begin<5000)Sleep(0);}
+    if(m->swapchain&&m->samples>1)m->context->ResolveSubresource(m->backbuffer.Get(),0,m->color.Get(),0,DXGI_FORMAT_R8G8B8A8_UNORM);
+    if(!m->FinishFrame(m_format.m_fixLag)){
+        const HRESULT reason=m->device->GetDeviceRemovedReason();m_context=0;
+        if(reason==DXGI_ERROR_DEVICE_REMOVED||reason==DXGI_ERROR_DEVICE_RESET||reason==DXGI_ERROR_DEVICE_HUNG)RecoverDevice();
+        return; // A stalled/failed GPU must not keep accumulating new work.
     }
-    if(m->swapchain){if(m->samples>1)m->context->ResolveSubresource(m->backbuffer.Get(),0,m->color.Get(),0,DXGI_FORMAT_R8G8B8A8_UNORM);
+    if(m->swapchain){
         const HRESULT hr=m->swapchain->Present(m_format.m_vsync?1:0,0);
         if(SUCCEEDED(hr)&&++m->presentedFrames==1){Log("DX11 first native Present succeeded; draws=%llu variants=%zu",m->drawCalls,m->variants.size());if(m_log)SLogFlush(m_log);}
         if(FAILED(hr)){Check(hr,"Present");m_context=0;if(hr==DXGI_ERROR_DEVICE_REMOVED||hr==DXGI_ERROR_DEVICE_RESET)RecoverDevice();}
     }
     CGxDevice::ScenePresent();WaitForFPSCap();
+}
+
+bool CGxDeviceD3d11::Impl::FinishFrame(bool immediate){
+    if(!context||framePending>=2)return false;
+    const uint32_t tail=(frameHead+framePending)%2;
+    context->End(frameFences[tail].Get());++framePending;
+    peakPendingFrames=std::max(peakPendingFrames,framePending);
+    // Allow one frame of overlap normally; gxFixLag still drains immediately.
+    // Explicitly flush once before DONOTFLUSH polling, then yield while the
+    // oldest frame retires. No VSync/CPU FPS cap is needed for this bound.
+    if(framePending<2&&!immediate)return true;
+    context->Flush();
+    while(framePending&&(immediate||framePending>=2)){
+        const ULONGLONG begin=GetTickCount64();HRESULT hr;
+        while((hr=context->GetData(frameFences[frameHead].Get(),nullptr,0,D3D11_ASYNC_GETDATA_DONOTFLUSH))==S_FALSE){
+            if(GetTickCount64()-begin>=5000){self->Log("DX11 frame retirement timed out; submissions stopped");return false;}
+            Sleep(1);
+        }
+        if(!Check(hr,"frame retirement"))return false;
+        frameHead=(frameHead+1)%2;--framePending;++retiredFrames;
+    }
+    return true;
 }
 void CGxDeviceD3d11::SceneClear(uint32_t mask,CImVector color){
     if(!m_context||!BindTargets())return;

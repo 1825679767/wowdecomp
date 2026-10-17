@@ -134,8 +134,10 @@ bool BuildBoneMap(const M2Array<M2CompBone>& source, const M2Array<M2CompBone>& 
 // Equipment collections use the donor's canonical key/name/parent policy,
 // separately from exact bind-topology appearance children. Ambiguous IDs are
 // never selected by array order. Unmapped helpers retain their own native pose.
-bool BuildCollectionMap(const M2Array<M2CompBone>& source,const M2Array<M2CompBone>& child,
+bool BuildCollectionMap(const M2Data& sourceData,const M2Data& childData,
                         std::vector<uint16_t>& output,float& scale) {
+    const auto& source=sourceData.m_bones;
+    const auto& child=childData.m_bones;
     BoneTopology from,to;
     if(!ReadTopology(source,from)||!ReadTopology(child,to)||source.m_count>1024||child.m_count>256)return false;
     std::vector<uint16_t> map(child.m_count,NoParent);
@@ -144,7 +146,16 @@ bool BuildCollectionMap(const M2Array<M2CompBone>& source,const M2Array<M2CompBo
         for(uint32_t j=0;j<source.m_count;++j)if((name?source[j].m_boneNameCRC:source[j].m_boneId)==value){if(result!=NoParent)return NoParent;result=uint16_t(j);}
         return result;
     };
-    for(uint32_t i=0;i<child.m_count;++i)if(child[i].m_boneId!=UINT32_MAX)map[i]=unique(child[i].m_boneId,false);
+    for(uint32_t i=0;i<child.m_count;++i)if(child[i].m_boneId!=UINT32_MAX){
+        const auto key=child[i].m_boneId;map[i]=unique(key,false);
+        // The authored key-bone lookup is an explicit mapping, unlike choosing
+        // the first duplicate bone by array order. Current WXL uses it before
+        // CRC/name and parent inheritance for armor and customization children.
+        if(map[i]==NoParent&&key<sourceData.m_boneIndicesById.m_count){
+            const auto at=sourceData.m_boneIndicesById[key];
+            if(at<source.m_count)map[i]=at;
+        }
+    }
     for(uint32_t i=0;i<child.m_count;++i)if(map[i]==NoParent&&child[i].m_boneNameCRC)map[i]=unique(child[i].m_boneNameCRC,true);
     for(uint32_t pass=0;pass<child.m_count;++pass){bool changed=false;
         for(uint32_t i=0;i<child.m_count;++i)if(map[i]==NoParent){const auto parent=child[i].m_parentIndex;if(parent!=NoParent&&map[parent]!=NoParent){map[i]=map[parent];changed=true;}}
@@ -167,7 +178,9 @@ bool BuildCollectionMap(const M2Array<M2CompBone>& source,const M2Array<M2CompBo
 }
 }
 
-bool CM2Model::SetSkinningSource(CM2Model* source,bool collection,float geometryScaleOverride) {
+bool CM2Model::SetSkinningSource(CM2Model* source,SkinningSourceMode mode,float geometryScaleOverride) {
+    const bool collection=mode==SkinningSourceMode::Equipment;
+    const bool remappable=collection||mode==SkinningSourceMode::Customization;
     if (source == this->m_skinningSource) return true;
     std::vector<uint16_t> boneMap;
     float geometryScale=1.0f;bool bindCorrection=false;
@@ -182,12 +195,12 @@ bool CM2Model::SetSkinningSource(CM2Model* source,bool collection,float geometry
         // owner after its matrices are replaced by the verified source pose.
         // Attached descendants need another pose-propagation level; cameras
         // must not acquire view authority merely by being a customization mesh.
-        if ((!collection&&to.m_attachments.m_count) || to.m_cameras.m_count) return false;
+        if ((!remappable&&to.m_attachments.m_count) || to.m_cameras.m_count) return false;
         if(!BuildBoneMap(from.m_bones,to.m_bones,boneMap)){
-            if(!collection||!BuildCollectionMap(from.m_bones,to.m_bones,boneMap,geometryScale))return false;
+            if(!remappable||!BuildCollectionMap(from,to,boneMap,geometryScale))return false;
             // The donor corrects bind pivots only against classic source
             // bodies. Modern source bodies already use their authored poses.
-            bindCorrection=source->m_shared->m_wxlAssets==nullptr;
+            bindCorrection=collection&&source->m_shared->m_wxlAssets==nullptr;
             if(std::isfinite(geometryScaleOverride)&&geometryScaleOverride>0)geometryScale=geometryScaleOverride;
         }
         if ((to.m_particles.m_count && !this->m_particleEmitters)

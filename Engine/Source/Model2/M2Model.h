@@ -236,7 +236,8 @@ class CM2Model {
     bool m_wxlEmittersEnabled = true, m_wxlRibbonsEnabled = true;
     wxl::native::ProceduralEnchantState* m_wxlProceduralEnchant = nullptr;
     wxl::native::EnchantAttachmentOwner* m_wxlEnchantAttachments = nullptr;
-    bool SetSkinningSource(CM2Model* source, bool collection = false, float geometryScaleOverride = 0.0f);
+    enum class SkinningSourceMode { ExactBind, Equipment, Customization };
+    bool SetSkinningSource(CM2Model* source, SkinningSourceMode mode = SkinningSourceMode::ExactBind, float geometryScaleOverride = 0.0f);
     void SynchronizeSkinnedDependentsMT(const C44Matrix* view);
 
     static void (*s_transformVertices[5])(CM2Model*, M2SkinSection*, uint8_t*, int32_t);

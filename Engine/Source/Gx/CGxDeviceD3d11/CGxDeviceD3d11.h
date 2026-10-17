@@ -77,6 +77,12 @@ public:
     // Capture active RT0 (including MSAA), preserving native target ownership.
     CGxTex* CaptureCurrentColor();
     uint64_t SubmittedDraws() const;
+    struct FrameResourceStats {
+        uint32_t pendingFrames,peakPendingFrames;
+        uint64_t retiredFrames,constantUploads,fanBufferCreates;
+        size_t textureObjects,poolObjects;
+    };
+    FrameResourceStats FrameResources() const;
     // WXL silhouette policy stays in its module; GPU resources stay device-owned.
     void BeginUnitOutlineFrame();
     bool StampUnitOutline(const CGxBatch& batch,bool indexed,const float* rgba,bool depthTest);

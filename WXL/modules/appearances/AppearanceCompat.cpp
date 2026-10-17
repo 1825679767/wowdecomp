@@ -19,6 +19,7 @@
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Shared.h"
 #include "Engine/Source/Model2/M2Scene.h"
+#include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Services/Texture.h"
 #include "common/Log.hpp"
 #include <algorithm>
@@ -145,6 +146,12 @@ struct SkinnedChild {
         }
     }
 };
+struct ChildGroup {
+    uint32_t fdid=0,attempts=0,retryAt=0,startedAt=0;
+    std::vector<uint16_t> geosets;
+    std::unique_ptr<SkinnedChild> child;
+    bool ready=false,exhausted=false;
+};
 }
 
 struct AppearanceAssets {
@@ -154,7 +161,7 @@ struct AppearanceAssets {
     std::map<uint32_t,std::unique_ptr<Sheet>> sheets;
     std::map<uint32_t,CTexture*> original;
     std::vector<uint16_t> ownedGeosets, selectedGeosets;
-    std::vector<std::unique_ptr<SkinnedChild>> children;
+    std::vector<ChildGroup> children;
     bool ready = false;
     ~AppearanceAssets() {
         for (const auto& [type, texture] : original)
@@ -279,31 +286,54 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
         output.sheets.emplace(type,std::move(sheet));
     }
     if (appearance.attached.size() > 64) return false;
-    std::vector<uint32_t> childFiles;
     for (const auto& attached : appearance.attached) {
-        if (!attached.fileDataId || std::find(childFiles.begin(),childFiles.end(),attached.fileDataId) != childFiles.end()) continue;
-        childFiles.push_back(attached.fileDataId);
-        const char* path = ResolveModel(attached.fileDataId);
-        if (!path) return false;
-        auto child = std::make_unique<SkinnedChild>();
-        child->model = component.m_data.m_model->m_scene->CreateModel(path,0);
-        if (!child->model || !child->model->IsLoaded(1,0) || !child->model->m_shared
-            || PathKey(child->model->m_shared->m_fileName) != PathKey(path)) return false;
-        const auto* skin = child->model->m_shared->m_skinData;
-        // Authored no-geometry choices deliberately suppress an appendage.
-        if (!skin || !skin->m_indices.m_count || !skin->m_batches.m_count) continue;
-        if (!child->model->SetSkinningSource(component.m_data.m_model)) {
-            WLOG_WARN("native-appearance: incompatible skinned child fdid=%u geoset=%u path=%s",attached.fileDataId,attached.geoset,path);
-            return false;
-        }
-        child->model->SetGeometryVisible(0,65535,1);
-        child->model->OptimizeVisibleGeometry();
-        for (const auto& [type,sheet] : output.sheets) child->model->ReplaceTexture(type,sheet->texture);
-        output.children.push_back(std::move(child));
+        if (!attached.fileDataId) continue;
+        if (attached.geoset > 65535) return false;
+        auto it=std::find_if(output.children.begin(),output.children.end(),[&](const auto& group){return group.fdid==attached.fileDataId;});
+        if(it==output.children.end()){output.children.emplace_back();it=output.children.end()-1;it->fdid=attached.fileDataId;}
+        const auto id=uint16_t(attached.geoset);
+        if(std::find(it->geosets.begin(),it->geosets.end(),id)==it->geosets.end())it->geosets.push_back(id);
     }
     WLOG_INFO("native-appearance: race=%u sex=%u model=%u layout=%u size=%ux%u sheets=%zu choices=%zu skinned-children=%zu",
         race,prefs.m_sexID,modelId,layout,output.sheets.at(1)->width,output.sheets.at(1)->height,output.sheets.size(),choices.size(),output.children.size());
     return true;
+}
+
+void PumpChildren(CCharacterComponent& component,AppearanceAssets& state){
+    const auto now=OsGetAsyncTimeMs();uint32_t work=0;
+    for(auto& group:state.children){
+        if(group.ready){
+            if(group.child&&group.child->model->m_skinningSource!=state.model){group.child.reset();group.ready=false;group.attempts=0;}
+            else continue;
+        }
+        if(group.exhausted||(group.retryAt&&int32_t(now-group.retryAt)<0)||work>=2)continue;
+        ++work;
+        auto failed=[&]{
+            group.child.reset();group.retryAt=now+1000;
+            if(++group.attempts>=3){group.exhausted=true;WLOG_WARN("native-appearance: child refused fdid=%u; body recipe retained",group.fdid);}
+        };
+        const auto* path=ResolveModel(group.fdid);
+        if(!path){failed();continue;}
+        if(!group.child){
+            group.child=std::make_unique<SkinnedChild>();group.startedAt=now;
+            group.child->model=state.model->m_scene->CreateModel(path,0);
+            if(!group.child->model){failed();continue;}
+        }
+        auto* model=group.child->model;
+        if(!model->IsLoaded(0,0)){if(uint32_t(now-group.startedAt)>10000)failed();continue;}
+        if(!model->m_shared||PathKey(model->m_shared->m_fileName)!=PathKey(path)){failed();continue;}
+        const auto* skin=model->m_shared->m_skinData;
+        if(!skin||!skin->m_indices.m_count||!skin->m_batches.m_count){group.child.reset();group.ready=true;continue;}
+        if(!model->m_skinSections){failed();continue;}
+        // One FDID can own many hair/crystal/quill variants. Keep authored
+        // base ID0, clear every other child section, restore only recipe IDs.
+        model->SetGeometryVisible(0,65535,0);model->SetGeometryVisible(0,0,1);
+        for(auto id:group.geosets)if(id)model->SetGeometryVisible(id,id,1);
+        model->OptimizeVisibleGeometry();
+        if(!model->SetSkinningSource(state.model,CM2Model::SkinningSourceMode::Customization)){failed();continue;}
+        for(const auto& [type,sheet]:state.sheets)model->ReplaceTexture(type,sheet->texture);
+        group.ready=true;
+    }
 }
 
 void Bind(CCharacterComponent& component, AppearanceAssets& state) {
@@ -363,7 +393,7 @@ void Bind(CCharacterComponent& component, AppearanceAssets& state) {
     component.m_data.m_model->OptimizeVisibleGeometry();
     for (const auto& [type,sheet] : state.sheets) component.m_data.m_model->ReplaceTexture(type,sheet->texture);
     for (const auto& child : state.children)
-        for (const auto& [type,sheet] : state.sheets) child->model->ReplaceTexture(type,sheet->texture);
+        if(child.ready&&child.child)for (const auto& [type,sheet] : state.sheets) child.child->model->ReplaceTexture(type,sheet->texture);
     component.m_dirtySections = 0;
     component.m_flags &= ~1u;
 }
@@ -398,6 +428,7 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
         const auto signature = Signature(component);
         auto* current = component.m_wxlAppearance;
         if (current && current->model == model && current->signature == signature) {
+            if(current->ready)PumpChildren(component,*current);
             if (current->ready && (component.m_dirtySections || (component.m_flags & 5))) Bind(component,*current);
             return current->ready;
         }
@@ -418,6 +449,7 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
             next->original.emplace(type,original ? reinterpret_cast<CTexture*>(HandleDuplicate(reinterpret_cast<HOBJECT>(original))) : nullptr);
         }
         next->ready = true;
+        PumpChildren(component,*next);
         if (current && current->ready && current->model == model)
             for (const auto& [type,texture] : current->original)
                 if (!next->sheets.count(type)) model->ReplaceTexture(type,texture);
@@ -432,7 +464,11 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
     }
 }
 
-bool AppearanceReady(const CCharacterComponent& component) noexcept {try{if(private_appearances::Identity(component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID))return private_appearances::Ready(component);const auto* state=component.m_wxlAppearance;return state&&state->ready&&state->model==component.m_data.m_model&&state->signature==Signature(component);}catch(...){return false;}}
+bool AppearanceReady(const CCharacterComponent& component) noexcept {try{if(private_appearances::Identity(component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID))return private_appearances::Ready(component);const auto* state=component.m_wxlAppearance;return state&&state->ready&&state->model==component.m_data.m_model&&state->signature==Signature(component)&&std::all_of(state->children.begin(),state->children.end(),[](const auto& group){return group.ready;});}catch(...){return false;}}
+bool AppearanceChildrenPending(const CCharacterComponent& component) noexcept {
+    const auto* state=component.m_wxlAppearance;
+    return state&&state->ready&&state->model==component.m_data.m_model&&std::any_of(state->children.begin(),state->children.end(),[](const auto& group){return !group.ready&&!group.exhausted;});
+}
 void ReleaseAppearance(CCharacterComponent& component) noexcept {
     delete component.m_wxlAppearance;
     component.m_wxlAppearance = nullptr;

@@ -47,7 +47,12 @@ struct CGxDeviceD3d11::Impl {
     bool gammaCaptured=false;
     ComPtr<ID3D11Device> device;
     ComPtr<ID3D11DeviceContext> context;
-    ComPtr<ID3D11Query> frameFence;
+    // End-of-frame retirement is independent of VSync and gxFixLag. Never
+    // reuse a query until its previous submission has completed.
+    ComPtr<ID3D11Query> frameFences[2];
+    uint32_t frameHead=0,framePending=0;
+    uint64_t retiredFrames=0,constantUploads=0,fanBufferCreates=0;
+    uint32_t peakPendingFrames=0;
     ComPtr<IDXGISwapChain> swapchain;
     ComPtr<ID3D11Texture2D> backbuffer,color,depth;
     ComPtr<ID3D11RenderTargetView> colorView;
@@ -55,6 +60,10 @@ struct CGxDeviceD3d11::Impl {
     std::map<std::pair<uint32_t,uint32_t>,std::pair<ComPtr<ID3D11Texture2D>,ComPtr<ID3D11DepthStencilView>>> auxiliaryDepth;
     ComPtr<ID3D11ShaderResourceView> depthSrv;
     ComPtr<ID3D11Buffer> constants[2][4];
+    Bytes uploadedConstants[2][4];
+    ComPtr<ID3D11Buffer> fanSequential,fanIndexed;
+    uint32_t fanSequentialVertices=0,fanIndexedBytes=0;
+    std::vector<uint32_t> fanCpu;
     // API constants retain their values between shader draws. The native
     // shadow array contains FLT_MAX invalidation markers outside dirty ranges.
     std::array<std::array<uint32_t,1024>,2> appConstants{};
@@ -112,6 +121,8 @@ struct CGxDeviceD3d11::Impl {
     } outline;
     bool EnsureOutline();
     bool UploadConstants(const Variant&,bool vertex);
+    void UploadConstantBuffer(uint32_t stage,uint32_t slot,const void* data,size_t bytes);
+    bool FinishFrame(bool immediate);
     bool States();
     bool Blit(ID3D11ShaderResourceView*,ID3D11RenderTargetView*,const CiRect&,const CiRect&,uint32_t,uint32_t,bool depthCopy=false);
     bool StretchColor(ID3D11Texture2D*,uint32_t,ID3D11Texture2D*,uint32_t,const CiRect&,const CiRect&);

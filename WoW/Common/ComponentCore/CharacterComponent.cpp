@@ -4358,7 +4358,8 @@ void CCharacterComponent::UpdateBaseTexture(EGxTexCommand command, uint32_t widt
 // OFFSET: 0x004EFED0
 void CCharacterComponent::Prep() {
     if (wxl::native::ApplyAppearance(*this)) {
-        this->m_link.Unlink();
+        if(wxl::native::AppearanceChildrenPending(*this)){if(!m_link.m_next)s_queue.LinkToTail(this);}
+        else this->m_link.Unlink();
         return;
     }
     if (this->m_data.m_flags & 0x1) {
@@ -5191,7 +5192,8 @@ bool CCharacterComponent::RenderPrep(int32_t wait) {
     wxl::native::RetryItemGraph(*this);
     struct PrivatePost { CCharacterComponent& c; ~PrivatePost(){wxl::native::private_appearances::Apply(c);wxl::native::equipment_attachments::Apply(c);} } privatePost{*this};
     if (wxl::native::ApplyAppearance(*this)) {
-        this->m_link.Unlink();
+        if(wxl::native::AppearanceChildrenPending(*this)){if(!m_link.m_next)s_queue.LinkToTail(this);}
+        else this->m_link.Unlink();
         return true;
     }
     if (this->m_data.m_flags & 0x1) {
@@ -5316,7 +5318,7 @@ int32_t CCharacterComponent::Update(const void* data, void* param) {
                 component->m_link.Unlink();
             }
         } else if (hasContext && wxl::native::ApplyAppearance(*component)) {
-            component->m_link.Unlink();
+            if(!wxl::native::AppearanceChildrenPending(*component))component->m_link.Unlink();
         } else if (component->VariationsLoaded(0) & component->ItemsLoaded(0)) {
             component->m_flags |= 0x8;
 

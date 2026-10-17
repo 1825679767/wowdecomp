@@ -134,6 +134,7 @@ static void ConstantUpdateChecks(bool warp){
 #include "WmoMaterialChecks.h"
 #include "GrassWindChecks.h"
 #include "QuestNavigationChecks.h"
+#include "FrameResourceChecks.h"
 int main(int argc,char** argv) try {
     SetUnhandledExceptionFilter(TraceCrash);
     std::cerr<<"native DX11 backend tests: initialize\n"<<std::flush;
@@ -141,6 +142,7 @@ int main(int argc,char** argv) try {
     if(argc==3&&!std::strcmp(argv[1],"--m2-external"))return M2ExternalChecks(argv[2]);
     std::filesystem::create_directories("Logs");CGxDevice::LogOpen();
     OsTimeManagerCreate(OsTimeManager::SystemMethod2);
+    if(argc==3&&!std::strcmp(argv[1],"--frame-resources"))return FrameResourceChecks(std::strcmp(argv[2],"hardware")!=0);
     Check(argc==3||argc==4,"pass extracted native UI vertex and pixel containers, optional hardware");
     CGxDeviceD3d11 device;g_theGxDevicePtr=&device;
     std::cerr<<"native device constructed\n"<<std::flush;

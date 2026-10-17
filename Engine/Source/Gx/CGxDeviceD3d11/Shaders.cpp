@@ -132,6 +132,12 @@ bool CGxDeviceD3d11::CopyShaderConstants(EGxShTarget target,uint32_t index,uint3
             if(!InvalidatedConstant(shadow.constants+i*4))std::memcpy(output+(i-index)*4,shadow.constants+i*4,16);
     return true;
 }
+void CGxDeviceD3d11::Impl::UploadConstantBuffer(uint32_t stage,uint32_t slot,const void* data,size_t bytes){
+    auto& previous=uploadedConstants[stage][slot];
+    if(previous.size()==bytes&&!std::memcmp(previous.data(),data,bytes))return;
+    context->UpdateSubresource(constants[stage][slot].Get(),0,nullptr,data,0,0);
+    previous.assign(static_cast<const uint8_t*>(data),static_cast<const uint8_t*>(data)+bytes);++constantUploads;
+}
 bool CGxDeviceD3d11::Impl::UploadConstants(const Variant& shader,bool vertex){
     const auto& c=shader.translated;uint32_t words[1024]{};
     const uint32_t stage=vertex?0:1;
@@ -147,11 +153,11 @@ bool CGxDeviceD3d11::Impl::UploadConstants(const Variant& shader,bool vertex){
     std::memcpy(words,appConstants[stage].data(),sizeof(words));
     if(shader.fixed)FixedConstants(vertex,words);
     for(const auto& v:c.inlineConstants[0]){if(v.index>1020)return false;std::memcpy(words+v.index,v.words,16);}
-    context->UpdateSubresource(constants[stage][0].Get(),0,nullptr,words,0,0);
+    UploadConstantBuffer(stage,0,words,sizeof(words));
     uint32_t ints[64]{};for(const auto& v:c.inlineConstants[1]){if(v.index>60)return false;std::memcpy(ints+v.index,v.words,16);}
-    context->UpdateSubresource(constants[stage][1].Get(),0,nullptr,ints,0,0);
+    UploadConstantBuffer(stage,1,ints,sizeof(ints));
     uint32_t bools[16]{};for(const auto& v:c.inlineConstants[2]){if(v.index>=16)return false;bools[v.index]=v.words[0];}
-    context->UpdateSubresource(constants[stage][2].Get(),0,nullptr,bools,0,0);
+    UploadConstantBuffer(stage,2,bools,sizeof(bools));
     float ext[64]{};
     if(vertex){const float w=self->m_curWindowRect.maxX-self->m_curWindowRect.minX,h=self->m_curWindowRect.maxY-self->m_curWindowRect.minY;
         ext[0]=w?1/w:0;ext[1]=h?-1/h:0;ext[4]=self->m_appRenderStates[GxRs_PointScale].m_value.m_data.f[0];ext[5]=1;ext[6]=64;
@@ -163,7 +169,7 @@ bool CGxDeviceD3d11::Impl::UploadConstants(const Variant& shader,bool vertex){
         ext[4]=self->m_appRenderStates[GxRs_FogStart].m_value.m_data.f[0];ext[5]=self->m_appRenderStates[GxRs_FogEnd].m_value.m_data.f[0];
         ext[6]=ext[5]!=ext[4]?1/(ext[5]-ext[4]):0;
     }
-    context->UpdateSubresource(constants[stage][3].Get(),0,nullptr,ext,0,0);
+    UploadConstantBuffer(stage,3,ext,sizeof(ext));
     ID3D11Buffer* buffers[]={constants[stage][0].Get(),constants[stage][1].Get(),constants[stage][2].Get(),constants[stage][3].Get()};
     if(vertex)context->VSSetConstantBuffers(0,4,buffers);else context->PSSetConstantBuffers(0,4,buffers);
     return true;
@@ -240,6 +246,9 @@ bool CGxDeviceD3d11::SyncDraw(EGxPrim primitive){
 }
 
 uint64_t CGxDeviceD3d11::SubmittedDraws() const{return m->drawCalls;}
+CGxDeviceD3d11::FrameResourceStats CGxDeviceD3d11::FrameResources() const {
+    return {m->framePending,m->peakPendingFrames,m->retiredFrames,m->constantUploads,m->fanBufferCreates,m->textures.size(),m->pools.size()};
+}
 void CGxDeviceD3d11::Draw(CGxBatch* batch,int32_t indexed){
     // Wrath's second argument is an indexed/non-indexed flag, not an array count.
     if(!batch||!batch->m_count||batch->m_primType>=GxPrims_Last||!SyncDraw(batch->m_primType))return;
@@ -248,17 +257,40 @@ void CGxDeviceD3d11::Draw(CGxBatch* batch,int32_t indexed){
         D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST};
     m->context->IASetPrimitiveTopology(topology[batch->m_primType]);
     if(batch->m_primType==GxPrim_TriangleFan){
-        if(batch->m_count<3||batch->m_count>1024*1024)return;std::vector<uint32_t> indices((batch->m_count-2)*3);
+        if(batch->m_count<3||batch->m_count>1024*1024)return;
+        const UINT count=(batch->m_count-2)*3;
         const uint16_t* native=nullptr;
         if(indexed){if(!m_primIndexBuf||!PoolReady(m_primIndexBuf->m_pool))return;const auto& pool=m->pools[m_primIndexBuf->m_pool];
             const uint64_t at=uint64_t(m_primIndexBuf->m_index)+uint64_t(batch->m_start)*2;
             if(at+uint64_t(batch->m_count)*2>pool.cpu.size())return;native=reinterpret_cast<const uint16_t*>(pool.cpu.data()+at);}
-        auto index=[&](uint32_t i){return native?uint32_t(native[i]):batch->m_start+i;};
-        for(uint32_t i=0;i<batch->m_count-2;++i){indices[i*3]=index(0);indices[i*3+1]=index(i+1);indices[i*3+2]=index(i+2);}
-        D3D11_BUFFER_DESC d{};d.ByteWidth=UINT(indices.size()*4);d.Usage=D3D11_USAGE_IMMUTABLE;d.BindFlags=D3D11_BIND_INDEX_BUFFER;
-        D3D11_SUBRESOURCE_DATA data{};data.pSysMem=indices.data();ComPtr<ID3D11Buffer> buffer;
-        if(!Check(m->device->CreateBuffer(&d,&data,&buffer),"triangle fan indices"))return;
-        m->context->IASetIndexBuffer(buffer.Get(),DXGI_FORMAT_R32_UINT,0);m->context->DrawIndexed(UINT(indices.size()),0,0);
+        if(!indexed){
+            if(batch->m_start>uint32_t(INT32_MAX))return;
+            if(m->fanSequentialVertices<batch->m_count){
+                uint32_t vertices=32;while(vertices<batch->m_count)vertices*=2;
+                m->fanCpu.resize(size_t(vertices-2)*3);
+                for(uint32_t i=0;i<vertices-2;++i){m->fanCpu[i*3]=0;m->fanCpu[i*3+1]=i+1;m->fanCpu[i*3+2]=i+2;}
+                D3D11_BUFFER_DESC d{};d.ByteWidth=UINT(m->fanCpu.size()*4);d.Usage=D3D11_USAGE_IMMUTABLE;d.BindFlags=D3D11_BIND_INDEX_BUFFER;
+                D3D11_SUBRESOURCE_DATA data{};data.pSysMem=m->fanCpu.data();ComPtr<ID3D11Buffer> buffer;
+                if(!Check(m->device->CreateBuffer(&d,&data,&buffer),"shared triangle fan indices"))return;
+                m->fanSequential=std::move(buffer);m->fanSequentialVertices=vertices;++m->fanBufferCreates;
+            }
+            m->context->IASetIndexBuffer(m->fanSequential.Get(),DXGI_FORMAT_R32_UINT,0);
+            m->context->DrawIndexed(count,0,INT(batch->m_start));
+        }else{
+            const uint32_t bytes=count*4;
+            if(m->fanIndexedBytes<bytes){
+                uint32_t capacity=512;while(capacity<bytes)capacity*=2;
+                D3D11_BUFFER_DESC d{};d.ByteWidth=capacity;d.Usage=D3D11_USAGE_DYNAMIC;d.BindFlags=D3D11_BIND_INDEX_BUFFER;d.CPUAccessFlags=D3D11_CPU_ACCESS_WRITE;
+                ComPtr<ID3D11Buffer> buffer;if(!Check(m->device->CreateBuffer(&d,nullptr,&buffer),"indexed triangle fan buffer"))return;
+                m->fanIndexed=std::move(buffer);m->fanIndexedBytes=capacity;++m->fanBufferCreates;
+            }
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            if(!Check(m->context->Map(m->fanIndexed.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&mapped),"indexed triangle fan upload"))return;
+            auto* indices=static_cast<uint32_t*>(mapped.pData);
+            for(uint32_t i=0;i<batch->m_count-2;++i){indices[i*3]=native[0];indices[i*3+1]=native[i+1];indices[i*3+2]=native[i+2];}
+            m->context->Unmap(m->fanIndexed.Get(),0);
+            m->context->IASetIndexBuffer(m->fanIndexed.Get(),DXGI_FORMAT_R32_UINT,0);m->context->DrawIndexed(count,0,0);
+        }
     }else if(indexed){
         if(!m_primIndexBuf||!m_primIndexBuf->m_valid||!PoolReady(m_primIndexBuf->m_pool))return;
         const uint64_t end=uint64_t(m_primIndexBuf->m_index)+uint64_t(batch->m_start+uint64_t(batch->m_count))*2;
