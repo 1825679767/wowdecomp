@@ -1730,7 +1730,7 @@ void CGWorldFrame::OnWorldRender() {
     CGUnit_C::NamePlateUpdateColor(false);
 
     if (this->m_namePlateFlags & 0x1) {
-        SmartScreenRectClearGrid(0);
+        SmartScreenRectClearGrid(SRECTGRID_NAMEPLATES);
         CGUnit_C::UnitNameplatesReposition(this);
         this->m_namePlateFlags &= ~0x1;
     }
@@ -1786,7 +1786,7 @@ void CGWorldFrame::OnWorldRender() {
     }
 
     g_theGxDevicePtr->RsPop();
-    SmartScreenRectClearGrid(1);
+    SmartScreenRectClearGrid(SRECTGRID_WORLDTEXT);
     CGChatBubbleFrame::OnWorldRender(this);
     GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
     FFX::Finish();

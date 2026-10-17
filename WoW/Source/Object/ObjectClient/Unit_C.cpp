@@ -20166,7 +20166,7 @@ void CGUnit_C::UnitNameplatesReposition(CGWorldFrame* worldFrame) {
             frame->SetFrameDepth(position.z - worldFrame->m_layoutDepth, true);
         } else {
             C3Vector position = frame->m_position;
-            SmartScreenRectPositionFrame(0, frame, worldFrame, position, 0);
+            SmartScreenRectPositionFrame(SRECTGRID_NAMEPLATES, frame, worldFrame, position, 0);
         }
 
         frame = next;
