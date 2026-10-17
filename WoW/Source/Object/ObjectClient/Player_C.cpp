@@ -11848,34 +11848,34 @@ int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CD
     UIErrors error;
     WOWGUID guid;
 
-    switch (event) {
-        case 0:
+    switch (static_cast<GUILD_EVENT>(event)) {
+        case GUILD_EVENT_PROMOTION:
             error = ERR_GUILD_PROMOTE_SSS;
             break;
 
-        case 1:
+        case GUILD_EVENT_DEMOTION:
             error = ERR_GUILD_DEMOTE_SSS;
             break;
 
-        case 2:
+        case GUILD_EVENT_MOTD:
             FrameScript_SignalEvent(SCRIPT_EVENT_GUILD_MOTD, "%s", strings[0]);
             CGGuildInfo::SetMOTD(strings[0]);
             UpdateGuildRoster(1);
             return 1;
 
-        case 3:
+        case GUILD_EVENT_JOINED:
             error = ERR_GUILD_JOIN_S;
             msg->Get(guid.m_guid);
             CGAutoCompleteName::AddFlags(guid, 34, 0, strings[0]);
             break;
 
-        case 4:
+        case GUILD_EVENT_LEFT:
             error = ERR_GUILD_LEAVE_S;
             msg->Get(guid.m_guid);
             CGAutoCompleteName::RemoveFlags(guid, 2);
             break;
 
-        case 5:
+        case GUILD_EVENT_REMOVED:
             error = ERR_GUILD_REMOVE_SS;
             CGAutoCompleteName::RemoveFlagsByName(strings[0], 2, 1, 0);
 
@@ -11885,22 +11885,22 @@ int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CD
 
             break;
 
-        case 6:
+        case GUILD_EVENT_LEADER_IS:
             error = ERR_GUILD_LEADER_IS_S;
             break;
 
-        case 7:
+        case GUILD_EVENT_LEADER_CHANGED:
             error = ERR_GUILD_LEADER_CHANGED_SS;
             break;
 
-        case 8:
+        case GUILD_EVENT_DISBANDED:
             error = ERR_GUILD_DISBANDED;
             CGAutoCompleteName::RemoveFlagsFromAllNodes(2);
             CGGuildBankInfo::SetGuildBanker(WOWGUID());
             memset(CGGuildBankInfo::m_guildBankTabInfo, 0, sizeof(CGGuildBankInfo::m_guildBankTabInfo));
             break;
 
-        case 10: {
+        case GUILD_EVENT_RANK_UPDATED: {
             CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
 
             if (!player) {
@@ -11935,7 +11935,7 @@ int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CD
             return 1;
         }
 
-        case 11: {
+        case GUILD_EVENT_RANK_COUNT_UPDATED: {
             CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
 
             if (!player) {
@@ -11954,7 +11954,7 @@ int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CD
             return 1;
         }
 
-        case 12:
+        case GUILD_EVENT_SIGNED_ON:
             msg->Get(guid.m_guid);
             CGAutoCompleteName::AddFlags(guid, 32, 0, strings[0]);
 
@@ -11965,7 +11965,7 @@ int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CD
             CGGameUI::DisplayError(ERR_FRIEND_ONLINE_SS, strings[0], strings[0]);
             return 1;
 
-        case 13:
+        case GUILD_EVENT_SIGNED_OFF:
             msg->Get(guid.m_guid);
             CGAutoCompleteName::RemoveFlags(guid, 32);
 
@@ -11976,21 +11976,21 @@ int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CD
             CGGameUI::DisplayError(ERR_FRIEND_OFFLINE_S, strings[0]);
             return 1;
 
-        case 14:
+        case GUILD_EVENT_BANK_BAG_SLOTS_CHANGED:
             SendGuildBankQueryTabOpcode(CGGuildBankInfo::m_currentTab);
             FrameScript_SignalEvent(SCRIPT_EVENT_GUILDBANKBAGSLOTS_CHANGED, nullptr);
             return 1;
 
-        case 15:
+        case GUILD_EVENT_BANK_TAB_ADDED:
             CGGuildBankInfo::m_numTabs++;
             FrameScript_SignalEvent(SCRIPT_EVENT_GUILDBANK_UPDATE_TABS, nullptr);
             return 1;
 
-        case 16:
+        case GUILD_EVENT_BANK_TAB_UPDATED:
             CGGuildBankInfo::UpdateTabInfo(static_cast<uint8_t>(SStrToInt(strings[0])), strings[1], strings[2]);
             return 1;
 
-        case 17: {
+        case GUILD_EVENT_BANK_MONEY_SET: {
             uint64_t money;
             sscanf(strings[0], "%016I64X", &money);
             CGGuildBankInfo::m_money = money;
@@ -12002,7 +12002,7 @@ int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CD
             return 1;
         }
 
-        case 18: {
+        case GUILD_EVENT_BANK_REFRESH: {
             SendGuildBankQueryTabOpcode(CGGuildBankInfo::m_currentTab);
             CDataStore query;
             query.Put(static_cast<uint32_t>(MSG_GUILD_BANK_MONEY_WITHDRAWN));
@@ -12011,7 +12011,7 @@ int32_t Packet_SMSG_GUILD_EVENT(void* param, NETMESSAGE msgId, uint32_t time, CD
             return 1;
         }
 
-        case 19: {
+        case GUILD_EVENT_BANK_TEXT_CHANGED: {
             int32_t tab = atol(strings[0]);
             CGGuildBankInfo::SetTextUpdate(tab, 1);
             FrameScript_SignalEvent(SCRIPT_EVENT_GUILDBANK_TEXT_CHANGED, "%d", tab + 1);
