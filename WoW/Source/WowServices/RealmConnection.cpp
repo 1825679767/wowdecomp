@@ -31,7 +31,10 @@ int32_t RealmConnection::HandleCharEnum(uint32_t msgId, uint32_t time, CDataStor
 
     int32_t invalid = 0;
 
-    if (count > 10) {
+    // WXL's 3.3.5 donor raises this SMSG_CHAR_ENUM bound from 10 to 31
+    // (old x86 file offset 0x6404F). Storage below is sized from the count.
+    // Keep the upper bound and complete-packet validation for invalid replies.
+    if (count > 31) {
         count = 0;
         invalid = 1;
     }
