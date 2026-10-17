@@ -1,0 +1,7 @@
+## Interface: 30300
+## Title: WXL Frame Rate
+## Notes: Optional foreground and background frame rate limits in Video options.
+## Author: WarcraftXL
+## Version: 1.0.0
+## DefaultState: enabled
+FrameRate.lua
