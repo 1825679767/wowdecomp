@@ -93,10 +93,22 @@ bool MissingItemDisplayRecord(int32_t id,ItemDisplayInfoRec* output) noexcept {
  }catch(...){return false;}
 }
 bool ItemGraphHelmetData(uint32_t id,uint32_t sex,uint32_t modelRace,ItemGraphHelmet& output) noexcept {
- output={};if(sex>1||!ItemGraphOwnsDisplay(id))return false;
- try {auto index=display::Current();if(!index||!index->resolvedDisplays.contains(id)){display::Request(id);return false;}
-  const auto row=index->displayRecords.find(id);if(row==index->displayRecords.end()||!index->helmetData)return false;
-  ItemGraphHelmet result;result.visibilityId=row->second.helmetVis[sex];
+ output={};if(!Db2Enabled()||!id||id>INT32_MAX||sex>1)return false;
+ try {auto index=display::Current();if(!index||!index->helmetData)return false;
+  ItemGraphHelmet result;
+  if(!ItemGraphOwnsDisplay(id)){
+   // Donor applies retail hide-group rules to a native DBC helmet as well,
+   // while its own DBC visibility ID (even zero) remains authoritative.
+   ItemDisplayInfoRec native;
+   if(!g_itemDisplayInfoDB.GetRecord(int32_t(id),&native))return false;
+   const auto visibility=native.m_helmetGeosetVisID[sex];
+   if(visibility<0)return false;
+   result.visibilityId=uint32_t(visibility);
+  }else{
+   if(!index->resolvedDisplays.contains(id)){display::Request(id);return false;}
+   const auto row=index->displayRecords.find(id);if(row==index->displayRecords.end())return false;
+   result.visibilityId=row->second.helmetVis[sex];
+  }
   if(result.visibilityId){
    if(const auto rules=index->helmetData->geosetsByVis.find(result.visibilityId);rules!=index->helmetData->geosetsByVis.end()){
     if(rules->second.size()>256)return false;result.rules.reserve(rules->second.size());

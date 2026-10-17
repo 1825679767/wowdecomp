@@ -100,14 +100,17 @@ bool SlotOwnsGroup(uint32_t inventory,uint32_t group){
  case 10:return group==4||group==23;case 16:return group==15;case 19:return group==9;case 20:return group==22||group==13;default:return false;}
 }
 bool Filter(CM2Model& model,const ItemGraphModel& entry,uint32_t inventory,bool skinned){
- if(entry.geoFilter.count>16||!model.m_shared->m_skinData||!model.m_skinSections)return false;
- if(!entry.geoFilter.count&&!skinned){model.SetGeometryVisible(0,65535,1);model.OptimizeVisibleGeometry();return true;}
+ if(!model.m_shared->m_skinData||!model.m_skinSections)return false;
+ // Current donor RetailEquipment does not consume ModelEntry::geoFilter.
+ // Rigid models retain authored geometry; root collections are filtered by
+ // actual named SKIN slot families in RetailSkinProvider::FilterSkin. Treating
+ // cached metadata IDs as a second mandatory filter rejected valid variants.
+ (void)entry;
+ if(!skinned){model.SetGeometryVisible(0,65535,1);model.OptimizeVisibleGeometry();return true;}
  const auto& sections=model.m_shared->m_skinData->m_skinSections;
- for(uint32_t i=0;i<entry.geoFilter.count;++i){bool found=false;for(uint32_t j=0;j<sections.m_count;++j)found|=sections[j].m_skinSectionId==entry.geoFilter.ids[i];if(!found)return false;}
  std::vector<uint16_t> selected;
  for(uint32_t i=0;i<sections.m_count;++i){const auto id=sections[i].m_skinSectionId;
-  bool keep=!entry.geoFilter.count;for(uint32_t j=0;j<entry.geoFilter.count;++j)keep|=id==entry.geoFilter.ids[j];
-  if(keep&&(!skinned||(id&&SlotOwnsGroup(inventory,id/100))))selected.push_back(id);}
+  if(id&&SlotOwnsGroup(inventory,id/100))selected.push_back(id);}
  if(selected.empty())return false;
  model.SetGeometryVisible(0,65535,0);for(auto id:selected)model.SetGeometryVisible(id,id,1);model.OptimizeVisibleGeometry();return true;
 }
@@ -151,10 +154,17 @@ void ApplyHelmet(CCharacterComponent& c,EquipmentAttachmentState& owner){
  if(owner.helmetDisplay!=display||owner.helmetGeneration!=generation){
   equipment_attachments::BeginGeometry(c);owner.helmetDisplay=display;owner.helmetGeneration=generation;owner.helmetMetadataReady=false;owner.helmet={};
  }
- if(!display||!ItemGraphOwnsDisplay(display)||!HelmetActor(c,owner)) {equipment_attachments::BeginGeometry(c);return;}
+ if(!display||!HelmetActor(c,owner)) {equipment_attachments::BeginGeometry(c);return;}
  // A model-less/pending head row must not hide the character's hair or ears.
  const auto& head=owner.slots[ITEMSLOT_HEAD];
- if(!head.ready||head.display!=display||head.children.empty()){equipment_attachments::BeginGeometry(c);return;}
+ if(ItemGraphOwnsDisplay(display)){
+  if(!head.ready||head.display!=display||head.children.empty()){equipment_attachments::BeginGeometry(c);return;}
+ }else{
+  bool loaded=false;
+  for(auto* child=owner.model->m_attachList;child;child=child->m_attachNext)
+   if(child->m_attachmentId==ATTACH_HELM&&child->m_attachParent==owner.model&&child->IsLoaded(0,0))loaded=true;
+  if(!loaded||!c.IsHelmModelCorrect()){equipment_attachments::BeginGeometry(c);return;}
+ }
  if(!owner.helmetMetadataReady){if(!ItemGraphHelmetData(display,owner.sex,owner.race,owner.helmet))return;owner.helmetMetadataReady=true;}
  auto* model=owner.model;const auto* skin=model->m_shared->m_skinData;
  if(!skin||!model->m_skinSections||skin->m_skinSections.m_count>16384)return;
@@ -267,7 +277,8 @@ void Release(CCharacterComponent& c) noexcept{const bool restore=c.m_wxlEquipmen
 void Apply(CCharacterComponent& c) noexcept{try{
  auto* model=c.m_data.m_model;const auto& prefs=c.m_data.m_preferences;
  if(!Enabled()||(c.m_data.m_flags&1u)||prefs.m_sexID>1||!model){Release(c);return;}
- bool needed=false;for(uint32_t slot=0;slot<11;++slot)needed|=c.m_itemDisplayID[slot]&&ItemGraphOwnsDisplay(c.m_itemDisplayID[slot]);if(!needed){Release(c);return;}
+ bool needed=c.m_itemDisplayID[ITEMSLOT_HEAD]&&RetailChoicesReady(prefs,model);
+ for(uint32_t slot=0;slot<11;++slot)needed|=c.m_itemDisplayID[slot]&&ItemGraphOwnsDisplay(c.m_itemDisplayID[slot]);if(!needed){Release(c);return;}
  if(!model->IsLoaded(0,0)||!model->m_shared||!model->m_shared->m_data||!model->m_scene||!g_theGxDevicePtr||!g_theGxDevicePtr->CapsHasContext(-1))return;
  auto race=RetailRecipeRace(c);if(!race)race=RetailRaceId(prefs.m_raceID);const auto fallback=Fallback(prefs.m_raceID,RetailEquipmentRace(c));const auto sex=(race==52||race==70)?0u:prefs.m_sexID;
  auto* state=c.m_wxlEquipmentAttachments;

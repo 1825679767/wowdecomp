@@ -232,6 +232,44 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
             for(auto geoset:allHuman.geosets)if(geoset/100==33)all.geosets.push_back(geoset);
         }
     }
+    // Current donor SelectionFor resolves independent geosets one option at
+    // a time AND merges the settled related-choice recipe. Neither pass is a
+    // substitute for the other. The native port previously kept only the latter.
+    const auto append=[](std::vector<uint16_t>& ids,uint16_t id){
+        if(std::find(ids.begin(),ids.end(),id)==ids.end())ids.push_back(id);
+    };
+    const auto actor=PathKey(actualPath);
+    const bool voidElfMale=actor.find("voidelf\\male")!=std::string::npos;
+    bool voidElfAdvanced=false;
+    bool hasEyeTexture=std::any_of(appearance.layers.begin(),appearance.layers.end(),[](const auto& layer){return layer.textureType==19;});
+    for(const auto& selected:effectiveOptions){
+        const auto* optionName=recipe::OptionName(selected.option);
+        const auto* choiceName=recipe::ChoiceName(selected.choice);
+        if(voidElfMale&&optionName&&choiceName&&std::strcmp(choiceName,"None")
+           &&(!std::strcmp(optionName,"Horns")||!std::strcmp(optionName,"Blindfold")||!std::strcmp(optionName,"Tattoo")))voidElfAdvanced=true;
+        if(actor.find("orc\\female")!=std::string::npos&&optionName&&!std::strcmp(optionName,"Eyesight")){
+            for(uint16_t id:{5101,5102,5103})append(all.geosets,id);
+            if(choiceName){
+                if(!std::strcmp(choiceName,"Both"))append(appearance.geosets,5101);
+                else if(!std::strcmp(choiceName,"Right"))append(appearance.geosets,5102);
+                else if(!std::strcmp(choiceName,"Left"))append(appearance.geosets,5103);
+            }
+        }
+        recipe::Recipe one;
+        if(recipe::BuildForCharacter(race,prefs.m_sexID,&selected.choice,1,one)){
+            for(auto id:one.geosets)append(appearance.geosets,id);
+            hasEyeTexture|=std::any_of(one.layers.begin(),one.layers.end(),[](const auto& layer){return layer.textureType==19;});
+        }
+    }
+    // Material-only Eye Color/Eye Style choices still need the authored
+    // opaque iris/sclera. Preserve any explicit group33 choice over this fallback.
+    if(hasEyeTexture&&!std::any_of(appearance.geosets.begin(),appearance.geosets.end(),[](uint16_t id){return id/100==33;}))append(appearance.geosets,3301);
+    if(voidElfMale){
+        const auto& skin=component.m_data.m_model->m_shared->m_skinData->m_skinSections;
+        for(uint32_t i=0;i<skin.m_count;++i)if(skin[i].m_skinSectionId/100==24)append(all.geosets,skin[i].m_skinSectionId);
+        if(!voidElfAdvanced)std::erase_if(appearance.attached,[](const auto& attached){return attached.fileDataId==7760207u;});
+    }
+    if(all.geosets.size()>MaxChoices||appearance.geosets.size()>MaxChoices)return false;
     output.ownedGeosets = std::move(all.geosets);
     output.selectedGeosets = appearance.geosets;
     body->levels.emplace_back(size_t(body->width)*body->height,0xff000000u);
@@ -449,7 +487,8 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
         if(private_appearances::Identity(component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID)){if(component.m_wxlAppearance)Restore(component);return false;}
         auto* model = component.m_data.m_model;
         if (!AppearancesEnabled() || !AssetsEnabled() || !model || !(model->m_fFlags & 1)
-            || !model->m_shared || !RetailRace(component.m_data.m_preferences.m_raceID)
+            || !model->m_shared || !model->m_shared->m_data || !model->m_shared->m_skinData
+            || !model->m_skinSections || !model->m_textures || !RetailRace(component.m_data.m_preferences.m_raceID)
             || component.m_data.m_preferences.m_sexID > 1 || (component.m_data.m_flags & 1)) {
             if (component.m_wxlAppearance) Restore(component);
             return false;

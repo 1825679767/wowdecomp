@@ -104,8 +104,10 @@ const Authority* Get(uint32_t race,uint32_t sex,uint32_t family=0){
  for(uint32_t i=0;valid&&i<optionIds.size();++i){WXL_ChrOption o{};o.id=optionIds[i];
   Option entry;entry.id=o.id;const int axis=Axis(db::OptionName(o.id));const auto n=db::ChoiceCount(o.id);
   if(!n||n>8192||total+n>8192){valid=false;break;}total+=n;
-  // Only the first named axis maps onto the five classic bytes. Extra axes keep explicit IDs.
-  if(axis>=0&&!assigned[axis]){if(n>256){valid=false;break;}entry.axis=axis;assigned[axis]=true;a->counts[axis]=n;}
+  // Only a byte-sized named axis maps onto the legacy preferences. A larger
+  // retail option remains an explicit option/choice-ID selection, like every
+  // other supplemental customization; it must not invalidate the whole race.
+  if(axis>=0&&!assigned[axis]&&n<=256){entry.axis=axis;assigned[axis]=true;a->counts[axis]=n;}
   for(uint32_t j=0;j<n;++j){WXL_ChrChoice c{};if(!db::ChoiceAt(o.id,j,c)){valid=false;break;}entry.choices.push_back(c.id);}
   a->options.push_back(std::move(entry));
  }
