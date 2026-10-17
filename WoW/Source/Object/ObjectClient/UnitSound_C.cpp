@@ -320,9 +320,9 @@ void CGUnit_C::KillCreatureLoopSound() {
 
 // VERIFY: f678b1e1 auto
 // OFFSET: 0x00746360
-bool CGUnit_C::GetWeaponSwingType(bool offhand, int32_t* swingType) const {
+bool CGUnit_C::GetWeaponSwingType(bool offhand, WEAPONSWING_SOUNDTYPES* swingType) const {
     if (!this->GetVirtualItemDisplayID(offhand == false)) {
-        *swingType = 0;
+        *swingType = WEAPONSWING_LIGHT;
         return true;
     }
 
@@ -335,7 +335,7 @@ bool CGUnit_C::GetWeaponSwingType(bool offhand, int32_t* swingType) const {
     const ItemSubClassRec* subClass = SDBItemSubclassGetSubClassRec(2, item->m_subclassID);
 
     if (subClass) {
-        *swingType = subClass->m_weaponSwingSize;
+        *swingType = static_cast<WEAPONSWING_SOUNDTYPES>(subClass->m_weaponSwingSize);
     }
 
     return subClass != nullptr;

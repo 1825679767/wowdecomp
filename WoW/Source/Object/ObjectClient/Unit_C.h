@@ -593,7 +593,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     const char* GetFrameScriptText(const char* token, int32_t count) const;
     uint64_t GetAuraCaster(uint32_t index);
     void KillCreatureLoopSound();
-    bool GetWeaponSwingType(bool offhand, int32_t* swingType) const;
+    bool GetWeaponSwingType(bool offhand, WEAPONSWING_SOUNDTYPES* swingType) const;
     void PlayStandSound();
     int32_t GetNewNPCSoundCount(int32_t count, int32_t* soundKitId, int32_t* soundIndex) const;
     void PlayEmoteStateSound(const C3Vector* position);
