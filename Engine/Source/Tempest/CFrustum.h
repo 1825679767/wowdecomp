@@ -13,6 +13,11 @@ class CAaSphere;
 enum WorldCullStatus : uint32_t {
     WorldCull_outside = 0,
     WorldCull_notOutside = 3,
+
+    // Unused 0.5.3 definitions; current 3.3.5 status paths still emit only 0 or 3.
+    // WorldCull_inside = 1,
+    // WorldCull_intersect = 2,
+    // WorldCull_count = 4,
 };
 
 class CFrustum {
