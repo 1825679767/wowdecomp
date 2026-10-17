@@ -1605,7 +1605,7 @@ void FriendList::MuteAdded(WOWGUID guid, int32_t lookupName) {
 
 // VERIFY: 730b124b manual
 // OFFSET: 0x006B73A0
-void FriendList::HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg) {
+void FriendList::HandleStatus(FRIEND_RESULT status, WOWGUID guid, CDataStore* msg) {
     UIErrors error = ERR_MAX_VALUE;
     bool friendChange = false;
     bool ignoreChange = false;
@@ -1614,16 +1614,16 @@ void FriendList::HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg) {
     NameCache* record;
 
     switch (status) {
-        case 0:
-        case 4:
+        case FRIEND_DB_ERROR:
+        case FRIEND_NOT_FOUND:
             CGGameUI::DisplayError(ERR_FRIEND_NOT_FOUND);
             return;
 
-        case 1:
+        case FRIEND_LIST_FULL:
             CGGameUI::DisplayError(ERR_FRIEND_LIST_FULL);
             return;
 
-        case 2: {
+        case FRIEND_ONLINE: {
             error = ERR_FRIEND_ONLINE_SS;
             uint8_t flags;
             uint32_t area;
@@ -1650,14 +1650,14 @@ void FriendList::HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg) {
             break;
         }
 
-        case 3:
+        case FRIEND_OFFLINE:
             error = ERR_FRIEND_OFFLINE_S;
             this->SetConnected(guid, 0);
             friendChange = true;
             record = g_nameDBCache.GetRecord(guid.m_guid, guid, FriendListNameCallbackWithSort, reinterpret_cast<void*>(ERR_FRIEND_OFFLINE_S), false);
             break;
 
-        case 5: {
+        case FRIEND_REMOVED: {
             bool deleted = this->GetFriendDeleted(guid);
             display = !deleted;
             error = static_cast<UIErrors>(4 * deleted + ERR_FRIEND_REMOVED_S);
@@ -1673,7 +1673,7 @@ void FriendList::HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg) {
             goto lookup;
         }
 
-        case 6: {
+        case FRIEND_ADDED_ONLINE: {
             error = ERR_FRIEND_ADDED_S;
             char note[512];
             uint8_t flags;
@@ -1711,7 +1711,7 @@ void FriendList::HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg) {
             break;
         }
 
-        case 7: {
+        case FRIEND_ADDED_OFFLINE: {
             error = ERR_FRIEND_ADDED_S;
             char note[512];
             msg->GetString(note, sizeof(note));
@@ -1728,47 +1728,47 @@ void FriendList::HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg) {
             break;
         }
 
-        case 8:
+        case FRIEND_ALREADY:
             error = ERR_FRIEND_ALREADY_S;
             this->GetFriendIndexByGuid(guid);
             friendChange = true;
             record = g_nameDBCache.GetRecord(guid.m_guid, guid, FriendListNameCallbackWithSort, reinterpret_cast<void*>(ERR_FRIEND_ALREADY_S), false);
             break;
 
-        case 9:
+        case FRIEND_SELF:
             CGGameUI::DisplayError(ERR_FRIEND_SELF);
             return;
 
-        case 10:
+        case FRIEND_ENEMY:
             CGGameUI::DisplayError(ERR_FRIEND_WRONG_FACTION);
             return;
 
-        case 11:
+        case FRIEND_IGNORE_FULL:
             CGGameUI::DisplayError(ERR_IGNORE_FULL);
             return;
 
-        case 12:
+        case FRIEND_IGNORE_SELF:
             CGGameUI::DisplayError(ERR_IGNORE_SELF);
             return;
 
-        case 13:
+        case FRIEND_IGNORE_NOT_FOUND:
             CGGameUI::DisplayError(ERR_IGNORE_NOT_FOUND);
             return;
 
-        case 14:
+        case FRIEND_IGNORE_ALREADY:
             error = ERR_IGNORE_ALREADY_S;
             ignoreChange = true;
             record = g_nameDBCache.GetRecord(guid.m_guid, guid, FriendListIgnoreNameCallback, reinterpret_cast<void*>(ERR_IGNORE_ALREADY_S), false);
             break;
 
-        case 15:
+        case FRIEND_IGNORE_ADDED:
             error = ERR_IGNORE_ADDED_S;
             this->IgnoreAdded(guid, 1);
             ignoreChange = true;
             record = g_nameDBCache.GetRecord(guid.m_guid, guid, FriendListIgnoreNameCallback, reinterpret_cast<void*>(ERR_IGNORE_ADDED_S), false);
             break;
 
-        case 16: {
+        case FRIEND_IGNORE_REMOVED: {
             bool deleted = this->GetIgnoreDeleted(guid);
             display = !deleted;
             error = static_cast<UIErrors>(2 * deleted + ERR_IGNORE_REMOVED_S);
@@ -1777,36 +1777,36 @@ void FriendList::HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg) {
             goto lookup;
         }
 
-        case 17:
+        case FRIEND_IGNORE_AMBIGUOUS:
             CGGameUI::DisplayError(ERR_IGNORE_AMBIGUOUS);
             return;
 
-        case 18:
+        case FRIEND_VOICE_IGNORE_FULL:
             CGGameUI::DisplayError(ERR_VOICE_IGNORE_FULL);
             return;
 
-        case 19:
+        case FRIEND_VOICE_IGNORE_SELF:
             CGGameUI::DisplayError(ERR_VOICE_IGNORE_SELF);
             return;
 
-        case 20:
+        case FRIEND_VOICE_IGNORE_NOT_FOUND:
             CGGameUI::DisplayError(ERR_VOICE_IGNORE_NOT_FOUND);
             return;
 
-        case 21:
+        case FRIEND_VOICE_IGNORE_ALREADY:
             error = ERR_VOICE_IGNORE_ALREADY_S;
             muteChange = true;
             record = g_nameDBCache.GetRecord(guid.m_guid, guid, FriendListMuteNameCallback, reinterpret_cast<void*>(ERR_VOICE_IGNORE_ALREADY_S), false);
             break;
 
-        case 22:
+        case FRIEND_VOICE_IGNORE_ADDED:
             error = ERR_VOICE_IGNORE_ADDED_S;
             this->MuteAdded(guid, 1);
             muteChange = true;
             record = g_nameDBCache.GetRecord(guid.m_guid, guid, FriendListMuteNameCallback, reinterpret_cast<void*>(ERR_VOICE_IGNORE_ADDED_S), false);
             break;
 
-        case 23: {
+        case FRIEND_VOICE_IGNORE_REMOVED: {
             bool deleted = this->GetMuteDeleted(guid);
             display = !deleted;
             error = static_cast<UIErrors>(2 * deleted + ERR_VOICE_IGNORE_REMOVED_S);
@@ -1815,15 +1815,15 @@ void FriendList::HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg) {
             goto lookup;
         }
 
-        case 24:
+        case FRIEND_VOICE_IGNORE_AMBIGUOUS:
             CGGameUI::DisplayError(ERR_VOICE_IGNORE_AMBIGUOUS);
             return;
 
-        case 25:
+        case FRIEND_UNKNOWN_25:
             CGGameUI::DisplayError(error);
             return;
 
-        case 26: {
+        case FRIEND_FLAGS_UPDATED: {
             uint8_t flags;
             msg->Get(flags);
 
@@ -1839,7 +1839,7 @@ void FriendList::HandleStatus(uint8_t status, WOWGUID guid, CDataStore* msg) {
             return;
         }
 
-        case 27: {
+        case FRIEND_AREA_UPDATED: {
             uint32_t area;
             msg->Get(area);
 
@@ -1932,7 +1932,7 @@ int32_t Packet_SMSG_FRIEND_STATUS(void* param, NETMESSAGE msgId, uint32_t time, 
     msg->Get(guid.m_guid);
 
     if (FriendList::s_friendList) {
-        FriendList::s_friendList->HandleStatus(status, guid, msg);
+        FriendList::s_friendList->HandleStatus(static_cast<FRIEND_RESULT>(status), guid, msg);
     }
 
     return 1;
