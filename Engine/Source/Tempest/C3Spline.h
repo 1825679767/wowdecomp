@@ -8,6 +8,11 @@
 
 class C44Matrix;
 
+enum SPLINE_MODE : int32_t {
+  MODE_LINEAR = 0x0,
+  MODE_CATMULLROM = 0x1,
+};
+
 class C3Spline {
     public:
     enum EvalType {
@@ -49,7 +54,7 @@ class C3Spline {
     virtual void IFrameArclength(float t, C44Matrix& frame) = 0;
     virtual void ISetPoints(const C3Vector* points, uint32_t count);
     virtual uint32_t IGetPoints(float t, C3Vector* points, uint32_t count);
-    virtual uint32_t GetSplineMode();
+    virtual SPLINE_MODE GetSplineMode();
 };
 
 #endif

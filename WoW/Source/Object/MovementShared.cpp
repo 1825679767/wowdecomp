@@ -1846,7 +1846,7 @@ void CMovementShared::OnSpline(uint32_t timePassed, const C3Vector* points, uint
     this->m_spline->m_timePassed = timePassed;
     this->m_spline->m_start = 0;
     this->m_spline->m_duration = duration;
-    this->m_spline->m_spline.m_splineMode = (this->m_spline->m_flags & (SPLINEFLAG_CATMULLROM | SPLINEFLAG_FLYING)) != 0;
+    this->m_spline->m_spline.splineMode = (this->m_spline->m_flags & (SPLINEFLAG_CATMULLROM | SPLINEFLAG_FLYING)) != 0 ? MODE_CATMULLROM : MODE_LINEAR;
     this->m_spline->m_spline.SetPoints(points, pointCount);
     this->m_spline->m_id = splineId;
     this->m_spline->m_durationModNext = 1.0f;
