@@ -4362,6 +4362,7 @@ void CCharacterComponent::Prep() {
         else this->m_link.Unlink();
         return;
     }
+    if(wxl::native::AppearanceChildrenPending(*this)&&!m_link.m_next)s_queue.LinkToTail(this);
     if (this->m_data.m_flags & 0x1) {
         if (this->m_flags & 0x4) {
             this->GeosRenderPrep();
@@ -5196,6 +5197,7 @@ bool CCharacterComponent::RenderPrep(int32_t wait) {
         else this->m_link.Unlink();
         return true;
     }
+    if(wxl::native::AppearanceChildrenPending(*this)&&!m_link.m_next)s_queue.LinkToTail(this);
     if (this->m_data.m_flags & 0x1) {
         if (this->m_flags & 0x4) {
             this->GeosRenderPrep();
@@ -5237,7 +5239,7 @@ bool CCharacterComponent::RenderPrep(int32_t wait) {
     this->ItemsLoaded(1);
     this->m_flags |= 0x8;
     this->RenderPrepSections();
-    this->m_link.Unlink();
+    if(!wxl::native::AppearanceChildrenPending(*this))this->m_link.Unlink();
 
     return true;
 }
@@ -5315,10 +5317,13 @@ int32_t CCharacterComponent::Update(const void* data, void* param) {
         if (component->m_request) {
             if (hasContext && (component->m_request->m_flags & 0x2)) {
                 component->ProcessFinishedRequest();
-                component->m_link.Unlink();
+                if(!wxl::native::AppearanceChildrenPending(*component))component->m_link.Unlink();
             }
         } else if (hasContext && wxl::native::ApplyAppearance(*component)) {
             if(!wxl::native::AppearanceChildrenPending(*component))component->m_link.Unlink();
+        } else if(hasContext&&wxl::native::AppearanceChildrenPending(*component)
+                  &&!component->m_dirtySections&&!(component->m_flags&1u)) {
+            // Waiting for a bounded recipe retry, not another legacy atlas build.
         } else if (component->VariationsLoaded(0) & component->ItemsLoaded(0)) {
             component->m_flags |= 0x8;
 
@@ -5326,7 +5331,7 @@ int32_t CCharacterComponent::Update(const void* data, void* param) {
                 component->CreateComponentRequest();
             } else if (hasContext) {
                 component->RenderPrepSections();
-                component->m_link.Unlink();
+                if(!wxl::native::AppearanceChildrenPending(*component))component->m_link.Unlink();
             }
         }
 

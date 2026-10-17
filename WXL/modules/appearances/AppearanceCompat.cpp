@@ -152,6 +152,10 @@ struct ChildGroup {
     std::unique_ptr<SkinnedChild> child;
     bool ready=false,exhausted=false;
 };
+struct WholeGroup {
+    uint32_t type=0,material=0,attempts=0,retryAt=0;
+    bool ready=false,exhausted=false;
+};
 }
 
 struct AppearanceAssets {
@@ -162,6 +166,8 @@ struct AppearanceAssets {
     std::map<uint32_t,CTexture*> original;
     std::vector<uint16_t> ownedGeosets, selectedGeosets;
     std::vector<ChildGroup> children;
+    std::vector<WholeGroup> whole;
+    uint32_t buildAttempts=0,retryAt=0;
     bool ready = false;
     ~AppearanceAssets() {
         for (const auto& [type, texture] : original)
@@ -279,11 +285,9 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
     output.sheets.emplace(1,std::move(body));
     const auto whole = atlas::SelectWholeLayers(race,prefs.m_sexID,appearance.layers,choices);
     for (uint32_t type = 0; type < whole.size(); ++type) if (whole[type].materialResourceId) {
-        atlas::Image image;
-        if (!ReadImage(ResolveTexture(ResolveMaterialTexture(whole[type].materialResourceId,type)),image,false)) return false;
-        auto sheet = WholeSheet(image);
-        if (!sheet) return false;
-        output.sheets.emplace(type,std::move(sheet));
+        // The donor binds independent whole slots individually. One unavailable
+        // eye/hair/decoration file must not discard the body and clothing atlas.
+        output.whole.push_back({type,whole[type].materialResourceId});
     }
     if (appearance.attached.size() > 64) return false;
     for (const auto& attached : appearance.attached) {
@@ -297,6 +301,29 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
     WLOG_INFO("native-appearance: race=%u sex=%u model=%u layout=%u size=%ux%u sheets=%zu choices=%zu skinned-children=%zu",
         race,prefs.m_sexID,modelId,layout,output.sheets.at(1)->width,output.sheets.at(1)->height,output.sheets.size(),choices.size(),output.children.size());
     return true;
+}
+
+bool PumpWhole(AppearanceAssets& state) {
+    const auto now=OsGetAsyncTimeMs();uint32_t work=0;bool changed=false;
+    for(auto& group:state.whole){
+        if(group.ready||group.exhausted||(group.retryAt&&int32_t(now-group.retryAt)<0)||work>=2)continue;
+        ++work;
+        atlas::Image image;
+        auto sheet=ReadImage(ResolveTexture(ResolveMaterialTexture(group.material,group.type)),image,false)?WholeSheet(image):nullptr;
+        if(!sheet){
+            group.retryAt=now+1000;
+            if(++group.attempts>=3){group.exhausted=true;WLOG_WARN("native-appearance: whole slot unavailable type=%u material=%u; other slots retained",group.type,group.material);}
+            continue;
+        }
+        if(!state.original.count(group.type)){
+            CTexture* original=nullptr;
+            const auto& textures=state.model->m_shared->m_data->m_textures;
+            for(uint32_t i=0;i<textures.m_count;++i)if(textures[i].m_type==group.type){original=state.model->m_textures[i];break;}
+            state.original.emplace(group.type,original?reinterpret_cast<CTexture*>(HandleDuplicate(reinterpret_cast<HOBJECT>(original))):nullptr);
+        }
+        state.sheets.emplace(group.type,std::move(sheet));group.ready=true;changed=true;
+    }
+    return changed;
 }
 
 void PumpChildren(CCharacterComponent& component,AppearanceAssets& state){
@@ -428,16 +455,22 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
         const auto signature = Signature(component);
         auto* current = component.m_wxlAppearance;
         if (current && current->model == model && current->signature == signature) {
-            if(current->ready)PumpChildren(component,*current);
-            if (current->ready && (component.m_dirtySections || (component.m_flags & 5))) Bind(component,*current);
-            return current->ready;
+            if(current->ready){
+                const bool changed=PumpWhole(*current);
+                PumpChildren(component,*current);
+                if(changed||component.m_dirtySections||(component.m_flags&5))Bind(component,*current);
+                return true;
+            }
+            if(current->buildAttempts>=3||(current->retryAt&&int32_t(OsGetAsyncTimeMs()-current->retryAt)<0))return false;
         }
         auto next = std::make_unique<AppearanceAssets>();
         next->model = model;
         next->signature = signature;
+        next->buildAttempts=current&&current->model==model&&current->signature==signature?current->buildAttempts:0;
         if (!Build(component,*next)) {
+            ++next->buildAttempts;next->retryAt=OsGetAsyncTimeMs()+1000;
             if (current) Restore(component);
-            component.m_wxlAppearance = next.release(); // cache this failed immutable recipe
+            component.m_wxlAppearance = next.release(); // bounded retry, never a permanent transient miss
             return false;
         }
         // Capture the actual source-native replaceable slot handles for rollback.
@@ -449,6 +482,12 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
             next->original.emplace(type,original ? reinterpret_cast<CTexture*>(HandleDuplicate(reinterpret_cast<HOBJECT>(original))) : nullptr);
         }
         next->ready = true;
+        // Restore a previous recipe's independent whole slots before capturing
+        // their real baseline for this recipe (including pending late slots).
+        if(current&&current->ready&&current->model==model)
+            for(const auto& [type,texture]:current->original)
+                if(!next->sheets.count(type))model->ReplaceTexture(type,texture);
+        PumpWhole(*next);
         PumpChildren(component,*next);
         if (current && current->ready && current->model == model)
             for (const auto& [type,texture] : current->original)
@@ -464,10 +503,12 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
     }
 }
 
-bool AppearanceReady(const CCharacterComponent& component) noexcept {try{if(private_appearances::Identity(component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID))return private_appearances::Ready(component);const auto* state=component.m_wxlAppearance;return state&&state->ready&&state->model==component.m_data.m_model&&state->signature==Signature(component)&&std::all_of(state->children.begin(),state->children.end(),[](const auto& group){return group.ready;});}catch(...){return false;}}
+bool AppearanceReady(const CCharacterComponent& component) noexcept {try{if(private_appearances::Identity(component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID))return private_appearances::Ready(component);const auto* state=component.m_wxlAppearance;return state&&state->ready&&state->model==component.m_data.m_model&&state->signature==Signature(component)&&std::all_of(state->whole.begin(),state->whole.end(),[](const auto& group){return group.ready;})&&std::all_of(state->children.begin(),state->children.end(),[](const auto& group){return group.ready;});}catch(...){return false;}}
 bool AppearanceChildrenPending(const CCharacterComponent& component) noexcept {
     const auto* state=component.m_wxlAppearance;
-    return state&&state->ready&&state->model==component.m_data.m_model&&std::any_of(state->children.begin(),state->children.end(),[](const auto& group){return !group.ready&&!group.exhausted;});
+    return state&&state->model==component.m_data.m_model&&(!state->ready?state->buildAttempts<3:
+        (std::any_of(state->whole.begin(),state->whole.end(),[](const auto& group){return !group.ready&&!group.exhausted;})||
+         std::any_of(state->children.begin(),state->children.end(),[](const auto& group){return !group.ready&&!group.exhausted;})));
 }
 void ReleaseAppearance(CCharacterComponent& component) noexcept {
     delete component.m_wxlAppearance;

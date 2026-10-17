@@ -41,7 +41,7 @@ std::string ObjectPath(const std::string& folder,const std::string& name,bool te
  if(texture&&(path.size()<4||path.compare(path.size()-4,4,".blp")))path+=".blp";return path.size()<260?path:std::string{};
 }
 struct Child {
- CM2Model* model=nullptr;CM2Model* parent=nullptr;uint32_t parentHandle=0;bool skinned=false;std::string path,variant;
+ CM2Model* model=nullptr;CM2Model* parent=nullptr;uint32_t parentHandle=0;bool skinned=false;std::string path,variant,identity;
  ~Child(){if(model){
   auto* actual=skinned?model->m_skinningSource:model->m_attachParent;
   // DetachFromParent consumes an attachment reference even when unbound.
@@ -54,7 +54,7 @@ struct Child {
  }}
 };
 struct Slot {
- uint32_t display=0,retryAt=0;uint64_t generation=0;bool ready=false;
+ uint32_t display=0,retryAt=0,attempts=0;uint64_t generation=0;bool ready=false,exhausted=false;
  std::vector<std::unique_ptr<Child>> children;
 };
 template<class T> int Rank(const T& row,uint32_t race,uint32_t fallback,uint32_t sex){
@@ -176,24 +176,29 @@ bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t s
  if(wire==28||((owner.race==52||owner.race==70)&&slot!=1&&slot!=4)){output.ready=true;return true;}
  std::vector<std::string> claimed;
  for(uint32_t prior=0;prior<slot;++prior)for(const auto& child:owner.slots[prior].children)if(child->skinned)claimed.push_back(child->variant);
+ bool complete=true;
  for(const auto& row:models){
   if((row.modelSlot!=Missing&&row.modelSlot!=slot)||row.attachId==Missing||!Preferred(models,row,owner.race,owner.fallback,owner.sex))continue;
   const bool skinned=row.attachId==19;const auto path=ObjectPath(row.folder,row.model,false);
-  if(path.empty()||!SFile::FileExists(path.c_str()))return false;
+  if(path.empty()||!SFile::FileExists(path.c_str())){complete=false;continue;}
   const auto variant=skinned?path+"|"+std::to_string(inventory):path;
+  const auto identity=variant+"|"+std::to_string(row.attachId)+"|"+std::to_string(row.modelIndex);
+  if(std::any_of(output.children.begin(),output.children.end(),[&](const auto& child){return child->identity==identity;})){
+   if(skinned)claimed.push_back(variant);continue;
+  }
   if(skinned&&std::find(claimed.begin(),claimed.end(),variant)!=claimed.end())continue;
-  if(!skinned&&!owner.model->HasAttachment(row.attachId))return false;
-  auto child=std::make_unique<Child>();child->parent=owner.model;child->parentHandle=owner.handle;child->path=path;child->variant=variant;child->skinned=skinned;child->model=owner.model->m_scene->CreateModel(path.c_str(),0);
+  if(!skinned&&!owner.model->HasAttachment(row.attachId)){complete=false;continue;}
+  auto child=std::make_unique<Child>();child->parent=owner.model;child->parentHandle=owner.handle;child->path=path;child->variant=variant;child->identity=identity;child->skinned=skinned;child->model=owner.model->m_scene->CreateModel(path.c_str(),0);
   auto* model=child->model;
-  if(!model||!model->IsLoaded(1,0)||!model->m_shared||!model->m_shared->m_data||!model->m_textures||Key(model->m_shared->m_fileName)!=path)return false;
-  if(!Materials(*model,row,materials,owner.race,owner.fallback,owner.sex)||!Filter(*model,row,inventory,skinned))return false;
-  if(skinned){if(!model->SetSkinningSource(owner.model,CM2Model::SkinningSourceMode::Equipment,wire==18&&owner.sex==1?1.0f:0.0f))return false;claimed.push_back(variant);}
-  else {model->AttachToParent(owner.model,row.attachId,nullptr,0);if(model->m_attachParent!=owner.model)return false;}
+  if(!model||!model->IsLoaded(1,0)||!model->m_shared||!model->m_shared->m_data||!model->m_textures||Key(model->m_shared->m_fileName)!=path){complete=false;continue;}
+  if(!Materials(*model,row,materials,owner.race,owner.fallback,owner.sex)||!Filter(*model,row,inventory,skinned)){complete=false;continue;}
+  if(skinned){if(!model->SetSkinningSource(owner.model,CM2Model::SkinningSourceMode::Equipment,wire==18&&owner.sex==1?1.0f:0.0f)){complete=false;continue;}claimed.push_back(variant);}
+  else {model->AttachToParent(owner.model,row.attachId,nullptr,0);if(model->m_attachParent!=owner.model){complete=false;continue;}}
   model->SetBoneSequence(0xffffffffu,0,0xffffffffu,0,1.0f,1,1);
   equipment_attachments::ApplyItemVisual(model,0,display);
   output.children.push_back(std::move(child));
  }
- output.ready=true;return true;
+ output.ready=complete;return true;
 }
 }
 namespace equipment_attachments {
@@ -218,7 +223,7 @@ void InvalidateSlot(CCharacterComponent& c,uint32_t slot) noexcept{
  if(!c.m_wxlEquipmentAttachments||slot>=11)return;
  if(slot==ITEMSLOT_HEAD)BeginGeometry(c);
  auto& slots=c.m_wxlEquipmentAttachments->slots;slots[slot]=Slot{};
- for(uint32_t next=slot+1;next<11;++next){slots[next].ready=false;slots[next].retryAt=0;}
+ for(uint32_t next=slot+1;next<11;++next){slots[next].ready=false;slots[next].retryAt=0;slots[next].attempts=0;slots[next].exhausted=false;}
 }
 bool SelectBodyLayers(const CCharacterComponent& c,uint32_t display,std::array<std::string,8>& paths) noexcept{try{
  paths={};if(!Enabled()||!ItemGraphOwnsDisplay(display)||(c.m_data.m_flags&1u)||c.m_data.m_preferences.m_sexID>1)return false;
@@ -267,17 +272,26 @@ void Apply(CCharacterComponent& c) noexcept{try{
  for(uint32_t slot=0;slot<11;++slot)if(state->slots[slot].display!=c.m_itemDisplayID[slot]){state->slots[slot]=Slot{};state->slots[slot].display=c.m_itemDisplayID[slot];
   // Lower slots own shared collection paths; changed lower ownership wakes
   // higher slots previously suppressed by that owner, independent of equip order.
-  for(uint32_t higher=slot+1;higher<11;++higher){state->slots[higher].ready=false;state->slots[higher].retryAt=0;}}
+  for(uint32_t higher=slot+1;higher<11;++higher){state->slots[higher]=Slot{};state->slots[higher].display=c.m_itemDisplayID[higher];}}
+ // A newly published item graph can resolve a former miss. Rebuild only this
+ // owner's children and never retain rows from a retired metadata generation.
+ const auto generation=ItemGraphGeneration();
+ for(auto& slot:state->slots)if(slot.generation!=generation){const auto display=slot.display;slot=Slot{};slot.display=display;slot.generation=generation;}
  for(auto& slot:state->slots)if(slot.ready)for(const auto& child:slot.children){
-  if(child->skinned?child->model->m_skinningSource!=model:child->model->m_attachParent!=model){slot.ready=false;slot.retryAt=0;break;}}
+  if(child->skinned?child->model->m_skinningSource!=model:child->model->m_attachParent!=model){slot.children.clear();slot.ready=false;slot.retryAt=0;slot.attempts=0;slot.exhausted=false;break;}}
  ApplyHelmet(c,*state);
  const auto now=OsGetAsyncTimeMs();if(state->worked&&uint32_t(now-state->lastWork)<16)return;state->worked=true;state->lastWork=now;
  uint32_t work=0;
- for(uint32_t slot=0;slot<11&&work<2;++slot){auto& old=state->slots[slot];if(!old.display||old.ready||(old.retryAt&&int32_t(now-old.retryAt)<0))continue;
+ for(uint32_t slot=0;slot<11&&work<2;++slot){auto& old=state->slots[slot];if(!old.display||old.ready||old.exhausted||(old.retryAt&&int32_t(now-old.retryAt)<0))continue;
   const auto id=old.display;
   if(id<=uint32_t(INT32_MAX)&&g_itemDisplayInfoDB.m_loaded&&int32_t(id)>=g_itemDisplayInfoDB.m_minID&&int32_t(id)<=g_itemDisplayInfoDB.m_maxID&&g_itemDisplayInfoDB.m_recordsById&&g_itemDisplayInfoDB.m_recordsById[id-g_itemDisplayInfoDB.m_minID]){old.ready=true;continue;}
-  ++work;Slot next;next.display=old.display;next.generation=ItemGraphGeneration();
-  if(BuildSlot(c,*state,slot,old.display,next)){old=std::move(next);}else{old.children.clear();old.retryAt=now+500;}
+  ++work;Slot next;next.display=old.display;next.generation=generation;next.attempts=old.attempts;
+  next.children=std::move(old.children);
+  // Current donor retains successful pieces when another collection/attachment
+  // fails. Retry only missing pieces instead of destroying the whole outfit.
+  if(!BuildSlot(c,*state,slot,old.display,next))next.ready=false;
+  if(!next.ready){next.retryAt=now+500;next.exhausted=++next.attempts>=10;}
+  old=std::move(next);
   if(slot==ITEMSLOT_HEAD)ApplyHelmet(c,*state);
  }
  }catch(...){Release(c);}}
