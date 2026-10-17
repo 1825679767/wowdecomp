@@ -8524,13 +8524,13 @@ void CGPlayer_C::ClearLootingObject() {
 // OFFSET: 0x006D53B0
 int32_t CGPlayer_C::OnLootResponse(uint32_t time, CDataStore* msg) {
     WOWGUID guid;
-    uint8_t lootType;
+    uint8_t lootAcquire;
     msg->Get(guid.m_guid);
-    msg->Get(lootType);
+    msg->Get(lootAcquire);
 
     if (!this->m_lootTarget || this->m_lootTarget != guid) {
-        if (this->m_lootTarget || (lootType != 2 && lootType != 3 && lootType != 4 && lootType != 6 && lootType != 7 && lootType != 8)) {
-            if (lootType) {
+        if (this->m_lootTarget || (lootAcquire != LOOT_ACQUIRE_UNKNOWN_2 && lootAcquire != LOOT_ACQUIRE_FISHING && lootAcquire != LOOT_ACQUIRE_UNKNOWN_4 && lootAcquire != LOOT_ACQUIRE_UNKNOWN_6 && lootAcquire != LOOT_ACQUIRE_UNKNOWN_7 && lootAcquire != LOOT_ACQUIRE_UNKNOWN_8)) {
+            if (lootAcquire) {
                 CDataStore release;
                 release.Put(static_cast<uint32_t>(CMSG_LOOT_RELEASE));
                 release.Put(guid.m_guid);
@@ -8552,7 +8552,7 @@ int32_t CGPlayer_C::OnLootResponse(uint32_t time, CDataStore* msg) {
         }
     }
 
-    if (lootType) {
+    if (lootAcquire) {
         uint32_t coins;
         uint8_t count;
         msg->Get(coins);
@@ -8595,7 +8595,7 @@ int32_t CGPlayer_C::OnLootResponse(uint32_t time, CDataStore* msg) {
             s_lootItems[slot].m_slotType = slotType;
         }
 
-        CGGameUI::OpenLoot(object, coins, lootType);
+        CGGameUI::OpenLoot(object, coins, static_cast<LOOT_ACQUIRE>(lootAcquire));
 
         if (this->m_movement->m_flags & 0xC000FF) {
             CGGameUI::CloseLoot(true, true, false);

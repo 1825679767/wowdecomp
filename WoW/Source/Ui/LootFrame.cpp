@@ -22,7 +22,7 @@
 uint32_t CGLootInfo::m_itemsPending;
 
 // STATIC: 0x00BFA68C
-uint32_t CGLootInfo::m_lootType;
+LOOT_ACQUIRE CGLootInfo::m_lootAcquire;
 
 // STATIC: 0x00BFA690
 LootSlot CGLootInfo::m_slots[18];
@@ -398,8 +398,8 @@ char* CGLootInfo::GetLootSlotLink(uint32_t slot, char* buffer, uint32_t size) {
 
 // VERIFY: d8364d91 auto
 // OFFSET: 0x00588530
-uint32_t CGLootDisplay::GetLootAcquireType() {
-    return CGLootInfo::m_lootType;
+LOOT_ACQUIRE CGLootDisplay::GetLootAcquireType() {
+    return CGLootInfo::m_lootAcquire;
 }
 
 // VERIFY: 500b1dce manual
@@ -643,7 +643,7 @@ void CGLootInfo::LootButtonItemStatsCallback(int32_t id, const WOWGUID& guid, vo
 
 // VERIFY: 98edc3f9 manual
 // OFFSET: 0x005896B0
-void CGLootInfo::SetObject(CGObject_C* object, int32_t coins, uint32_t lootType) {
+void CGLootInfo::SetObject(CGObject_C* object, int32_t coins, LOOT_ACQUIRE lootAcquire) {
     if (CGLootInfo::m_lootObj) {
         CGObject_C* current = ClntObjMgrObjectPtr(CGLootInfo::m_lootObj, TYPEMASK_OBJECT, __FILE__, __LINE__);
 
@@ -683,7 +683,7 @@ void CGLootInfo::SetObject(CGObject_C* object, int32_t coins, uint32_t lootType)
     CGLootInfo::m_lootObj = object->m_obj->m_guid;
     CGLootInfo::m_coins = coins;
     CGLootInfo::m_itemsPending = 0;
-    CGLootInfo::m_lootType = lootType;
+    CGLootInfo::m_lootAcquire = lootAcquire;
     s_bindConfirmSlot = -1;
     uint32_t count = 0;
     memset(CGLootInfo::m_slots, 0, sizeof(CGLootInfo::m_slots));

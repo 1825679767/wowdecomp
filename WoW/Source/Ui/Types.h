@@ -5,6 +5,21 @@
 #include <cstdint>
 #include "Engine/Source/BLPFile/Types.h"
 
+enum LOOT_ACQUIRE : uint32_t {
+    LOOT_ACQUIRE_FAILED = 0,
+    LOOT_ACQUIRE_UNKNOWN_1 = 1,
+    LOOT_ACQUIRE_UNKNOWN_2 = 2,
+    LOOT_ACQUIRE_FISHING = 3,
+    LOOT_ACQUIRE_UNKNOWN_4 = 4,
+    LOOT_ACQUIRE_UNKNOWN_6 = 6,
+    LOOT_ACQUIRE_UNKNOWN_7 = 7,
+    LOOT_ACQUIRE_UNKNOWN_8 = 8,
+
+    // Unused historical names; current meanings of 1/2 are unverified.
+    // LOOT_ACQUIRE_NORMAL = 1,
+    // LOOT_ACQUIRE_PICKPOCKET = 2,
+};
+
 enum UICURSORTYPE : int32_t {
     UICURSOR_EMPTY = 0,
     UICURSOR_ITEM = 1,

@@ -5580,12 +5580,12 @@ int32_t CGGameUI::StartCinematicCamera() {
 
 // VERIFY: 60912e63 manual
 // OFFSET: 0x005264F0
-void CGGameUI::OpenLoot(CGObject_C* object, int32_t coins, uint32_t lootType) {
+void CGGameUI::OpenLoot(CGObject_C* object, int32_t coins, LOOT_ACQUIRE lootAcquire) {
     if (object->m_obj->m_type & TYPEMASK_UNIT) {
         CGGameUI::Target(object->m_obj->m_guid);
     }
 
-    CGLootInfo::SetObject(object, coins, lootType);
+    CGLootInfo::SetObject(object, coins, lootAcquire);
 }
 
 // VERIFY: f309811b auto
@@ -5617,7 +5617,7 @@ void CGGameUI::CloseLoot(bool a1, bool a2, bool a3) {
         return;
     }
 
-    if ((CGLootDisplay::GetLootAcquireType() == 4 || CGLootDisplay::GetLootAcquireType() == 7 || CGLootDisplay::GetLootAcquireType() == 8) && CGLootInfo::HasLoot() && !a2) {
+    if ((CGLootDisplay::GetLootAcquireType() == LOOT_ACQUIRE_UNKNOWN_4 || CGLootDisplay::GetLootAcquireType() == LOOT_ACQUIRE_UNKNOWN_7 || CGLootDisplay::GetLootAcquireType() == LOOT_ACQUIRE_UNKNOWN_8) && CGLootInfo::HasLoot() && !a2) {
         CGLootInfo::DoAutoLoot(1);
     }
 
@@ -5647,7 +5647,7 @@ void CGGameUI::CloseLoot(bool a1, bool a2, bool a3) {
         ClientServices::Send2(&msg);
     }
 
-    CGLootInfo::SetObject(nullptr, 0, 0);
+    CGLootInfo::SetObject(nullptr, 0, LOOT_ACQUIRE_FAILED);
 
     if (object && (object->m_obj->m_type & TYPEMASK_UNIT) && static_cast<int32_t>(static_cast<CGUnit_C*>(object)->m_unit->m_unitFieldHealth) <= 0) {
         CGGameUI::ClearTarget(guid, 1);

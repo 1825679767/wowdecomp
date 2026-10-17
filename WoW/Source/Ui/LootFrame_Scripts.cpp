@@ -93,7 +93,7 @@ static int32_t Script_LootSlotIsCoin(lua_State* L) {
 // VERIFY: 7c2b4fef auto
 // OFFSET: 0x005888E0
 static int32_t Script_IsFishingLoot(lua_State* L) {
-    if (CGLootInfo::m_lootType == 3) {
+    if (CGLootInfo::m_lootAcquire == LOOT_ACQUIRE_FISHING) {
         lua_pushnumber(L, 1.0);
     } else {
         lua_pushnil(L);
