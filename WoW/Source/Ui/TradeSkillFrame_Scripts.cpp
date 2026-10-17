@@ -99,7 +99,7 @@ static int32_t Script_GetTradeskillRepeatCount(lua_State* L) {
 }
 
 // STATIC: 0x00A1B788
-static const char s_difficultyNames[4][32] = { "optimal", "medium", "easy", "trivial" };
+static const char s_difficultyNames[NUM_TRADESKILL_CATEGORIES][32] = { "optimal", "medium", "easy", "trivial" };
 
 // VERIFY: 70374745 auto
 // OFFSET: 0x005DA1B0
