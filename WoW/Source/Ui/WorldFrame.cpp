@@ -95,14 +95,21 @@ static const uint32_t s_skinCursorModes[2] = { 21, 20 };
 // STATIC: 0x009F986C
 static const uint32_t s_skinCursorModesUnable[2] = { 47, 46 };
 
+enum SPELLSHADOWSTYLE : int32_t {
+    SPELL_GOOD = 0,
+    SPELL_BAD = 1,
+    NUM_SPELL_SHADOWS = 2,
+    SPELL_NONE = 3,
+};
+
 // STATIC: 0x00AC799C
-static const char* s_spellShadowTextureNames[2] = { "Interface\\SpellShadow\\Spell-Shadow-Acceptable.blp", "Interface\\SpellShadow\\Spell-Shadow-Unacceptable.blp" };
+static const char* s_spellShadowTextureNames[NUM_SPELL_SHADOWS] = { "Interface\\SpellShadow\\Spell-Shadow-Acceptable.blp", "Interface\\SpellShadow\\Spell-Shadow-Unacceptable.blp" };
 
 // STATIC: 0x00AC79A4
-static int32_t s_spellShadowStyle = 3;
+static SPELLSHADOWSTYLE s_spellShadowStyle = SPELL_NONE;
 
 // STATIC: 0x00B74350
-static CTexture* s_spellShadowTexture[2];
+static CTexture* s_spellShadowTexture[NUM_SPELL_SHADOWS];
 
 // STATIC: 0x00B74370
 static float s_spellShadowSize;
@@ -320,7 +327,7 @@ void CGWorldFrame::OnLayerTrackTerrain(const HITTESTRESULT& result) {
 
     switch (Spell_C_HandleTerrainRay(evt, true)) {
         case 0: {
-            s_spellShadowStyle = 0;
+            s_spellShadowStyle = SPELL_GOOD;
             float radius = Spell_C_GetSpellRadius();
             s_spellShadowSize = radius > 20.0f ? 20.0f : Spell_C_GetSpellRadius();
             CursorSetMode(2);
@@ -328,13 +335,13 @@ void CGWorldFrame::OnLayerTrackTerrain(const HITTESTRESULT& result) {
         }
 
         case 1:
-            s_spellShadowStyle = 1;
+            s_spellShadowStyle = SPELL_BAD;
             s_spellShadowSize = 0.0f;
             CursorSetMode(28);
             break;
 
         case 2:
-            s_spellShadowStyle = 3;
+            s_spellShadowStyle = SPELL_NONE;
             s_spellShadowSize = 0.0f;
             CursorSetMode(28);
             break;
@@ -366,7 +373,7 @@ void CGWorldFrame::OnLayerTrackTerrain(const HITTESTRESULT& result) {
     matrix.d2 = position.z;
     matrix.RotateAroundZ(Spell_C_GetCursorWorldObjectFacing());
     CMap::ObjectUpdate(entity, matrix, box, sphere, center, false, 0xFFFFFFFF);
-    World::ObjectSetHidden(entity, s_spellShadowStyle != 0);
+    World::ObjectSetHidden(entity, s_spellShadowStyle != SPELL_GOOD);
 }
 
 // VERIFY: 364a9bc8 auto
@@ -1745,7 +1752,7 @@ void CGWorldFrame::OnWorldRender() {
     scene->m_passMask = CWorld::m_M2PassMask;
     scene->Draw(M2PASS_0);
 
-    if (s_spellShadowStyle < 2) {
+    if (s_spellShadowStyle < NUM_SPELL_SHADOWS) {
         DrawSpellCursorShadow(0x200122);
     }
 
@@ -1767,7 +1774,7 @@ void CGWorldFrame::OnWorldRender() {
         scene->Draw(M2PASS_1);
     }
 
-    if (s_spellShadowStyle < 2) {
+    if (s_spellShadowStyle < NUM_SPELL_SHADOWS) {
         DrawSpellCursorShadow(0x20000);
     }
 
@@ -1903,7 +1910,7 @@ void CGWorldFrame::OnLayerUpdate(float elapsedSec) {
         }
     }
 
-    s_spellShadowStyle = 3;
+    s_spellShadowStyle = SPELL_NONE;
 
     switch (kind) {
         case 0:
@@ -2338,7 +2345,7 @@ void CGWorldFrame::OnLayerCursorExit(int32_t motion, int32_t a3) {
     }
 
     CursorResetMode();
-    s_spellShadowStyle = 3;
+    s_spellShadowStyle = SPELL_NONE;
 }
 
 // VERIFY: f81c29ba auto
