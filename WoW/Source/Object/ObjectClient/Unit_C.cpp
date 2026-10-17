@@ -346,11 +346,31 @@ static float s_trackingDefaultInteractDistanceSq = s_trackingFollowDistance * s_
 // STATIC: 0x00ADAC18
 static uint32_t s_spellInterruptTrackingMask = 1;
 
-// STATIC: 0x00ADBFDC
-static const char* s_combatTextTokens[12] = { "COMBAT_TEXT_NONE", "COMBAT_TEXT_MISS", "COMBAT_TEXT_RESIST", "COMBAT_TEXT_DODGE", "COMBAT_TEXT_PARRY", "COMBAT_TEXT_BLOCK", "COMBAT_TEXT_EVADE", "COMBAT_TEXT_IMMUNE", "COMBAT_TEXT_IMMUNE", "COMBAT_TEXT_DEFLECT", "COMBAT_TEXT_ABSORB", "COMBAT_TEXT_REFLECT" };
+namespace {
 
-// STATIC: 0x00A34C20
-static const uint32_t s_combatTextTypes[12] = { 11, 3, 3, 3, 3, 3, 3, 3, 3, 3, 1, 3 };
+struct WORLDTEXTINFO {
+    const char* m_token;
+    uint32_t m_style;
+};
+
+// Original 3.3.5 tables: tokens at 0x00ADBFDC; styles at 0x00A34C20.
+static const WORLDTEXTINFO s_combatTextInfo[12] = {
+    { "COMBAT_TEXT_NONE", 11 },
+    { "COMBAT_TEXT_MISS", 3 },
+    { "COMBAT_TEXT_RESIST", 3 },
+    { "COMBAT_TEXT_DODGE", 3 },
+    { "COMBAT_TEXT_PARRY", 3 },
+    { "COMBAT_TEXT_BLOCK", 3 },
+    { "COMBAT_TEXT_EVADE", 3 },
+    { "COMBAT_TEXT_IMMUNE", 3 },
+    { "COMBAT_TEXT_IMMUNE", 3 },
+    { "COMBAT_TEXT_DEFLECT", 3 },
+    { "COMBAT_TEXT_ABSORB", 1 },
+    { "COMBAT_TEXT_REFLECT", 3 },
+};
+
+}
+
 
 // STATIC: 0x00ADAA6C
 static uint32_t s_petSpellDamageColor = 0xFFFFDE00;
@@ -15047,10 +15067,11 @@ void CGUnit_C::AddWorldText(const WOWGUID& source, int32_t reason, const SpellRe
         color = reinterpret_cast<const CImVector*>(&s_petSpellDamageColor);
     }
 
-    const char* text = FrameScript_GetText(s_combatTextTokens[reason], -1, GENDER_NOT_APPLICABLE);
+    const WORLDTEXTINFO& info = s_combatTextInfo[reason];
+    const char* text = FrameScript_GetText(info.m_token, -1, GENDER_NOT_APPLICABLE);
 
     if (text && *text) {
-        PlayerNameCreateText(this->m_nameDesc, s_combatTextTypes[reason], text, color, nullptr);
+        PlayerNameCreateText(this->m_nameDesc, info.m_style, text, color, nullptr);
     }
 }
 
