@@ -50,6 +50,7 @@
 #include "WoW/Source/DB/Rec/TotemCategoryRec.h"
 #include "WoW/Source/Game/GameClient/NameCache.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/MagicClient/SpellTable.h"
 #include "WoW/Source/Object/CreatureStats.h"
 #include "WoW/Source/Object/Item.h"
@@ -305,11 +306,11 @@ void CGItemStatsSummary::AddSpellEffects(const SpellRec* spell) {
         int32_t misc = spell->m_effectMiscValue[i];
 
         switch (spell->m_effectAura[i]) {
-            case 13:
+            case SPELL_AURA_MOD_DAMAGE_DONE:
                 this->m_stats[53] += value;
                 break;
 
-            case 22:
+            case SPELL_AURA_MOD_RESISTANCE:
                 for (uint32_t r = 0; r < 7; r++) {
                     if (misc & (1 << r)) {
                         this->m_stats[r] += value;
@@ -318,39 +319,39 @@ void CGItemStatsSummary::AddSpellEffects(const SpellRec* spell) {
 
                 break;
 
-            case 85:
+            case SPELL_AURA_MOD_POWER_REGEN:
                 this->m_stats[misc + 61] += value;
                 break;
 
-            case 99:
+            case SPELL_AURA_MOD_ATTACK_POWER:
                 this->m_stats[8] += value;
                 break;
 
-            case 123:
+            case SPELL_AURA_MOD_TARGET_RESISTANCE:
                 this->m_stats[58] += -1 - spell->m_effectBasePoints[i];
                 break;
 
-            case 124:
+            case SPELL_AURA_MOD_RANGED_ATTACK_POWER:
                 this->m_stats[9] += value;
                 break;
 
-            case 135:
+            case SPELL_AURA_MOD_HEALING_DONE:
                 this->m_stats[52] += value;
                 break;
 
-            case 150:
+            case SPELL_AURA_MOD_SHIELD_BLOCKVALUE_PCT:
                 this->m_stats[26] += value;
                 break;
 
-            case 158:
+            case SPELL_AURA_MOD_SHIELD_BLOCKVALUE:
                 this->m_stats[60] += value;
                 break;
 
-            case 161:
+            case SPELL_AURA_MOD_HEALTH_REGEN_IN_COMBAT:
                 this->m_stats[68] += value;
                 break;
 
-            case 189:
+            case SPELL_AURA_MOD_RATING:
                 for (int32_t r = 0; r < 25; r++) {
                     if ((misc & (1 << r)) && s_combatRatingStats[r] != -1) {
                         this->m_stats[s_combatRatingStats[r] + 11] += value;
@@ -1733,7 +1734,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
 
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
-    if (!healthGuid && unit && unit->HasAuraEffect(279)) {
+    if (!healthGuid && unit && unit->HasAuraEffect(SPELL_AURA_INITIALIZE_IMAGES)) {
         SpellRec spell;
 
         for (uint32_t i = 0; i < unit->GetAuraCount(); i++) {
@@ -1744,7 +1745,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
             }
 
             for (uint32_t j = 0; j < sizeof(spell.m_effectAura) / sizeof(spell.m_effectAura[0]); j++) {
-                if (spell.m_effectAura[j] == 279 && ((1 << j) & aura->m_flags)) {
+                if (spell.m_effectAura[j] == SPELL_AURA_INITIALIZE_IMAGES && ((1 << j) & aura->m_flags)) {
                     return this->SetUnit(aura->m_creator, showHealth, guid, 0);
                 }
             }
@@ -2967,7 +2968,7 @@ static void AddSpellFormLine(CGTooltip* tooltip, const SpellRec* spell, CGUnit_C
         }
     }
 
-    int32_t usable = !caster || SpellRec::UsableInShapeshift(spell, caster->GetShapeshiftForm() - 1) || (needsForm && !caster->IsShapeShifted()) || caster->AffectedByAura(275, spell);
+    int32_t usable = !caster || SpellRec::UsableInShapeshift(spell, caster->GetShapeshiftForm() - 1) || (needsForm && !caster->IsShapeShifted()) || caster->AffectedByAura(SPELL_AURA_MOD_IGNORE_SHAPESHIFT, spell);
 
     if (first || (usable && brief)) {
         return;

@@ -12,6 +12,7 @@
 #include "WoW/Source/DB/Rec/SkillLineAbilityRec.h"
 #include "WoW/Source/DB/Rec/SpellIconRec.h"
 #include "WoW/Source/Game/ValidateName.h"
+#include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/MagicClient/SpellTable.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include "WoW/Source/Object/ObjectClient/Item_C.h"
@@ -424,7 +425,7 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
         bool shapeshift = false;
 
         for (uint32_t i = 0; i < 3; i++) {
-            if (spell.m_effectAura[i] == 36 || (spell.m_attributesExB & 0x10)) {
+            if (spell.m_effectAura[i] == SPELL_AURA_MOD_SHAPESHIFT || (spell.m_attributesExB & 0x10)) {
                 shapeshift = true;
                 break;
             }
@@ -484,7 +485,7 @@ void CGSpellBook::AddKnownSpell(int32_t spellId, int32_t notify, int32_t replace
     CGSpellBook::AddSpellToNameCache(spellId, 0);
 
     if (SpellIsCallCompanion(&spell)) {
-        int32_t type = spell.m_effect[0] == 28 ? 0 : (spell.m_effectAura[0] != 78) + 1;
+        int32_t type = spell.m_effect[0] == 28 ? 0 : (spell.m_effectAura[0] != SPELL_AURA_MOUNTED) + 1;
         *CGSpellBook::m_companions[type].New() = spellId;
 
         if (type == 0) {
@@ -781,7 +782,7 @@ void CGSpellBook::UpdateSpells(int32_t a1, int32_t a2, int32_t a3) {
 
             for (uint32_t j = 0; j < 3; j++) {
                 if (spell.m_effect[j] == 6) {
-                    if (spell.m_effectAura[j] == 27) {
+                    if (spell.m_effectAura[j] == SPELL_AURA_MOD_SILENCE) {
                         CGSpellBook::m_silenceSchoolMask |= spell.m_schoolMask;
                     }
                 } else if (spell.m_effect[j] == 68) {
@@ -1292,7 +1293,7 @@ int32_t CGSpellBook::GetCompanionType(const SpellRec* spell) {
         return 0;
     }
 
-    return (spell->m_effectAura[0] != 78) + 1;
+    return (spell->m_effectAura[0] != SPELL_AURA_MOUNTED) + 1;
 }
 
 // VERIFY: d8053ee4 manual
@@ -1527,7 +1528,7 @@ int32_t CGSpellBook::IsSelectedSlot(int32_t slot, int32_t petSpell) {
     }
 
     for (uint32_t i = 0; i < 3; i++) {
-        if (spell.m_effectAura[i] != 36) {
+        if (spell.m_effectAura[i] != SPELL_AURA_MOD_SHAPESHIFT) {
             continue;
         }
 
@@ -2309,7 +2310,7 @@ void CGSpellBook::DelKnownSpell(int32_t spellId, int32_t notify) {
         uint32_t type = 0;
 
         if (spell.m_effect[0] != 28) {
-            type = (spell.m_effectAura[0] != 78) + 1;
+            type = (spell.m_effectAura[0] != SPELL_AURA_MOUNTED) + 1;
         }
 
         TSGrowableArray<int32_t>& companions = (&CGSpellBook::m_companions[0])[type];

@@ -37,6 +37,7 @@
 #include "WoW/Source/Game/GameClient/ComSatClient.h"
 #include "WoW/Source/LoadingScreen.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Net/Types.h"
 #include "WoW/Source/Object/CGPetition.h"
 #include "WoW/Source/Object/ItemStats.h"
@@ -4686,7 +4687,7 @@ int32_t CGPlayer_C::GetLanguageSkill(uint32_t language, uint32_t& skill) {
             }
 
             for (uint32_t j = 0; j < 3; j++) {
-                if (spell.m_effectAura[j] == 244 && spell.m_effectMiscValue[j] == static_cast<int32_t>(language)) {
+                if (spell.m_effectAura[j] == SPELL_AURA_COMPREHEND_LANGUAGE && spell.m_effectMiscValue[j] == static_cast<int32_t>(language)) {
                     skill = 300;
                     return 1;
                 }
@@ -7066,7 +7067,7 @@ float CGPlayer_C::GetQuestXPMultiplier() {
         }
 
         for (uint32_t j = 0; j < 3; j++) {
-            if (spell.m_effectAura[j] == 291) {
+            if (spell.m_effectAura[j] == SPELL_AURA_MOD_XP_QUEST_PCT) {
                 multiplier = (spell.m_effectBasePoints[j] + 1) * 0.0099999998f + multiplier;
             }
         }
