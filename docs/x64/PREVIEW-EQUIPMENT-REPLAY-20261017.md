@@ -1,0 +1,11 @@
+# Preview equipment replay and queue ownership — 2026-10-17
+
+User evidence on binary source444451f: Human male selection naked with eye issues; Human female creation has boot/leg geometry without gear textures; first previews black/white until race changes. User reports Night Elf female gear works. Preserve that specific positive reference; no all-race acceptance.
+
+The native item graph publishes asynchronously. Its world replay enumerates world player GUIDs and cannot wake creation/selection actors. Those components previously retired their queue entry before pending item metadata arrived. Pending display demands now retain the existing component queue, and the main/context update retries normal AddItem only when the item metadata generation changes. A completed negative display lookup retires only its demand, preserving an existing displayed item. No per-frame resource reread or global rebuild is introduced.
+
+Retail attachment work already has a two-slot budget,16ms work throttle,500ms failed-piece retry and ten-attempt bound. Previously its component could be unlinked after the first slots, including when a late RenderPrep postlude created pending work. The same owner queue now pumps that bounded work and late pending attachment application requeues its owner. Completed pieces remain retained. Existing model/serial ownership, actual slot filters and working Night Elf selection rules are unchanged.
+
+These are native integration timing defects, not proof of a missing patch or an obsolete entire donor branch. Hair/eye/atlas/equipment assets and shader semantics are not blanket rewritten. The preceding archive-datadir, modern appearance publication, material and eye corrections remain included. FPS limits remain optional; no config changes.
+
+Validation: one consolidated Release WowClient/XvidDecoder build and pre/post source identities, with current scoped dirty x32 donor identities retained. No new client/Data copies, archive edits, account actions, tiny fixture loops or visual acceptance claims. Only the C test launcher may be updated with a rollback receipt; E-live remains untouched. Actual Human eyes, Human gear/collections, cold race previews, other retail races,50Hz and uncapped-memory behavior still require user rendering feedback.

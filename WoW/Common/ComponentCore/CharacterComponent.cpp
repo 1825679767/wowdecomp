@@ -5323,6 +5323,11 @@ int32_t CCharacterComponent::Update(const void* data, void* param) {
     for (CCharacterComponent* component = CCharacterComponent::s_queue.Head(); component;) {
         CCharacterComponent* next = CCharacterComponent::s_queue.Next(component);
 
+        // Creation/selection actors have no world GUID for PumpItemGraph.
+        // Wake only on metadata generation changes after the legacy worker
+        // releases its request; normal AddItem owns invalidation/publication.
+        if (hasContext && !component->m_request) wxl::native::RetryItemGraph(*component);
+
         if (component->m_request) {
             if (hasContext && (component->m_request->m_flags & 0x2)) {
                 component->ProcessFinishedRequest();
@@ -5344,6 +5349,7 @@ int32_t CCharacterComponent::Update(const void* data, void* param) {
             }
         }
 
+        if (hasContext && !component->m_request) wxl::native::equipment_attachments::Apply(*component);
         component = next;
     }
 
@@ -5675,7 +5681,10 @@ void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, const ItemDisplayInfoRec* 
         && wxl::native::equipment_attachments::Enabled() && wxl::native::ItemGraphOwnsDisplay(uint32_t(displayRec->m_id));
     if (actorBody) {
         if (!wxl::native::equipment_attachments::SelectBodyLayers(*this,uint32_t(displayRec->m_id),actorLayers)) {
-            if (uint32_t(itemSlot)<12) {m_wxlPendingItemDisplay[itemSlot]=uint32_t(displayRec->m_id);m_wxlPendingItemVisual[itemSlot]=itemVisual;}
+            if (uint32_t(itemSlot)<12) {
+                m_wxlPendingItemDisplay[itemSlot]=uint32_t(displayRec->m_id);m_wxlPendingItemVisual[itemSlot]=itemVisual;
+                if (!m_link.m_next) s_queue.LinkToTail(this);
+            }
             return; // An unresolved/invalid actor resource never selects a generic body variant.
         }
         actorDisplay=*displayRec;
@@ -5757,6 +5766,7 @@ void CCharacterComponent::AddItem(ITEM_SLOT itemSlot, int32_t displayID, int32_t
     } else if (uint32_t(itemSlot)<12) {
         m_wxlPendingItemDisplay[uint32_t(itemSlot)]=uint32_t(displayID);
         m_wxlPendingItemVisual[uint32_t(itemSlot)]=itemVisual;
+        if (!m_link.m_next) s_queue.LinkToTail(this);
     }
 }
 

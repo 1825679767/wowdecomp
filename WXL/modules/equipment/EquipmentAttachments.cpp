@@ -274,7 +274,12 @@ void BindNativeMaterials(CM2Model* model,uint32_t display) noexcept{try{
  }
  }catch(...){}}
 void Release(CCharacterComponent& c) noexcept{const bool restore=c.m_wxlEquipmentAttachments&&!c.m_wxlEquipmentAttachments->helmetSections.empty();BeginGeometry(c);delete c.m_wxlEquipmentAttachments;c.m_wxlEquipmentAttachments=nullptr;if(restore)c.m_flags|=4u;}
+bool Pending(const CCharacterComponent& c) noexcept {
+ const auto* state=c.m_wxlEquipmentAttachments;
+ return Enabled()&&state&&SameOwner(c,*state)&&std::any_of(state->slots.begin(),state->slots.end(),[](const auto& slot){return slot.display&&!slot.ready&&!slot.exhausted;});
+}
 void Apply(CCharacterComponent& c) noexcept{try{
+ struct QueuePending {CCharacterComponent& c;~QueuePending(){if(Pending(c)&&!c.m_link.m_next)CCharacterComponent::s_queue.LinkToTail(&c);}} queuePending{c};
  auto* model=c.m_data.m_model;const auto& prefs=c.m_data.m_preferences;
  if(!Enabled()||(c.m_data.m_flags&1u)||prefs.m_sexID>1||!model){Release(c);return;}
  bool needed=c.m_itemDisplayID[ITEMSLOT_HEAD]&&RetailChoicesReady(prefs,model);

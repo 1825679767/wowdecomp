@@ -12,6 +12,7 @@
 #include "WoW/Source/Object/ObjectClient/Player_C.h"
 #include "WoW/Source/Object/ObjectClient/VisibleItem_C.h"
 #include <algorithm>
+#include <iterator>
 #include <atomic>
 #include <map>
 #include <mutex>
@@ -166,7 +167,18 @@ void RetryItemGraph(CCharacterComponent& component) noexcept {
  component.m_wxlItemGeneration=current;
  for(unsigned slot=0;slot<12;++slot){auto id=component.m_wxlPendingItemDisplay[slot];if(!id)continue;
   ItemDisplayInfoRec row;if(g_itemDisplayInfoDB.GetRecord(int32_t(id),&row))component.AddItem(static_cast<ITEM_SLOT>(slot),&row,component.m_wxlPendingItemVisual[slot]);
+  else {
+   // A completed negative lookup is terminal, not a reason to keep a preview
+   // queued forever. Preserve any already displayed item; retire only demand.
+   const auto index=display::Current();
+   if(index&&index->resolvedDisplays.contains(id)&&!index->displayRecords.contains(id)){
+    component.m_wxlPendingItemDisplay[slot]=0;component.m_wxlPendingItemVisual[slot]=0;
+   }
+  }
  }
+}
+bool ItemGraphPending(const CCharacterComponent& component) noexcept {
+ return Db2Enabled()&&std::any_of(std::begin(component.m_wxlPendingItemDisplay),std::end(component.m_wxlPendingItemDisplay),[](uint32_t id){return id!=0;});
 }
 void PumpItemGraph() noexcept {
  try {auto& replay=Replays();if(!ClntObjMgrGetCurrent()){replay.guids.clear();replay.cursor=0;replay.observed=0;return;}

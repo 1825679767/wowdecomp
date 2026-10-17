@@ -91,6 +91,7 @@ void ItemGraphPublished() noexcept;
 ItemRec* MissingItemRecord(int32_t id) noexcept;
 bool MissingItemDisplayRecord(int32_t id,ItemDisplayInfoRec* output) noexcept;
 void RetryItemGraph(CCharacterComponent&) noexcept;
+bool ItemGraphPending(const CCharacterComponent&) noexcept;
 inline uint32_t VisibleItemKey(int32_t id) noexcept {
  const int64_t value=id<0?-int64_t(id):int64_t(id);
  return value>0 && value<=INT32_MAX?uint32_t(value):0;

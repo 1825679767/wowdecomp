@@ -1,4 +1,5 @@
 #include "WXL/EquipmentAttachments.hpp"
+#include "WXL/ItemGraph.hpp"
 #include "WXL/PrivateAppearances.hpp"
 // Copyright (C) 2026 WarcraftXL. GPL-3.0-or-later.
 // Direct native component integration; portable recipes never inspect host offsets.
@@ -554,6 +555,9 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
 
 bool AppearanceReady(const CCharacterComponent& component) noexcept {try{if(private_appearances::Identity(component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID))return private_appearances::Ready(component);const auto* state=component.m_wxlAppearance;return state&&state->ready&&state->model==component.m_data.m_model&&state->signature==Signature(component)&&std::all_of(state->whole.begin(),state->whole.end(),[](const auto& group){return group.ready;})&&std::all_of(state->children.begin(),state->children.end(),[](const auto& group){return group.ready;});}catch(...){return false;}}
 bool AppearanceChildrenPending(const CCharacterComponent& component) noexcept {
+    // Preview actors are not in the in-world player replay list. Their item
+    // demand shares this existing queue lifetime, even before an atlas exists.
+    if(ItemGraphPending(component)||equipment_attachments::Pending(component))return true;
     const auto* state=component.m_wxlAppearance;
     return state&&state->model==component.m_data.m_model&&(!state->ready?state->buildAttempts<3:
         (std::any_of(state->whole.begin(),state->whole.end(),[](const auto& group){return !group.ready&&!group.exhausted;})||
