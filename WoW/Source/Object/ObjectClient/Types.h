@@ -25,6 +25,12 @@ enum UNITSOUNDTYPE : uint32_t {
     UNITSOUNDTYPE_JUMPEND = 12,
     UNITSOUNDTYPE_INJURY_FALL = 13,
     NUM_UNITSOUNDTYPES = 14,
+
+    // Unused 0.5.3 names/values; these are not current 3.3.5 sound assignments.
+    // UNITSOUNDTYPE_DEATH = 4,
+    // UNITSOUNDTYPE_DEATHTHUD = 7,
+    // UNITSOUNDTYPE_FOOTFALL = 8,
+    // UNITSOUNDTYPE_AGGRO = 9,
 };
 
 enum LOOT_METHOD : int32_t {
