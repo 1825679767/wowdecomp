@@ -1683,8 +1683,6 @@ void ForEveryRunOnceWTF::Execute(int32_t (*callback)(const char*)) {
 // VERIFY: f4d6d325 manual
 // OFFSET: 0x004067F0
 bool InitializeGlobal() {
-    SCmdRegisterArgList(s_wowArgList, sizeof(s_wowArgList) / sizeof(s_wowArgList[0]));
-    CmdLineProcess();
     LoadMFIL("WoW.mfil");
 
     if (s_unk_B2FA10 != 2) {
@@ -1823,6 +1821,10 @@ int32_t CommonMain() {
     option = 1;
     StormSetOption(11, &option, sizeof(option));
 
+    // SetPaths consumes CMD_DATA_DIR. Parse both argument families before any
+    // path selection, startup logs or archive-layout detection, exactly once.
+    SCmdRegisterArgList(s_wowArgList, sizeof(s_wowArgList) / sizeof(s_wowArgList[0]));
+    CmdLineProcess();
     OsSystemEnableCpuLog();
     SetPaths();
 
