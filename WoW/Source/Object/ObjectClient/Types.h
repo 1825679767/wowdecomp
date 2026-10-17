@@ -7,6 +7,9 @@
 enum HIGHLIGHTTYPE : int32_t {
     HT_OBJSELECTION = 0,
     HT_MOUSEOVER = 1,
+
+    // Unused 0.5.3 count; not a bound for the current three-bit highlight mask.
+    // NUM_HIGHLIGHTTYPES = 2,
 };
 
 enum UNITSOUNDTYPE : uint32_t {
