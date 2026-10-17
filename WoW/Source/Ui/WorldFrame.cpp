@@ -90,10 +90,10 @@
 #include "WoW/Source/Ui/SpellBookFrame.h"
 
 // STATIC: 0x009F9864
-static const uint32_t s_skinCursorModes[2] = { 21, 20 };
+static const CURSORMODE s_skinCursorModes[2] = { SKIN_ALLIANCE_CURSOR, SKIN_HORDE_CURSOR };
 
 // STATIC: 0x009F986C
-static const uint32_t s_skinCursorModesUnable[2] = { 47, 46 };
+static const CURSORMODE s_skinCursorModesUnable[2] = { SKIN_ALLIANCE_ERROR_CURSOR, SKIN_HORDE_ERROR_CURSOR };
 
 enum SPELLSHADOWSTYLE : int32_t {
     SPELL_GOOD = 0,
@@ -158,12 +158,12 @@ void __stdcall CGWorldFrame::CursorTrackObject(CGGameObject_C* object) {
 
     if (!mode) {
         CursorResetMode();
-    } else if (mode == 53) {
+    } else if (mode == NUM_CURSOR_MODES) {
         char file[260];
         object->GetCursorFile(file, sizeof(file));
         CursorSetFromName(file);
     } else {
-        CursorSetMode(mode);
+        CursorSetMode(static_cast<CURSORMODE>(mode));
     }
 }
 
@@ -330,20 +330,20 @@ void CGWorldFrame::OnLayerTrackTerrain(const HITTESTRESULT& result) {
             s_spellShadowStyle = SPELL_GOOD;
             float radius = Spell_C_GetSpellRadius();
             s_spellShadowSize = radius > 20.0f ? 20.0f : Spell_C_GetSpellRadius();
-            CursorSetMode(2);
+            CursorSetMode(CAST_CURSOR);
             break;
         }
 
         case 1:
             s_spellShadowStyle = SPELL_BAD;
             s_spellShadowSize = 0.0f;
-            CursorSetMode(28);
+            CursorSetMode(CAST_ERROR_CURSOR);
             break;
 
         case 2:
             s_spellShadowStyle = SPELL_NONE;
             s_spellShadowSize = 0.0f;
-            CursorSetMode(28);
+            CursorSetMode(CAST_ERROR_CURSOR);
             break;
     }
 
@@ -657,7 +657,7 @@ void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
         CGUnit_C* possessed = player->GetPossessedUnit();
 
         if (unit->m_unit->m_unitFieldHealth > 0 && possessed && possessed->CanAttackNow(unit)) {
-            CursorSetMode(4);
+            CursorSetMode(ATTACK_CURSOR);
         } else {
             CursorResetMode();
         }
@@ -673,12 +673,12 @@ void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
         int32_t mode = unit->GetCursorOverride(unable);
 
         if (mode) {
-            if (mode == 53) {
+            if (mode == NUM_CURSOR_MODES) {
                 char file[260];
                 unit->GetCursorFile(unable, file, sizeof(file));
                 CursorSetFromName(file);
             } else {
-                CursorSetMode(mode);
+                CursorSetMode(static_cast<CURSORMODE>(mode));
             }
 
             return;
@@ -687,31 +687,31 @@ void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
         uint32_t flags = unit->m_unit->m_unitNpcFlags;
 
         if (flags & 0x1000) {
-            CursorSetMode(unable ? 44 : 18);
+            CursorSetMode(unable ? REPAIRNPC_ERROR_CURSOR : REPAIRNPC_CURSOR);
         } else if (flags & 0x10000) {
-            CursorSetMode(unable ? 48 : 22);
+            CursorSetMode(unable ? INNKEEPER_ERROR_CURSOR : INNKEEPER_CURSOR);
         } else if (flags & 0x2000) {
-            CursorSetMode(unable ? 35 : 9);
+            CursorSetMode(unable ? TAXI_ERROR_CURSOR : TAXI_CURSOR);
         } else if (flags & 0x10) {
-            CursorSetMode(unable ? 36 : 10);
+            CursorSetMode(unable ? TRAINER_ERROR_CURSOR : TRAINER_CURSOR);
         } else if ((flags & 0x4000) || (flags & 0x8000)) {
-            CursorSetMode(unable ? 32 : 6);
+            CursorSetMode(unable ? SPEAK_ERROR_CURSOR : SPEAK_CURSOR);
         } else if ((flags & 0x20000) || (flags & 0x800000)) {
-            CursorSetMode(unable ? 29 : 3);
+            CursorSetMode(unable ? BUY_ERROR_CURSOR : BUY_CURSOR);
         } else if ((flags & 0x40000) || (flags & 0x80000) || unit->IsGuildMaster() || (flags & 0x100000)) {
-            CursorSetMode(unable ? 32 : 6);
+            CursorSetMode(unable ? SPEAK_ERROR_CURSOR : SPEAK_CURSOR);
         } else if (flags & 0x200000) {
-            CursorSetMode(unable ? 29 : 3);
+            CursorSetMode(unable ? BUY_ERROR_CURSOR : BUY_CURSOR);
         } else if (flags & 0x400000) {
-            CursorSetMode(unable ? 32 : 6);
+            CursorSetMode(unable ? SPEAK_ERROR_CURSOR : SPEAK_CURSOR);
         } else if (flags & 0x80) {
-            CursorSetMode(unable ? 34 : 8);
+            CursorSetMode(unable ? PICKUP_ERROR_CURSOR : PICKUP_CURSOR);
         } else if (flags & 0x1) {
-            CursorSetMode(unable ? 32 : 6);
+            CursorSetMode(unable ? SPEAK_ERROR_CURSOR : SPEAK_CURSOR);
         } else if (flags & 0x1000000) {
-            CursorSetMode(unable ? 31 : 5);
+            CursorSetMode(unable ? INTERACT_ERROR_CURSOR : INTERACT_CURSOR);
         } else if (unit->CanBeSpellClickedByLocalPlayer(player)) {
-            CursorSetMode(unable ? 52 : 26);
+            CursorSetMode(unable ? VEHICLE_ERROR_CURSOR : VEHICLE_CURSOR);
         } else {
             CursorResetMode();
         }
@@ -721,9 +721,9 @@ void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
 
     if (unit->CanBeLooted(FrameTime::s_curTimeMs)) {
         if (player->CanLoot(unit) || player->m_lootTarget == unit->m_obj->m_guid) {
-            CursorSetMode(CGGameUI::IsAutoLooting() ? 16 : 8);
+            CursorSetMode(CGGameUI::IsAutoLooting() ? LOOT_ALL_CURSOR : PICKUP_CURSOR);
         } else {
-            CursorSetMode(CGGameUI::IsAutoLooting() ? 42 : 34);
+            CursorSetMode(CGGameUI::IsAutoLooting() ? LOOT_ALL_ERROR_CURSOR : PICKUP_ERROR_CURSOR);
         }
 
         return;
@@ -746,19 +746,19 @@ void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
 
         switch (unit->GetSkinningType()) {
             case 0:
-                CursorSetMode(maxRange * maxRange < distance ? 38 : 12);
+                CursorSetMode(maxRange * maxRange < distance ? SKIN_ERROR_CURSOR : SKIN_CURSOR);
                 return;
 
             case 1:
-                CursorSetMode(maxRange * maxRange < distance ? 39 : 13);
+                CursorSetMode(maxRange * maxRange < distance ? GATHER_ERROR_CURSOR : GATHER_CURSOR);
                 return;
 
             case 2:
-                CursorSetMode(maxRange * maxRange < distance ? 37 : 11);
+                CursorSetMode(maxRange * maxRange < distance ? MINE_ERROR_CURSOR : MINE_CURSOR);
                 return;
 
             case 3:
-                CursorSetMode(maxRange * maxRange < distance ? 37 : 11);
+                CursorSetMode(maxRange * maxRange < distance ? MINE_ERROR_CURSOR : MINE_CURSOR);
                 return;
 
             default:
@@ -775,9 +775,9 @@ void __stdcall CGWorldFrame::CursorTrackUnit(CGUnit_C* unit) {
     float range = player->GetMeleeRange(unit);
 
     if (range * range < distance) {
-        CursorSetMode(30);
+        CursorSetMode(ATTACK_ERROR_CURSOR);
     } else {
-        CursorSetMode(4);
+        CursorSetMode(ATTACK_CURSOR);
     }
 }
 
@@ -799,9 +799,9 @@ void __stdcall CGWorldFrame::CursorTrackCorpse(CGCorpse_C* corpse) {
 
     if (corpse->CanBeLooted()) {
         if (player->CanLoot(corpse) || player->m_lootTarget == corpse->m_obj->m_guid) {
-            CursorSetMode(CGGameUI::IsAutoLooting() ? 16 : 8);
+            CursorSetMode(CGGameUI::IsAutoLooting() ? LOOT_ALL_CURSOR : PICKUP_CURSOR);
         } else {
-            CursorSetMode(CGGameUI::IsAutoLooting() ? 42 : 34);
+            CursorSetMode(CGGameUI::IsAutoLooting() ? LOOT_ALL_ERROR_CURSOR : PICKUP_ERROR_CURSOR);
         }
 
         return;
@@ -836,7 +836,7 @@ void CGWorldFrame::OnLayerTrackObject(const HITTESTRESULT& result) {
 
     if (Spell_C_IsTargeting()) {
         WOWGUID guid = result.m_guid;
-        CursorSetMode(Spell_C::HandleSpriteRay(guid, true) ? 2 : 28);
+        CursorSetMode(Spell_C::HandleSpriteRay(guid, true) ? CAST_CURSOR : CAST_ERROR_CURSOR);
         this->HandleSpriteTrack(result.m_guid);
         return;
     }
@@ -858,7 +858,7 @@ void CGWorldFrame::OnLayerTrackObject(const HITTESTRESULT& result) {
 
     switch (object->m_obj->m_type) {
         case TYPEMASK_OBJECT | TYPEMASK_ITEM:
-            CursorSetMode(8);
+            CursorSetMode(PICKUP_CURSOR);
             break;
 
         case TYPEMASK_OBJECT | TYPEMASK_UNIT:
@@ -1915,7 +1915,7 @@ void CGWorldFrame::OnLayerUpdate(float elapsedSec) {
     switch (kind) {
         case 0:
             if (Spell_C_IsTargeting()) {
-                CursorSetMode(28);
+                CursorSetMode(CAST_ERROR_CURSOR);
             } else {
                 CursorResetMode();
             }

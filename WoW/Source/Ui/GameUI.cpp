@@ -3867,9 +3867,9 @@ int32_t CGGameUI::HandleMouseDown(const CMouseEvent& evt) {
         CGGameUI::ClearCursor(1, 1);
     }
 
-    if (CursorGetResetMode() == 17) {
-        CursorSetResetMode(1);
-        CursorSetMode(1);
+    if (CursorGetResetMode() == REPAIR_CURSOR) {
+        CursorSetResetMode(POINT_CURSOR);
+        CursorSetMode(POINT_CURSOR);
     }
 
     return 0;

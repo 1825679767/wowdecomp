@@ -996,7 +996,7 @@ static int32_t Script_PickupBagFromSlot(lua_State* L) {
 // VERIFY: 6371d69b auto
 // OFFSET: 0x005EA930
 static int32_t Script_ShowInventorySellCursor(lua_State* L) {
-    if (Spell_C_IsTargeting() || CursorGetResetMode() != 1) {
+    if (Spell_C_IsTargeting() || CursorGetResetMode() != POINT_CURSOR) {
         return 0;
     }
 
@@ -1015,7 +1015,7 @@ static int32_t Script_ShowInventorySellCursor(lua_State* L) {
     CGItem_C* item = player->GetBag()->GetItemPointer(slot);
 
     if (item && !(item->m_itemFlags & 0x1)) {
-        CursorSetMode(3);
+        CursorSetMode(BUY_CURSOR);
     }
 
     return 0;

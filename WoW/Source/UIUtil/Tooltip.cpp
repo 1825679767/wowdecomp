@@ -6645,7 +6645,7 @@ int32_t CGTooltip::SetItem(int32_t itemId, const WOWGUID* requester, const WOWGU
 
         int32_t refundable = item ? AddItemTradeLines(this, stats, item, player) : 0;
 
-        if (CursorGetResetMode() != 17 && !refundable && !this->m_itemSkipSellPrice && !skipSellPrice) {
+        if (CursorGetResetMode() != REPAIR_CURSOR && !refundable && !this->m_itemSkipSellPrice && !skipSellPrice) {
             AddItemSellPrice(this, stats, item, player);
         }
     }

@@ -1295,8 +1295,8 @@ void HandleSpellFailedOrGo(CGUnit_C* unit, PendingSpellCast* cast, const SpellRe
     if (cast == s_targetingSpell) {
         s_needTargets = 0;
         s_targetingSpell = nullptr;
-        CursorSetResetMode(1);
-        CursorSetMode(1);
+        CursorSetResetMode(POINT_CURSOR);
+        CursorSetMode(POINT_CURSOR);
         Spell_C_DestroySpellWorldObject();
         CGInputControl* input = CGInputControl::GetActive();
         input->m_mouseModeFlags &= ~0x10;
@@ -7636,8 +7636,8 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
         s_spellWorldModel = nullptr;
     }
 
-    CursorSetResetMode(1);
-    CursorSetMode(1);
+    CursorSetResetMode(POINT_CURSOR);
+    CursorSetMode(POINT_CURSOR);
     CGUnit_C* caster = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPEMASK_UNIT, __FILE__, __LINE__));
 
     if (!caster) {
@@ -8473,8 +8473,8 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
         }
 
         s_targetingSpell = cast;
-        CursorSetResetMode(2);
-        CursorSetMode(28);
+        CursorSetResetMode(CAST_CURSOR);
+        CursorSetMode(CAST_ERROR_CURSOR);
         CGSpellBook::UpdateSelection();
         CGInputControl* input = CGInputControl::GetActive();
         input->m_mouseModeFlags |= 0x10;

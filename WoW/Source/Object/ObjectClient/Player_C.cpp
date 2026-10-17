@@ -3141,8 +3141,8 @@ void CGPlayer_C::PostInitActivePlayer() {
 void CGPlayer_C::CancelGiftWrap() {
     CGGameUI::UnlockItem(s_giftWrapItem);
     s_giftWrapItem = WOWGUID();
-    CursorSetResetMode(1);
-    CursorSetMode(1);
+    CursorSetResetMode(POINT_CURSOR);
+    CursorSetMode(POINT_CURSOR);
 }
 
 // VERIFY: e37e66de manual
@@ -14016,8 +14016,8 @@ bool CGPlayer_C::ReportBagItemSubtypeMismatch(uint8_t bag) {
 void CGPlayer_C::StartGiftWrap(CGItem_C* item) {
     s_giftWrapItem = item->m_obj->m_guid;
     CGGameUI::LockItem(s_giftWrapItem);
-    CursorSetResetMode(2);
-    CursorSetMode(2);
+    CursorSetResetMode(CAST_CURSOR);
+    CursorSetMode(CAST_CURSOR);
 }
 
 // VERIFY: 35dbeab8 manual

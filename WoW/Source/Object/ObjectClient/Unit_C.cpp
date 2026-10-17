@@ -4829,7 +4829,7 @@ int32_t CGUnit_C::GetCursorOverride(int32_t unable) {
     CreatureStats_C* stats = this->m_creatureCacheEntry;
 
     if (!stats || !stats->m_iconName || !*stats->m_iconName) {
-        return 0;
+        return NO_CURSOR;
     }
 
     char name[40];
@@ -4841,7 +4841,7 @@ int32_t CGUnit_C::GetCursorOverride(int32_t unable) {
     }
 
     mode = CursorGetModeFromName(name);
-    return mode ? mode : 53;
+    return mode ? mode : NUM_CURSOR_MODES;
 }
 
 // VERIFY: 562a89fa manual
