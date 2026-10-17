@@ -5517,23 +5517,23 @@ int32_t __stdcall CGPlayer_C::OnTurnInPetitionResults(CDataStore* msg) {
     uint32_t result;
     msg->Get(result);
 
-    switch (result) {
-        case 0: {
+    switch (static_cast<PETITION_TURNIN_RESULT>(result)) {
+        case PETITION_TURNIN_SUCCESS: {
             FrameScript_SignalEvent(SCRIPT_EVENT_GUILD_REGISTRAR_CLOSED, nullptr);
             break;
         }
 
-        case 2: {
+        case PETITION_TURNIN_IN_GUILD: {
             CGGameUI::DisplayError(ERR_PETITION_IN_GUILD);
             break;
         }
 
-        case 4: {
+        case PETITION_TURNIN_NOT_ENOUGH_SIGNATURES: {
             CGGameUI::DisplayError(ERR_PETITION_NOT_ENOUGH_SIGNATURES);
             break;
         }
 
-        case 11: {
+        case PETITION_TURNIN_GUILD_PERMISSIONS: {
             CGGameUI::DisplayError(ERR_GUILD_PERMISSIONS);
             break;
         }
@@ -13833,30 +13833,30 @@ int32_t CGPlayer_C::OnSignedResults(CDataStore* msg) {
         return 1;
     }
 
-    switch (result) {
-        case 0:
+    switch (static_cast<PETITION_SIGN_RESULT>(result)) {
+        case PETITION_SIGN_SUCCESS:
             CGGameUI::DisplayError(ERR_PETITION_SIGNED);
             FrameScript_SignalEvent(SCRIPT_EVENT_PETITION_CLOSED, nullptr);
             break;
-        case 1:
+        case PETITION_SIGN_ALREADY_SIGNED:
             CGGameUI::DisplayError(ERR_PETITION_ALREADY_SIGNED);
             break;
-        case 2:
+        case PETITION_SIGN_IN_GUILD:
             CGGameUI::DisplayError(ERR_PETITION_IN_GUILD);
             break;
-        case 3:
+        case PETITION_SIGN_CREATOR:
             CGGameUI::DisplayError(ERR_PETITION_CREATOR);
             break;
-        case 5:
+        case PETITION_SIGN_NOT_SAME_SERVER:
             CGGameUI::DisplayError(ERR_PETITION_NOT_SAME_SERVER);
             break;
-        case 8:
+        case PETITION_SIGN_FULL:
             CGGameUI::DisplayError(ERR_PETITION_FULL);
             break;
-        case 10:
+        case PETITION_SIGN_ALREADY_SIGNED_OTHER:
             CGGameUI::DisplayError(ERR_PETITION_ALREADY_SIGNED_OTHER);
             break;
-        case 11:
+        case PETITION_SIGN_RESTRICTED_ACCOUNT:
             CGGameUI::DisplayError(ERR_PETITION_RESTRICTED_ACCOUNT);
             break;
         default:
