@@ -649,7 +649,7 @@ namespace
         return 1;
     }
 
-    bool TryPlayNativeItemEquipSound(uint32_t displayId) noexcept {if(displayId>INT32_MAX)return false;SI2::PlayItemSound(1,int32_t(displayId));return true;}
+    bool TryPlayNativeItemEquipSound(uint32_t displayId) noexcept {if(displayId>INT32_MAX)return false;SI2::PlayItemSound(ITEMSOUND_DROP,int32_t(displayId));return true;}
 
     int __cdecl LuaPlayRetailEquipSound(lua_State* state)
     {
