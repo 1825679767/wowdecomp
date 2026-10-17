@@ -71,7 +71,12 @@ bool HasSlot(CM2Model& model,uint32_t type){for(uint32_t i=0;i<model.m_shared->m
 bool BindTexture(CM2Model& model,uint32_t type,const std::string& path){
  if(path.empty()||!HasSlot(model,type)||!SFile::FileExists(path.c_str()))return false;
  CStatus status;auto* texture=TextureCreate(path.c_str(),CGxTexFlags(),&status,0);if(!texture)return false;
- const bool valid=Key(texture->m_filename)==path&&texture->m_status.m_highestSeverity<STATUS_ERROR&&TextureGetGxTex(texture,0,nullptr);
+ // TextureCreate can return a cold asynchronous owner. Testing wait=0 then
+ // releasing it cancelled every first load, so retrying recreated the same
+ // miss forever. Complete the native read before validating and handing off
+ // its reference, matching the donor's model material LoadResource contract.
+ const bool valid=Key(texture->m_filename)==path&&TextureGetGxTex(texture,1,&status)
+     &&status.m_highestSeverity<STATUS_ERROR&&texture->m_status.m_highestSeverity<STATUS_ERROR;
  if(valid)model.ReplaceTexture(type,texture);HandleClose(reinterpret_cast<HOBJECT>(texture));return valid;
 }
 bool Materials(CM2Model& model,const ItemGraphModel& entry,const std::vector<ItemGraphMaterial>& rows,uint32_t race,uint32_t fallback,uint32_t sex){

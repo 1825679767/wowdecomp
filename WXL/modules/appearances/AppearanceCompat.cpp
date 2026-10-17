@@ -54,9 +54,10 @@ struct Sheet {
     uint32_t width = 0, height = 0;
     std::vector<std::vector<uint32_t>> levels;
     CTexture* texture = nullptr;
+    bool generated = false;
     ~Sheet() {
         if (texture) {
-            if (auto* gx = TextureGetGxTex(texture, 0, nullptr)) GxTexSetCannotUpdate(gx);
+            if (generated)if (auto* gx = TextureGetGxTex(texture, 0, nullptr)) GxTexSetCannotUpdate(gx);
             HandleClose(reinterpret_cast<HOBJECT>(texture));
         }
     }
@@ -79,26 +80,28 @@ bool FinishSheet(Sheet& sheet) {
     CGxTexFlags flags(GxTex_LinearMipLinear, 0, 0, 0, 0, 0, 1);
     sheet.texture = TextureCreate(sheet.width, sheet.height, GxTex_Argb8888, GxTex_Argb8888,
         flags, &sheet, &UpdateSheet, "WXLNativeAppearance", 1);
+    sheet.generated = true;
     return sheet.texture != nullptr;
 }
 
 bool ReadImage(const char* path, atlas::Image& out, bool blended) {
     std::vector<uint8_t> bytes;
-    return path && ReadAsset(path, bytes) && atlas::DecodeLayerImage(bytes, out, blended)
+    const bool ok=path && ReadAsset(path, bytes) && atlas::DecodeLayerImage(bytes, out, blended)
         && out.width && out.height && out.width <= MaxDimension && out.height <= MaxDimension;
+    static uint32_t failures=0;
+    if(!ok&&failures++<24)WLOG_WARN("native-appearance: image read/decode failed path=%s bytes=%zu",path?path:"<unresolved>",bytes.size());
+    return ok;
 }
 
-std::unique_ptr<Sheet> WholeSheet(const atlas::Image& image) {
+std::unique_ptr<Sheet> WholeTexture(const char* path) {
+    if(!path||!*path)return nullptr;
     auto sheet = std::make_unique<Sheet>();
-    sheet->width = image.width;
-    sheet->height = image.height;
-    sheet->levels.emplace_back(size_t(image.width) * image.height);
-    auto& pixels = sheet->levels[0];
-    for (size_t i = 0; i < pixels.size(); ++i) {
-        const auto* p = image.rgba.data() + i * 4;
-        pixels[i] = uint32_t(p[0]) << 16 | uint32_t(p[1]) << 8 | p[2] | uint32_t(p[3]) << 24;
-    }
-    return FinishSheet(*sheet) ? std::move(sheet) : nullptr;
+    CStatus status;
+    sheet->texture=TextureCreate(path,CGxTexFlags(),&status,0);
+    // Match donor LoadResource: retain the native file/alpha/mip/cache owner,
+    // rather than decode a separate replacement with different texture flags.
+    if(!sheet->texture||!TextureGetGxTex(sheet->texture,1,&status)||status.m_highestSeverity>=STATUS_ERROR)return nullptr;
+    return sheet;
 }
 
 atlas::Rect Span(const std::vector<WXL_TextureSection>& sections, uint32_t mask,
@@ -251,6 +254,12 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
             && !atlas::PaintBaseDetails(body->levels[0],body->width,body->height,image,span,rects,layout)) return false;
     }
     if (!painted) return false;
+    static uint32_t summaries=0;
+    if(summaries++<64){
+        uint64_t rgb=0,nonblack=0;
+        for(auto pixel:body->levels[0]){const auto sum=((pixel>>16)&255)+((pixel>>8)&255)+(pixel&255);rgb+=sum;nonblack+=sum!=0;}
+        WLOG_INFO("native-appearance: atlas race=%u sex=%u model=%u layout=%u painted=%u pixels=%zu nonblack=%llu rgbSum=%llu",race,prefs.m_sexID,modelId,layout,painted,body->levels[0].size(),static_cast<unsigned long long>(nonblack),static_cast<unsigned long long>(rgb));
+    }
     // Native item priorities have already resolved the layers. Paint the same
     // handles into their retail rectangles instead of the global classic sheet.
     for (uint32_t region = 0; region < 8; ++region) {
@@ -308,11 +317,11 @@ bool PumpWhole(AppearanceAssets& state) {
     for(auto& group:state.whole){
         if(group.ready||group.exhausted||(group.retryAt&&int32_t(now-group.retryAt)<0)||work>=2)continue;
         ++work;
-        atlas::Image image;
-        auto sheet=ReadImage(ResolveTexture(ResolveMaterialTexture(group.material,group.type)),image,false)?WholeSheet(image):nullptr;
+        const auto* path=ResolveTexture(ResolveMaterialTexture(group.material,group.type));
+        auto sheet=WholeTexture(path);
         if(!sheet){
             group.retryAt=now+1000;
-            if(++group.attempts>=3){group.exhausted=true;WLOG_WARN("native-appearance: whole slot unavailable type=%u material=%u; other slots retained",group.type,group.material);}
+            if(++group.attempts>=3){group.exhausted=true;WLOG_WARN("native-appearance: whole slot unavailable type=%u material=%u path=%s; other slots retained",group.type,group.material,path?path:"<unresolved>");}
             continue;
         }
         if(!state.original.count(group.type)){
@@ -469,6 +478,7 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
         next->buildAttempts=current&&current->model==model&&current->signature==signature?current->buildAttempts:0;
         if (!Build(component,*next)) {
             ++next->buildAttempts;next->retryAt=OsGetAsyncTimeMs()+1000;
+            WLOG_WARN("native-appearance: recipe unavailable wire=%u sex=%u path=%s attempt=%u",component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID,model->m_shared->m_fileName,next->buildAttempts);
             if (current) Restore(component);
             component.m_wxlAppearance = next.release(); // bounded retry, never a permanent transient miss
             return false;

@@ -38,6 +38,7 @@ local function dropdown(parent, title, cvar, y)
 end
 
 local function install()
+    if WXLFrameRateButton then installed = true; return end
     if installed or not VideoOptionsFrame then return end
     installed = true
     panel = CreateFrame("Frame", "WXLFrameRatePanel", VideoOptionsFrame)

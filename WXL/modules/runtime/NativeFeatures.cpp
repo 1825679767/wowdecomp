@@ -18,6 +18,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
+#include "common/Log.hpp"
 namespace wxl::native {namespace {
 constexpr uint32_t Assets=1,Blp=2,Materials=4,Particles=8,Appearances=16,Protocol=32,Db2=64,AppearanceSave=128,Wmo=256,SplitAdt=512,ClientExtensions=1024,RadialPing=2048,QuestMarker=4096,ChallengeMode=8192,MythicDifficulty=16384;
 constexpr uint32_t Compiled=(WXL_ENABLE_NATIVE?1u:0u)*((WXL_ENABLE_ASSETS?Assets:0)|(WXL_ENABLE_BLP?Blp:0)|(WXL_ENABLE_MATERIALS?Materials:0)|(WXL_ENABLE_PARTICLES?Particles:0)|(WXL_ENABLE_APPEARANCES?Appearances:0)|(WXL_ENABLE_PROTOCOL?Protocol:0)|(WXL_ENABLE_DB2?Db2:0)|(WXL_ENABLE_APPEARANCE_SAVE?AppearanceSave:0)|(WXL_ENABLE_WMO?Wmo:0)|(WXL_ENABLE_SPLIT_ADT?SplitAdt:0)|(WXL_ENABLE_CLIENT_EXTENSIONS?ClientExtensions:0)|(WXL_ENABLE_RADIAL_PING?RadialPing:0)|(WXL_ENABLE_QUEST_MARKER?QuestMarker:0)|(WXL_ENABLE_CHALLENGE_MODE?ChallengeMode:0)|(WXL_ENABLE_MYTHIC_DIFFICULTY?MythicDifficulty:0));
@@ -31,6 +32,7 @@ bool Changed(CVar*,const char*,const char* value,void* arg){
 bool On(uint32_t bit) noexcept{return (enabled.load(std::memory_order_acquire)&Compiled&bit)!=0;}
 }
 void RegisterFeatures(){
+ wxl::log::Open("Logs/WXL-native.log");
  creation_beams::Register();
  RegisterDonorMaterialFallback();
  equipment_attachments::Register();
