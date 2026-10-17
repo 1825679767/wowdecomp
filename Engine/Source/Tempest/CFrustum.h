@@ -10,6 +10,11 @@ class C44Matrix;
 class CAaBox;
 class CAaSphere;
 
+enum WorldCullStatus : uint32_t {
+    WorldCull_outside = 0,
+    WorldCull_notOutside = 3,
+};
+
 class CFrustum {
     public:
     /* 0000 */ C4Plane planes[6];
@@ -26,11 +31,11 @@ class CFrustum {
     CFrustum(const C3Vector* corners);
     void CalcPlanesFromCorners();
     void CalcPlanesFromCorners(const C3Vector* corners);
-    uint32_t Cull(const CAaBox& box);
-    uint32_t Cull(const CAaSphere& sphere);
+    WorldCullStatus Cull(const CAaBox& box);
+    WorldCullStatus Cull(const CAaSphere& sphere);
     void Cull(const C3Vector& point, uint8_t& outside) const;
-    uint32_t Cull(const C3Vector& center, float radius);
-    uint32_t CullInv(const CAaBox& box);
+    WorldCullStatus Cull(const C3Vector& center, float radius);
+    WorldCullStatus CullInv(const CAaBox& box);
     void Extents(CAaBox& box);
     void InvertPlanes();
     void SwapCorners();

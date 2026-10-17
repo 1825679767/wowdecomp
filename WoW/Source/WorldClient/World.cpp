@@ -1825,7 +1825,7 @@ void CWorldScene::FrustumXform(C44Matrix& mat) {
 // VERIFY: ad5c1827 auto
 // OFFSET: 0x0078FB20
 int32_t CWorldScene::FrustumCull(CAaBox* box) {
-    return CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(*box) == 0;
+    return CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(*box) == WorldCull_outside;
 }
 
 // VERIFY: 7ebc59b0 auto
@@ -2028,7 +2028,7 @@ int32_t CWorldScene::FrustumCull(const C3Vector& center, float radius) {
     sphere.c = center;
     sphere.r = radius;
 
-    return CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(sphere) == 0;
+    return CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(sphere) == WorldCull_outside;
 }
 
 // VERIFY: e94a022f auto
@@ -4375,7 +4375,7 @@ void CWorldScene::CullModelSplitBody(CM2Model* model, uint32_t boneId, int32_t s
         model->m_fFlags &= ~0x2000;
     } else {
         CAaBox box = model->GetSplitBodyBoundingBox(boneId);
-        uint32_t culled = CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(box) == 0;
+        uint32_t culled = CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(box) == WorldCull_outside;
         model->m_fFlags ^= (model->m_fFlags ^ (culled << 13)) & 0x2000;
     }
 
@@ -4896,7 +4896,7 @@ void CWorldScene::RenderBarriers(float elapsedSec) {
 // OFFSET: 0x007911D0
 void CWorldScene::CullModelRecursive(CM2Model* model) {
     CAaBox box = model->GetCurrentBoundingBox();
-    model->m_fFlags = (model->m_fFlags & ~0x2000u) | ((CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(box) == 0) << 13);
+    model->m_fFlags = (model->m_fFlags & ~0x2000u) | ((CWorldScene::frustumStack[CWorldScene::frustumIndex].Cull(box) == WorldCull_outside) << 13);
 
     for (CM2Model* attached = model->m_attachList; attached; attached = attached->m_attachNext) {
         CWorldScene::CullModelRecursive(attached);
