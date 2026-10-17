@@ -4,6 +4,23 @@
 #include <cstddef>
 #include <cstdint>
 
+enum UNITSTANDSTATE : uint32_t {
+    UNIT_STANDING = 0,
+    UNIT_SITTING = 1,
+    UNIT_SITTINGCHAIR = 2,
+    UNIT_SLEEPING = 3,
+    UNIT_SITTINGCHAIRLOW = 4,
+    UNIT_SITTINGCHAIRMEDIUM = 5,
+    UNIT_SITTINGCHAIRHIGH = 6,
+    UNIT_DEAD = 7,
+    UNIT_KNEEL = 8,
+    UNIT_SUBMERGED = 9,
+    UNIT_NUMSTANDSTATES = 10,
+    // UNIT_FIRSTCHAIRSIT = 4,
+    // UNIT_LASTCHAIRSIT = 6,
+    // UNIT_NUMCHAIRSTATES = 3,
+};
+
 enum VICTIMSTATES : uint32_t {
     VS_NONE = 0,
     VS_WOUND = 1,

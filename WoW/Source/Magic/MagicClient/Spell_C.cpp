@@ -7687,7 +7687,7 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
             return;
         }
 
-        caster->ChangeStandState(0);
+        caster->ChangeStandState(UNIT_STANDING);
     }
 
     if (!(spell.m_attributes & 0x1000000) && static_cast<int32_t>(caster->m_unit->m_unitFieldMountdisplayid) > 0 && !caster->MountedCombatAllowed() && caster->m_mountDisplayId > 0 && !(caster->m_clientFlags & 0x10000000)) {

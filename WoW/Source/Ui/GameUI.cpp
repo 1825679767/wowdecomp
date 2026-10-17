@@ -2085,7 +2085,7 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
         if (idleTime - AUTO_LOGOUT_IDLE_TIME < 0) {
             if (player) {
                 if (!player->m_unit->m_unitFieldBytes1[0] && !(player->m_unit->m_unitFieldFlags & 0x80000) && !player->IsMounted() && !player->IsAutoTracking()) {
-                    player->ChangeStandState(1);
+                    player->ChangeStandState(UNIT_SITTING);
                 }
 
                 if (!(player->m_unit->m_unitFieldFlags & 0x100000) && !CGChat::m_afk) {
@@ -4937,7 +4937,7 @@ static int32_t ClosestObjectMatchProc(WOWGUID guid, void* param) {
             return 1;
         }
 
-        if (unit->IsDeadOrGhost() || (unit->m_unit->m_unitDynamicFlags & 0x20) || unit->GetClientStandState() == 7) {
+        if (unit->IsDeadOrGhost() || (unit->m_unit->m_unitDynamicFlags & 0x20) || unit->GetClientStandState() == UNIT_DEAD) {
             distance = s_maxMatchDistance + distance;
         }
     }
@@ -5071,7 +5071,7 @@ static int QSortCompareNearestUnit(const void* a, const void* b) {
 int32_t UnitMatchesTargetType(CGUnit_C* unit, CGUnit_C* target, int32_t type) {
     switch (type) {
         case 1: {
-            return unit->CanAttack(target) && !target->IsDeadOrGhost() && !(target->m_unit->m_unitDynamicFlags & 0x20) && target->GetClientStandState() != 7;
+            return unit->CanAttack(target) && !target->IsDeadOrGhost() && !(target->m_unit->m_unitDynamicFlags & 0x20) && target->GetClientStandState() != UNIT_DEAD;
         }
 
         case 2: {
@@ -5079,7 +5079,7 @@ int32_t UnitMatchesTargetType(CGUnit_C* unit, CGUnit_C* target, int32_t type) {
                 return 0;
             }
 
-            return unit->CanAttack(target) && !target->IsDeadOrGhost() && !(target->m_unit->m_unitDynamicFlags & 0x20) && target->GetClientStandState() != 7;
+            return unit->CanAttack(target) && !target->IsDeadOrGhost() && !(target->m_unit->m_unitDynamicFlags & 0x20) && target->GetClientStandState() != UNIT_DEAD;
         }
 
         case 3: {

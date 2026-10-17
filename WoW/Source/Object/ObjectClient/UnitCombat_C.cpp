@@ -370,7 +370,7 @@ void ATTACKROUNDINFO::Unpack(CDataStore& msg) {
 // VERIFY: 49638f19 manual
 // OFFSET: 0x00755850
 void CGUnit_C::PlayCombatSpellMissEffects(uint32_t reason, const WOWGUID& source) {
-    if ((this->m_unit->m_unitFieldFlags2 & 0x1) || this->GetClientStandState() == 7) {
+    if ((this->m_unit->m_unitFieldFlags2 & 0x1) || this->GetClientStandState() == UNIT_DEAD) {
         return;
     }
 
@@ -676,7 +676,7 @@ void CGUnit_C::HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Ve
             return;
 
         case 0x50504324: {
-            if (!target || (target->m_unit->m_unitFieldFlags2 & 1) || target->GetClientStandState() == 7) {
+            if (!target || (target->m_unit->m_unitFieldFlags2 & 1) || target->GetClientStandState() == UNIT_DEAD) {
                 return;
             }
 

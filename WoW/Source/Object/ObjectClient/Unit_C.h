@@ -284,7 +284,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 09EC */ CMissile* m_missiles;
     /* 09F0 */ CMissile* m_pendingMissiles;
     /* 09F4 */ uint8_t m_shapeshiftSuppressed;
-    /* 09F8 */ uint32_t m_animStandState;
+    /* 09F8 */ UNITSTANDSTATE m_animStandState;
     /* 09FC */ QUESTGIVEREMOTENODE m_emoteQueue [4];
     /* 0A1C */ uint32_t m_nextBloodPoolTime;
     /* 0A20 */ CCombatClient m_combat;
@@ -402,7 +402,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     virtual const CGUnitVirtualItem* GetVirtualItem(uint32_t slot, bool ignoreDisarm) const;
     virtual int32_t GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& rec) const;
     virtual uint32_t GetVirtualItemDisplayID(uint32_t slot) const;
-    virtual uint32_t GetClientStandState() const;
+    virtual UNITSTANDSTATE GetClientStandState() const;
     virtual int32_t GetSpellRank(const SpellRec* spell) const;
     virtual void GetDefenseSkillRank(int32_t& rank, int32_t& bonus) const;
     virtual void GetAttackSkillRank(int32_t hand, int32_t& rank, int32_t& bonus) const;
@@ -678,7 +678,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void OnAscendDescendStartLocal(uint32_t eventTime, int32_t ascend);
     void OnAscendDescendStopLocal(uint32_t eventTime);
     void OnFallLocal(uint32_t eventTime);
-    void ChangeStandState(uint32_t standState);
+    void ChangeStandState(UNITSTANDSTATE standState);
     void TryJumpOrAscend(uint32_t eventTime);
     int32_t ProcessLocalMoveEvent(uint32_t eventTime, uint32_t msgId, bool send, float value, uint32_t index, uint64_t transport, uint8_t seat);
     int32_t SendMovementUpdate(uint32_t time, uint32_t msgId, float value, uint32_t index, uint64_t transport, uint8_t seat);
@@ -852,7 +852,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void OnVisFlagChanged(uint8_t oldFlags);
     void SetPredictedPower(POWER_TYPE powerType, int32_t value);
     void SetSheatheState(uint32_t showWeapons, int32_t a2, int32_t a3);
-    void UpdateClientStandState(uint32_t standState);
+    void UpdateClientStandState(UNITSTANDSTATE standState);
     void UpdateModelScale(const CreatureModelDataRec* modelRec);
     void UpdateScriptRegistration();
     void UpdateUnitNameColor();

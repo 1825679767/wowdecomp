@@ -923,7 +923,7 @@ void CGPlayer_C::HandleRepopRequest(bool a2) {
 
 // VERIFY: 63c9a7c3 manual
 // OFFSET: 0x006DCB40
-void CGPlayer_C::ChangeStandState(uint32_t standState) {
+void CGPlayer_C::ChangeStandState(UNITSTANDSTATE standState) {
     if (standState >= 11) {
         SErrDisplayAppFatalMessage("", "", 0);
     }
@@ -953,7 +953,7 @@ void CGPlayer_C::ChangeStandState(uint32_t standState) {
 
     uint32_t moveFlags = this->m_movement->m_flags;
 
-    if ((moveFlags & 0x30) && (standState == 3 || standState == 1)) {
+    if ((moveFlags & 0x30) && (standState == UNIT_SLEEPING || standState == UNIT_SITTING)) {
         return;
     }
 
@@ -963,7 +963,7 @@ void CGPlayer_C::ChangeStandState(uint32_t standState) {
 
     CDataStore msg;
     msg.Put(static_cast<uint32_t>(CMSG_STAND_STATE_CHANGE));
-    msg.Put(standState);
+    msg.Put(static_cast<uint32_t>(standState));
     msg.Finalize();
     ClientServices::Send2(&msg);
     this->UpdateClientStandState(standState);
@@ -971,7 +971,7 @@ void CGPlayer_C::ChangeStandState(uint32_t standState) {
 
 // VERIFY: b464ce44 auto
 // OFFSET: 0x006E2B30
-void CGPlayer_C::SetClientStandState(uint32_t standState) {
+void CGPlayer_C::SetClientStandState(UNITSTANDSTATE standState) {
     if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
         SErrDisplayAppFatalMessage("", "", 0);
     }
@@ -993,7 +993,7 @@ void CGPlayer_C::SetClientStandState(uint32_t standState) {
             this->SetCombatMode();
         }
 
-        if (standState >= 4 && standState <= 6) {
+        if (standState >= UNIT_SITTINGCHAIRLOW && standState <= UNIT_SITTINGCHAIRHIGH) {
             return;
         }
     }
@@ -1973,12 +1973,12 @@ void CGPlayer_C::StartTaxiExpress(WOWGUID guid, const uint32_t* nodes, int32_t c
 
 // VERIFY: daeba6e5 auto
 // OFFSET: 0x006D64E0
-uint32_t CGPlayer_C::GetClientStandState() const {
+UNITSTANDSTATE CGPlayer_C::GetClientStandState() const {
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         return this->m_clientStandState;
     }
 
-    return this->m_unit->m_unitFieldBytes1[0];
+    return static_cast<UNITSTANDSTATE>(this->m_unit->m_unitFieldBytes1[0]);
 }
 
 // VERIFY: ed967909 auto
@@ -2848,7 +2848,7 @@ void CGPlayer_C::SetStorage(uint32_t* storage, uint32_t* saved) {
 // VERIFY: aa03190b auto
 // OFFSET: 0x006E8280
 void CGPlayer_C::PostInit(uint32_t time, const CClientObjCreate& create, bool reenable) {
-    this->m_clientStandState = this->m_unit->m_unitFieldBytes1[0];
+    this->m_clientStandState = static_cast<UNITSTANDSTATE>(this->m_unit->m_unitFieldBytes1[0]);
     this->CGUnit_C::PostInit(time, create, reenable);
     this->GetUnitName(nullptr, 1);
     this->OnGuildChanged(0);
@@ -2883,7 +2883,7 @@ void CGPlayer_C::PostInit(uint32_t time, const CClientObjCreate& create, bool re
 // VERIFY: 5414e18a auto
 // OFFSET: 0x006E6150
 void CGPlayer_C::Reenable() {
-    this->m_clientStandState = this->m_unit->m_unitFieldBytes1[0];
+    this->m_clientStandState = static_cast<UNITSTANDSTATE>(this->m_unit->m_unitFieldBytes1[0]);
     this->CGUnit_C::Reenable();
     this->m_pendingItemCacheCount = 0;
 
@@ -3577,7 +3577,7 @@ int32_t Packet_SMSG_EMOTE(void* param, NETMESSAGE msgId, uint32_t time, CDataSto
     msg->Get(guid.m_guid);
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
-    if (unit && unit->m_unit->m_unitFieldBytes1[0] != 3 && !(unit->m_movement->m_flags & 0x200000)) {
+    if (unit && unit->m_unit->m_unitFieldBytes1[0] != UNIT_SLEEPING && !(unit->m_movement->m_flags & 0x200000)) {
         unit->PlayEmoteAnimation(emote);
     }
 
@@ -8300,7 +8300,7 @@ void CGPlayer_C::MeleeModeEnter(const WOWGUID& target) {
     Spell_C_CancelRangedSpells();
 
     if (this->m_unit->m_unitFieldBytes1[0]) {
-        this->ChangeStandState(0);
+        this->ChangeStandState(UNIT_STANDING);
     }
 
     CGGameUI::Target(unit->m_obj->m_guid);
@@ -13221,7 +13221,7 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec* emote, WOWGUID target) {
         return;
     }
 
-    if (this->GetClientStandState() == 3 && rec->m_emoteSpecProc != 1) {
+    if (this->GetClientStandState() == UNIT_SLEEPING && rec->m_emoteSpecProc != 1) {
         return;
     }
 
@@ -13232,7 +13232,7 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec* emote, WOWGUID target) {
     this->SetSheatheState(0, 1, 0);
 
     if (rec->m_emoteSpecProc == 1 && ((1 << rec->m_emoteSpecProcParam) & s_textEmoteStandStates)) {
-        this->ChangeStandState(rec->m_emoteSpecProcParam);
+        this->ChangeStandState(static_cast<UNITSTANDSTATE>(rec->m_emoteSpecProcParam));
     } else if (rec->m_animID && this->CanPlayEmoteAnim()) {
         this->PlayBaseAnimation(rec->m_animID, 0);
     }

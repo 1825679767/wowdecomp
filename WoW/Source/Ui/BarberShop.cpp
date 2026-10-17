@@ -427,7 +427,7 @@ void CGBarberShop::DisableBarberShop() {
         return;
     }
 
-    player->ChangeStandState(0);
+    player->ChangeStandState(UNIT_STANDING);
     CCharacterComponent* component = player->m_characterComponent;
 
     if (!component || player->m_unit->m_unitFieldDisplayid != player->m_unit->m_unitFieldNativedisplayid) {

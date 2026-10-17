@@ -3055,9 +3055,9 @@ static int32_t Script_SitStandOrDescendStart(lua_State* L) {
     }
 
     if (!player->m_unit->m_unitFieldBytes1[0]) {
-        player->ChangeStandState(1);
+        player->ChangeStandState(UNIT_SITTING);
     } else {
-        player->ChangeStandState(0);
+        player->ChangeStandState(UNIT_STANDING);
     }
 
     return 0;

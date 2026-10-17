@@ -739,7 +739,7 @@ int32_t StandStateUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fie
         CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
         if (unit) {
-            unit->UpdateClientStandState(unit->m_unit->m_unitFieldBytes1[0]);
+            unit->UpdateClientStandState(static_cast<UNITSTANDSTATE>(unit->m_unit->m_unitFieldBytes1[0]));
         }
     }
 
@@ -1019,7 +1019,7 @@ void CGUnit_C::UpdateWorldObject(int32_t a2) {
 // VERIFY: 59a2b47b auto
 // OFFSET: 0x0071F560
 int32_t CGUnit_C::IsDeadOrAttachmentDying() {
-    if (this->m_unit->m_unitFieldHealth > 0 && !(this->m_unit->m_unitFieldFlags2 & 0x1) && this->GetClientStandState() != 7) {
+    if (this->m_unit->m_unitFieldHealth > 0 && !(this->m_unit->m_unitFieldFlags2 & 0x1) && this->GetClientStandState() != UNIT_DEAD) {
         for (CEffect* effect = this->m_effectList; effect; effect = effect->m_next) {
             if (effect->m_kitRec && IsDeadOrDyingAnim(effect->m_kitRec->m_animID)) {
                 return 1;
@@ -2659,15 +2659,15 @@ int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
     uint32_t standAnim;
 
     switch (this->GetClientStandState()) {
-        case 0:
+        case UNIT_STANDING:
             switch (this->m_animStandState) {
-                case 1:
+                case UNIT_SITTING:
                     standAnim = 98;
                     break;
-                case 3:
+                case UNIT_SLEEPING:
                     standAnim = 101;
                     break;
-                case 8:
+                case UNIT_KNEEL:
                     standAnim = 116;
                     break;
                 default:
@@ -2675,28 +2675,28 @@ int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
             }
 
             break;
-        case 1:
+        case UNIT_SITTING:
             standAnim = (!this->m_animStandState || this->GetCurrentTorsoAnimId() == 96) ? 96 : 97;
             break;
-        case 3:
-            standAnim = (this->m_animStandState != 0) + 99;
+        case UNIT_SLEEPING:
+            standAnim = (this->m_animStandState != UNIT_STANDING) + 99;
 
             if (standAnim == ANIM_COUNT) {
                 return 1;
             }
 
             break;
-        case 4:
+        case UNIT_SITTINGCHAIRLOW:
             standAnim = 102;
             break;
-        case 5:
+        case UNIT_SITTINGCHAIRMEDIUM:
             standAnim = 103;
             break;
-        case 6:
+        case UNIT_SITTINGCHAIRHIGH:
             standAnim = 104;
             break;
-        case 7:
-            if (this->m_animStandState == 7) {
+        case UNIT_DEAD:
+            if (this->m_animStandState == UNIT_DEAD) {
                 return 1;
             }
 
@@ -2707,8 +2707,8 @@ int32_t CGUnit_C::ChooseStandStateAnim(uint32_t mask, uint32_t* anim) {
             }
 
             break;
-        case 8:
-            standAnim = (this->m_animStandState != 0) + 114;
+        case UNIT_KNEEL:
+            standAnim = (this->m_animStandState != UNIT_STANDING) + 114;
 
             if (standAnim == ANIM_COUNT) {
                 return 1;
@@ -2845,19 +2845,19 @@ void CGUnit_C::PlayDeathAnimation(int32_t force) {
 
 // VERIFY: e532d825 manual
 // OFFSET: 0x0073F060
-void CGUnit_C::UpdateClientStandState(uint32_t standState) {
+void CGUnit_C::UpdateClientStandState(UNITSTANDSTATE standState) {
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         static_cast<CGPlayer_C*>(this)->SetClientStandState(standState);
     }
 
-    if (this->m_sheatheState && this->GetClientStandState() && this->GetClientStandState() != 2) {
+    if (this->m_sheatheState && this->GetClientStandState() && this->GetClientStandState() != UNIT_SITTINGCHAIR) {
         this->SetSheatheState(0, 1, 0);
     }
 
     if (this->GetClientStandState() != this->m_animStandState) {
         switch (this->GetClientStandState()) {
-            case 0:
-                if (this->m_animStandState == 9) {
+            case UNIT_STANDING:
+                if (this->m_animStandState == UNIT_SUBMERGED) {
                     if (!this->m_vehicle || !this->m_vehicle->m_vehicleRec || !this->m_vehicle->HasHighPriorityAnim()) {
                         CM2Model* model = this->GetObjectModel();
 
@@ -2876,11 +2876,11 @@ void CGUnit_C::UpdateClientStandState(uint32_t standState) {
                 this->m_animationState |= 0x40;
                 this->UpdateBaseAnimation(0, -1);
                 break;
-            case 7:
+            case UNIT_DEAD:
                 this->ClearLockedTarget();
                 this->PlayDeathAnimation(0);
                 break;
-            case 9:
+            case UNIT_SUBMERGED:
                 if (!this->m_vehicle || !this->m_vehicle->m_vehicleRec || !this->m_vehicle->HasHighPriorityAnim()) {
                     this->PlayBaseAnimation(ANIM_SUBMERGE, 0);
                 }
@@ -4972,7 +4972,7 @@ void CGUnit_C::OnRightClick() {
                             return;
                         }
 
-                        player->ChangeStandState(0);
+                        player->ChangeStandState(UNIT_STANDING);
                     }
 
                     player->SetAutoLoot(CGGameUI::IsAutoLooting());
@@ -6021,11 +6021,11 @@ bool CGUnit_C::IsStandStateSplitBody() const {
     bool result = false;
 
     switch (this->GetClientStandState()) {
-        case 0:
-        case 1:
-        case 4:
-        case 5:
-        case 6:
+        case UNIT_STANDING:
+        case UNIT_SITTING:
+        case UNIT_SITTINGCHAIRLOW:
+        case UNIT_SITTINGCHAIRMEDIUM:
+        case UNIT_SITTINGCHAIRHIGH:
             result = true;
             break;
     }
@@ -6505,8 +6505,8 @@ int32_t CGUnit_C::IsSplashing(const C3Vector& position) const {
 
 // VERIFY: 066b72ae auto
 // OFFSET: 0x0071A380
-uint32_t CGUnit_C::GetClientStandState() const {
-    return this->m_unit->m_unitFieldBytes1[0];
+UNITSTANDSTATE CGUnit_C::GetClientStandState() const {
+    return static_cast<UNITSTANDSTATE>(this->m_unit->m_unitFieldBytes1[0]);
 }
 
 // VERIFY: 232c855f manual
@@ -6792,7 +6792,7 @@ void CGUnit_C::RequestMirrorImageData() {
 // VERIFY: a2e758f2 auto
 // OFFSET: 0x00716FD0
 int32_t CGUnit_C::ChooseSpecialIdleAnim(uint32_t flags, uint32_t* anim) const {
-    if (!(this->m_animationState & 0x40) || this->m_mountModel || this->m_animStandState != 10) {
+    if (!(this->m_animationState & 0x40) || this->m_mountModel || this->m_animStandState != UNIT_NUMSTANDSTATES) {
         return (flags & 0xFFFFF800) == 0;
     }
 
@@ -8050,10 +8050,10 @@ int32_t CGUnit_C::ChooseSubmergeAnim(uint32_t flags, uint32_t* anim) const {
 
     uint32_t submerge;
 
-    if (this->GetClientStandState() == 9) {
-        submerge = (this->m_animStandState == 9) + ANIM_SUBMERGE;
+    if (this->GetClientStandState() == UNIT_SUBMERGED) {
+        submerge = (this->m_animStandState == UNIT_SUBMERGED) + ANIM_SUBMERGE;
     } else {
-        if (this->m_animStandState != 9) {
+        if (this->m_animStandState != UNIT_SUBMERGED) {
             return (flags & 0xFFFFFFFC) == 0;
         }
 
@@ -9547,7 +9547,7 @@ CGUnit_C::CGUnit_C(uint32_t time, const CClientObjCreate& create)
       m_missiles(nullptr),
       m_pendingMissiles(nullptr),
       m_shapeshiftSuppressed(0),
-      m_animStandState(0),
+      m_animStandState(UNIT_STANDING),
       m_nextBloodPoolTime(0),
       m_combat(),
       m_stopAttackSent(0),
@@ -9922,7 +9922,7 @@ void CGUnit_C::PostInit(uint32_t time, const CClientObjCreate& create, bool reen
     this->CreateOrDestroyObjectEffectManager();
 
     if (reenable && !(this->m_obj->m_type & TYPEMASK_PLAYER)) {
-        this->m_animStandState = 10;
+        this->m_animStandState = UNIT_NUMSTANDSTATES;
     }
 
     this->UpdateBaseAnimation(false, -1);
@@ -10693,8 +10693,8 @@ void CGUnit_C::OnSetRawFacingLocal(uint32_t eventTime, float facing) {
 
     this->m_movementData.OnSetRawFacingLocal(eventTime, facing);
 
-    if (this->GetClientStandState() == 3 && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
-        static_cast<CGPlayer_C*>(this)->ChangeStandState(0);
+    if (this->GetClientStandState() == UNIT_SLEEPING && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+        static_cast<CGPlayer_C*>(this)->ChangeStandState(UNIT_STANDING);
     }
 }
 
@@ -10751,8 +10751,8 @@ void CGUnit_C::OnTurnToAngleLocal(uint32_t eventTime, float facing) {
 
     this->m_movementData.OnTurnToAngleLocal(eventTime, facing);
 
-    if (this->GetClientStandState() == 3 && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
-        static_cast<CGPlayer_C*>(this)->ChangeStandState(0);
+    if (this->GetClientStandState() == UNIT_SLEEPING && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+        static_cast<CGPlayer_C*>(this)->ChangeStandState(UNIT_STANDING);
     }
 }
 
@@ -10765,8 +10765,8 @@ void CGUnit_C::OnPitchToAngleLocal(uint32_t eventTime, float pitch) {
 
     this->m_movementData.OnPitchToAngleLocal(eventTime, pitch);
 
-    if (this->GetClientStandState() == 3 && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
-        static_cast<CGPlayer_C*>(this)->ChangeStandState(0);
+    if (this->GetClientStandState() == UNIT_SLEEPING && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+        static_cast<CGPlayer_C*>(this)->ChangeStandState(UNIT_STANDING);
     }
 }
 
@@ -10778,7 +10778,7 @@ void CGUnit_C::OnFallLocal(uint32_t eventTime) {
 
 // VERIFY: c6dbcf00 manual
 // OFFSET: 0x0071A360
-void CGUnit_C::ChangeStandState(uint32_t standState) {
+void CGUnit_C::ChangeStandState(UNITSTANDSTATE standState) {
     if (this->m_obj->m_type & TYPEMASK_PLAYER) {
         static_cast<CGPlayer_C*>(this)->ChangeStandState(standState);
     }
@@ -11505,7 +11505,7 @@ int32_t CGUnit_C::ProcessLocalMoveEvent(uint32_t eventTime, uint32_t msgId, bool
 
         default:
             if (!IsAckMessage(msgId) && this->GetClientStandState()) {
-                this->ChangeStandState(0);
+                this->ChangeStandState(UNIT_STANDING);
             }
 
             break;
@@ -11910,7 +11910,7 @@ void CGUnit_C::HandleNPCFeedback() {
         return;
     }
 
-    if (SI2::IsPlaying(&this->m_npcInteractSound) || this->IsDeadOrAttachmentDying() || this->GetClientStandState() == 3) {
+    if (SI2::IsPlaying(&this->m_npcInteractSound) || this->IsDeadOrAttachmentDying() || this->GetClientStandState() == UNIT_SLEEPING) {
         return;
     }
 
@@ -13214,7 +13214,7 @@ void CGUnit_C::OnMonsterMove(CDataStore* msg, NETMESSAGE msgId, uint64_t transpo
     }
 
     if (this->m_obj->m_type & TYPEMASK_PLAYER) {
-        static_cast<CGPlayer_C*>(this)->ChangeStandState(0);
+        static_cast<CGPlayer_C*>(this)->ChangeStandState(UNIT_STANDING);
     }
 
     this->CancelRangedMode();
@@ -14666,7 +14666,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
 
         case 96:
         case 97: {
-            next = (this->GetClientStandState() != 1) + 97;
+            next = (this->GetClientStandState() != UNIT_SITTING) + 97;
 
             if (next == 506) {
                 break;
@@ -14678,7 +14678,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
 
         case 99:
         case 100: {
-            next = (this->GetClientStandState() != 3) + 100;
+            next = (this->GetClientStandState() != UNIT_SLEEPING) + 100;
 
             if (next == 506) {
                 break;
@@ -14689,7 +14689,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         }
 
         case 102: {
-            if (this->GetClientStandState() != 4) {
+            if (this->GetClientStandState() != UNIT_SITTINGCHAIRLOW) {
                 break;
             }
 
@@ -14698,7 +14698,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         }
 
         case 103: {
-            if (this->GetClientStandState() != 5) {
+            if (this->GetClientStandState() != UNIT_SITTINGCHAIRMEDIUM) {
                 break;
             }
 
@@ -14707,7 +14707,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
         }
 
         case 104: {
-            if (this->GetClientStandState() != 6) {
+            if (this->GetClientStandState() != UNIT_SITTINGCHAIRHIGH) {
                 break;
             }
 
@@ -14767,7 +14767,7 @@ void CGUnit_C::OnBaseAnimEnd(CM2Model* model, uint32_t boneId, uint32_t sequence
 
         case 114:
         case 115: {
-            next = (this->GetClientStandState() != 8) + 115;
+            next = (this->GetClientStandState() != UNIT_KNEEL) + 115;
 
             if (next == 506) {
                 break;
@@ -15193,7 +15193,7 @@ int32_t Packet_SMSG_STANDSTATE_UPDATE(void* param, NETMESSAGE msgId, uint32_t ti
     CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
 
     if (player) {
-        player->UpdateClientStandState(standState);
+        player->UpdateClientStandState(static_cast<UNITSTANDSTATE>(standState));
     }
 
     return 1;
@@ -15589,7 +15589,7 @@ void CGUnit_C::RequestTalkEmote(TALKANIMATION index) {
         return;
     }
 
-    if (this->GetClientStandState() == 3) {
+    if (this->GetClientStandState() == UNIT_SLEEPING) {
         return;
     }
 
@@ -22349,7 +22349,7 @@ void CGUnit_C::UpdateUnitNameColor() {
 // VERIFY: c0f70d76 manual
 // OFFSET: 0x00724410
 int32_t CGUnit_C::CanPlayEmoteAnim() {
-    if (this->IsDeadOrAttachmentDying() || this->IsDeadOrGhost() || this->GetClientStandState() == 9) {
+    if (this->IsDeadOrAttachmentDying() || this->IsDeadOrGhost() || this->GetClientStandState() == UNIT_SUBMERGED) {
         return 0;
     }
 
@@ -22551,7 +22551,7 @@ bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* 
     }
 
     if (this->GetClientStandState() && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
-        this->ChangeStandState(0);
+        this->ChangeStandState(UNIT_STANDING);
     }
 
     return true;

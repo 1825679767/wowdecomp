@@ -226,7 +226,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     /* 18EC */ uint32_t unused_18EC;
     /* 18F0 */ CGBag_C m_bag;
     /* 1908 */ CGUnitVirtualItem m_virtualItems [3];
-    /* 1920 */ uint32_t m_clientStandState;
+    /* 1920 */ UNITSTANDSTATE m_clientStandState;
     /* 1924 */ int32_t m_gemCounts [4];
     /* 1934 */ uint32_t m_combatModeTime;
     /* 1938 */ WOWGUID m_combatTarget;
@@ -264,7 +264,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     uint32_t GetImpactType() const override;
     const CGUnitVirtualItem* GetDefendingItem() const override;
     bool IsDeadOrGhost() const override;
-    uint32_t GetClientStandState() const override;
+    UNITSTANDSTATE GetClientStandState() const override;
     void Reenable() override;
     void PostReenable() override;
     void PreAnimate(CGWorldFrame* frame) override;
@@ -350,7 +350,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void ReadItem(WOWGUID guid, uint8_t slot);
     void SetFarSightFocus(CGObject_C* object);
     void SetPlayedTime(int32_t playedTime);
-    void ChangeStandState(uint32_t standState);
+    void ChangeStandState(UNITSTANDSTATE standState);
     void SendTextEmote(const EmotesTextRec* emote, WOWGUID target);
     void SetAFK(const char* message);
     void UpdateActiveMoverDisplay(uint32_t time);
@@ -374,7 +374,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void UpdateQuestStatus(CGObject_C* object);
     void UpdateTaxiStatus(CGUnit_C* unit);
     void HandleRepopRequest(bool a2);
-    void SetClientStandState(uint32_t standState);
+    void SetClientStandState(UNITSTANDSTATE standState);
     void SetCombatMode();
     CGUnit_C* GetPossessedUnit();
     int32_t OnLootResponse(uint32_t time, CDataStore* msg);
