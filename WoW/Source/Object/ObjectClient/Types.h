@@ -4,6 +4,22 @@
 #include <cstddef>
 #include <cstdint>
 
+enum MISS_REASON : int32_t {
+    MISS_NONE = 0,
+    MISS_PHYSICAL = 1,
+    MISS_RESIST = 2,
+    MISS_DODGED = 3,
+    MISS_PARRIED = 4,
+    MISS_BLOCKED = 5,
+    MISS_EVADED = 6,
+    MISS_IMMUNE = 7,
+    MISS_TEMPIMMUNE = 8,
+    MISS_DEFLECTED = 9,
+    MISS_ABSORBED = 10,
+    MISS_REFLECTED = 11,
+    MISS_NUMMISSTYPES = 12,
+};
+
 enum COMBATHAND : int32_t {
     COMBAT_MAINHAND = 0,
     COMBAT_OFFHAND = 1,

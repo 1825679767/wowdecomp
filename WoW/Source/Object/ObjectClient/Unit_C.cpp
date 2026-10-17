@@ -354,7 +354,7 @@ struct WORLDTEXTINFO {
 };
 
 // Original 3.3.5 tables: tokens at 0x00ADBFDC; styles at 0x00A34C20.
-static const WORLDTEXTINFO s_combatTextInfo[12] = {
+static const WORLDTEXTINFO s_combatTextInfo[MISS_NUMMISSTYPES] = {
     { "COMBAT_TEXT_NONE", 11 },
     { "COMBAT_TEXT_MISS", 3 },
     { "COMBAT_TEXT_RESIST", 3 },
@@ -15039,7 +15039,7 @@ static bool IsOwnedByActivePlayer(const WOWGUID& guid, bool* isPlayer) {
 
 // VERIFY: d0bc6fd3 auto
 // OFFSET: 0x0071F990
-void CGUnit_C::AddWorldText(const WOWGUID& source, int32_t reason, const SpellRec* spell, bool periodic) {
+void CGUnit_C::AddWorldText(const WOWGUID& source, MISS_REASON reason, const SpellRec* spell, bool periodic) {
     bool melee = !spell || (spell->m_attributesExC & 0x8000);
     bool isPlayer;
 

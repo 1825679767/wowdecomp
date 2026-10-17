@@ -1972,7 +1972,7 @@ void PendingSpellCast::OnSpellGo(CDataStore* msg) {
                 CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(misses.m_data[i], TYPEMASK_UNIT, __FILE__, __LINE__));
 
                 if (target) {
-                    target->AddWorldText(source, missReasons.m_data[i], &spell, false);
+                    target->AddWorldText(source, static_cast<MISS_REASON>(missReasons.m_data[i]), &spell, false);
                 }
 
                 CGGameUI::ShowSpellMissFeedback(misses.m_data[i], missReasons.m_data[i]);
@@ -1985,7 +1985,7 @@ void PendingSpellCast::OnSpellGo(CDataStore* msg) {
                     CGUnit_C* reflector = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(caster, TYPEMASK_UNIT, __FILE__, __LINE__));
 
                     if (reflector) {
-                        reflector->AddWorldText(source, reflectResults.m_data[i], &spell, false);
+                        reflector->AddWorldText(source, static_cast<MISS_REASON>(reflectResults.m_data[i]), &spell, false);
                     }
 
                     CGGameUI::ShowSpellMissFeedback(caster, reflectResults.m_data[i]);

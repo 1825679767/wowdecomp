@@ -988,7 +988,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void ShowBloodSpurt(const WOWGUID& attacker, int32_t a3);
     UnitBloodRec* GetBloodRecord();
     void ModifyPredictedPower(POWER_TYPE powerType, int32_t delta);
-    void AddWorldText(const WOWGUID& source, int32_t reason, const SpellRec* spell, bool periodic);
+    void AddWorldText(const WOWGUID& source, MISS_REASON reason, const SpellRec* spell, bool periodic);
     void AddWorldHealingText(const WOWGUID& source, int32_t amount, const SpellRec* spell, bool crit, int32_t unused_a6);
     void AddWorldHonorGainText(int32_t honor, int32_t pvpRank, const char* victimName);
     void PlayCombatSpellMissEffects(uint32_t reason, const WOWGUID& source);

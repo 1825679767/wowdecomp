@@ -428,21 +428,21 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
 
     if (victimState == 8) {
         WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 9, nullptr, false);
+        this->AddWorldText(source, MISS_DEFLECTED, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
 
     if (victimState == 3) {
         WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 4, nullptr, false);
+        this->AddWorldText(source, MISS_PARRIED, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
 
     if (victimState == 6) {
         WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 6, nullptr, false);
+        this->AddWorldText(source, MISS_EVADED, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
@@ -460,21 +460,21 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
         }
 
         WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 3, nullptr, false);
+        this->AddWorldText(source, MISS_DODGED, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
 
     if (victimState == 5) {
         WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 5, nullptr, false);
+        this->AddWorldText(source, MISS_BLOCKED, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
 
     if (victimState == 7) {
         WOWGUID source = info.m_attacker;
-        this->AddWorldText(source, 7, nullptr, false);
+        this->AddWorldText(source, MISS_IMMUNE, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
@@ -504,12 +504,12 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
     }
 
     if (activePlayer != info.m_target && !(info.m_hitInfo & 0x4000)) {
-        int32_t reason;
+        MISS_REASON reason;
 
         if (info.m_hitInfo & 0x20) {
-            reason = 10;
+            reason = MISS_ABSORBED;
         } else {
-            reason = (info.m_hitInfo & 0x80) ? 2 : 1;
+            reason = (info.m_hitInfo & 0x80) ? MISS_RESIST : MISS_PHYSICAL;
         }
 
         WOWGUID source = info.m_attacker;

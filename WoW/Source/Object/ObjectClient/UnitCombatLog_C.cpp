@@ -1916,7 +1916,7 @@ int32_t CombatLog::HandleSpellLogMiss(CDataStore* msg, int32_t timeOffset) {
             CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_UNIT, __FILE__, __LINE__));
 
             if (unit) {
-                unit->AddWorldText(caster, missType, &spell, false);
+                unit->AddWorldText(caster, static_cast<MISS_REASON>(missType), &spell, false);
             }
         }
     }
@@ -1956,7 +1956,7 @@ int32_t CombatLog::HandleSpellHealLog(CDataStore* msg, int32_t timeOffset) {
 
         if (unit && !amount && absorbed) {
             WOWGUID source = caster;
-            unit->AddWorldText(source, 10, &spell, true);
+            unit->AddWorldText(source, MISS_ABSORBED, &spell, true);
         }
 
         WOWGUID dest = target;
@@ -2583,11 +2583,11 @@ int32_t CombatLog::HandleSpellNonMeleeDamageLog(CDataStore* msg, int32_t timeOff
             if (damage) {
                 unit->AddWorldDamageText(caster, damage, &spell, crit, false, false);
             } else if (absorbed) {
-                unit->AddWorldText(caster, 10, &spell, false);
+                unit->AddWorldText(caster, MISS_ABSORBED, &spell, false);
             } else if (blocked) {
-                unit->AddWorldText(caster, 5, &spell, false);
+                unit->AddWorldText(caster, MISS_BLOCKED, &spell, false);
             } else if (resisted) {
-                unit->AddWorldText(caster, 2, &spell, false);
+                unit->AddWorldText(caster, MISS_RESIST, &spell, false);
             }
         }
     }
@@ -2665,9 +2665,9 @@ int32_t CombatLog::HandlePeriodicAuraLog(CDataStore* msg, int32_t timeOffset) {
                     if (damage) {
                         unit->AddWorldDamageText(caster, damage, &spell, crit != 0, true, false);
                     } else if (absorbed) {
-                        unit->AddWorldText(caster, 10, &spell, true);
+                        unit->AddWorldText(caster, MISS_ABSORBED, &spell, true);
                     } else if (resisted) {
-                        unit->AddWorldText(caster, 2, &spell, true);
+                        unit->AddWorldText(caster, MISS_RESIST, &spell, true);
                     }
 
                     uint32_t flags = 0;
@@ -2705,7 +2705,7 @@ int32_t CombatLog::HandlePeriodicAuraLog(CDataStore* msg, int32_t timeOffset) {
 
                 if (!(spell.m_attributes & 0x100)) {
                     if (!amount && absorbed) {
-                        unit->AddWorldText(caster, 10, &spell, true);
+                        unit->AddWorldText(caster, MISS_ABSORBED, &spell, true);
                     }
 
                     CGGameUI::ShowHealingFeedback(target, amount, crit != 0);
