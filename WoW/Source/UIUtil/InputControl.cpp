@@ -36,6 +36,8 @@
 #include "WoW/Source/UIUtil/Camera.h"
 #include "WoW/Source/UIUtil/InputControl.h"
 
+static const float MOUSE_DRAG_THRESHOLD = 8.0f;
+
 // STATIC: 0x00AD192C
 uint32_t s_joystick = 0xFFFFFFFF;
 
@@ -178,7 +180,7 @@ int32_t CGInputControl::IsMouseDrag(uint32_t time) const {
         return 1;
     }
 
-    if (this->m_dragAccumX >= 8.0f || this->m_dragAccumY >= 8.0f) {
+    if (this->m_dragAccumX >= MOUSE_DRAG_THRESHOLD || this->m_dragAccumY >= MOUSE_DRAG_THRESHOLD) {
         return static_cast<int32_t>(elapsed - 200) >= 0;
     }
 
