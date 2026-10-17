@@ -54,6 +54,12 @@ if (WOWDECOMP_DISABLE_SIGNATURE_CHECKS)
     add_compile_definitions(DISABLE_SIGNATURE_CHECKS=1)
 endif ()
 
+# Disable persisted item metadata by default; server responses are kept in memory for this session.
+option(WOWDECOMP_DISABLE_ITEM_CACHE "Ignore persisted item metadata and use server item query responses" ON)
+if (WOWDECOMP_DISABLE_ITEM_CACHE)
+    add_compile_definitions(DISABLE_ITEM_CACHE=1)
+endif ()
+
 # Third-party code is linked, not decompiled, for now.
 if (EXISTS ${CMAKE_SOURCE_DIR}/ThirdParty/CMakeLists.txt)
     add_subdirectory(ThirdParty)
