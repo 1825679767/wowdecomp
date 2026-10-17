@@ -5,6 +5,7 @@
 #include "vendor/extensions/wxl-db2/src/api/Db2.hpp"
 #include <map>
 #include "vendor/extensions/wxl-db2/src/decode/DB2File.hpp"
+#include "vendor/extensions/wxl-db2/src/decode/CompactLookup.hpp"
 #include "common/Log.hpp"
 
 #include <mutex>
@@ -98,23 +99,23 @@ namespace wxl::native
         try {
             using namespace wxl::runtime::db2;
             struct Index {
-                std::map<std::pair<uint32_t,uint32_t>,uint32_t> rows;
+                wxl::db2::compact::MaterialIndex rows;
                 Index(){
                     static constexpr Field fields[]={{"ID"},{"UsageType"},{"MaterialResourcesID"}};
                     static constexpr Definition def{"texturefiledata","DBFilesClient\\texturefiledata.db2",0xBD7C74C2u,fields};
                     Table table;std::string error;
                     if(!table.Load(def,&error)){WLOG_WARN("native material texture table: %s",error.c_str());return;}
-                    for(const auto& row:table.Rows()){
-                        const auto key=std::pair{table.Value(row,"MaterialResourcesID"),table.Value(row,"UsageType")};
-                        auto [it,inserted]=rows.emplace(key,row.id);
-                        // Ambiguous material/usage data must not silently select an unrelated sheet.
-                        if(!inserted && it->second!=row.id)it->second=0;
-                    }
+                    rows.Reserve(table.Rows().size());
+                    for(const auto& row:table.Rows())
+                        rows.Add(table.Value(row,"MaterialResourcesID"),table.Value(row,"UsageType"),row.id);
+                    rows.Finish();
                 }
             };
             static const Index* const index=new Index;
-            const auto it=index->rows.find({materialResourceId,usage});
-            return it==index->rows.end()?0:it->second;
+            // The donor hint is a replaceable texture type, not an exact
+            // TextureFileData UsageType requirement. Keep its authored
+            // hint -> usage 2 -> first-row fallback and stable row ordering.
+            return index->rows.Find(materialResourceId,usage);
         }catch(...){return 0;}
     }
     const char* ResolveTexture(uint32_t fileDataId) noexcept { return Resolve(fileDataId); }

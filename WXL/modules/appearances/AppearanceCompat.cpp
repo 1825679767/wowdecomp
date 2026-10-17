@@ -221,7 +221,7 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
     for (const auto& layer : appearance.layers) {
         if (layer.textureType != 1) continue;
         atlas::Image image;
-        if (!ReadImage(ResolveTexture(ResolveMaterialTexture(layer.materialResourceId,0)),image,layer.blendMode != 1)) return false;
+        if (!ReadImage(ResolveTexture(ResolveMaterialTexture(layer.materialResourceId,layer.textureType)),image,layer.blendMode != 1)) return false;
         const auto span = Span(sections,layer.sectionMask,body->width,body->height);
         std::vector<atlas::Rect> done;
         for (const auto& section : sections) {
@@ -271,7 +271,7 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
     const auto whole = atlas::SelectWholeLayers(race,prefs.m_sexID,appearance.layers,choices);
     for (uint32_t type = 0; type < whole.size(); ++type) if (whole[type].materialResourceId) {
         atlas::Image image;
-        if (!ReadImage(ResolveTexture(ResolveMaterialTexture(whole[type].materialResourceId,0)),image,false)) return false;
+        if (!ReadImage(ResolveTexture(ResolveMaterialTexture(whole[type].materialResourceId,type)),image,false)) return false;
         auto sheet = WholeSheet(image);
         if (!sheet) return false;
         output.sheets.emplace(type,std::move(sheet));
@@ -371,7 +371,7 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
         if(private_appearances::Identity(component.m_data.m_preferences.m_raceID,component.m_data.m_preferences.m_sexID)){if(component.m_wxlAppearance)Restore(component);return false;}
         auto* model = component.m_data.m_model;
         if (!AppearancesEnabled() || !AssetsEnabled() || !model || !(model->m_fFlags & 1)
-            || !model->m_shared || !model->m_shared->m_wxlAssets || !RetailRace(component.m_data.m_preferences.m_raceID)
+            || !model->m_shared || !RetailRace(component.m_data.m_preferences.m_raceID)
             || component.m_data.m_preferences.m_sexID > 1 || (component.m_data.m_flags & 1)) {
             if (component.m_wxlAppearance) Restore(component);
             return false;

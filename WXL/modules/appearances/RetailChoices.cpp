@@ -23,6 +23,7 @@
 #include "Engine/Source/Model2/M2Model.h"
 #include "Engine/Source/Model2/M2Shared.h"
 #include "Engine/Source/FrameScript/FrameScript.h"
+#include "common/Log.hpp"
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -37,6 +38,13 @@ namespace db=wxl::runtime::db2::appearance;
 struct Option {uint32_t id{};int axis=-1;std::vector<uint32_t> choices;};
 struct Authority {uint32_t family{},chrModel{},equipmentRace{};std::string path;std::array<uint32_t,5> counts{1,1,1,1,1};std::vector<Option> options;bool ready=false,privateProfile=false;};
 std::string Key(const char* value){std::string s=value?value:"";for(auto& c:s){if(c=='/')c='\\';if(c>='A'&&c<='Z')c=char(c-'A'+'a');}if(s.ends_with(".mdx"))s.replace(s.size()-4,4,".m2");return s;}
+bool ReadableActor(const char* path){
+ std::vector<uint8_t> source;
+ if(!path||!ReadAsset(path,source)||source.size()<8)return false;
+ // Mounted packs may contain modern MD21 or an already native-converted
+ // MD20 v264. Container spelling is not a customization ownership grant.
+ return !std::memcmp(source.data(),"MD21",4)||(!std::memcmp(source.data(),"MD20",4)&&source[4]==8&&source[5]==1&&!source[6]&&!source[7]);
+}
 uint32_t& Field(CharacterPreferences& p,RetailAxis axis){switch(axis){case RetailAxis::Skin:return p.m_skinID;case RetailAxis::Face:return p.m_faceId;case RetailAxis::HairStyle:return p.m_hairStyleId;case RetailAxis::HairColor:return p.m_hairColorId;default:return p.m_facialHairId;}}
 int Axis(const char* label){const std::string_view n=label?label:"";if(n=="Skin Color"||n=="Skin Type"||n=="Fur Color")return 0;if(n=="Face")return 1;if(n=="Hair Style")return 2;if(n=="Hair Color")return 3;if(wxl::waystone::appearance::FacialOption(n))return 4;return -1;}
 
@@ -74,8 +82,7 @@ const Authority* Get(uint32_t race,uint32_t sex,uint32_t family=0){
  // 24/27). The mounted recipe owns the new actor; callers select this path
  // before construction. For() still requires the actual instance to match it.
  valid=valid&&path&&raceRec&&(family==primary||family==alternate);a->path=Key(path);
- std::vector<uint8_t> source;
- valid=valid&&ReadAsset(path,source)&&source.size()>=8&&!std::memcmp(source.data(),"MD21",4);
+ valid=valid&&ReadableActor(path);
  const auto count=valid?db::OptionCount(a->chrModel):0;valid=valid&&count&&count<=256;
  std::vector<uint32_t> optionIds;
  for(uint32_t i=0;valid&&i<count;++i){WXL_ChrOption option{};if(!db::OptionAt(a->chrModel,i,option)){valid=false;break;}optionIds.push_back(option.id);}
@@ -142,9 +149,21 @@ void Dirty(CCharacterComponent& c){c.m_dirtySections=0xffffffffu;c.m_flags|=5u;}
 struct RetailChoiceState {uint32_t model{},revision=1;std::map<uint32_t,uint32_t> overrides;};
 uint32_t RetailRaceId(uint32_t race) noexcept {static constexpr uint32_t ids[]={0,1,2,3,4,5,6,7,8,35,10,11,22,27,17,29,0,76,31,0,30,9,26,0,85,13,25,86,0,34,75,32};return race<std::size(ids)?ids[race]:0;}
 const char* RetailActorModelPath(uint32_t race,uint32_t sex,const char* nativePath) noexcept {try{
- if(private_appearances::Identity(race,sex))return nativePath;
- const auto* authority=Get(race,sex);
- return authority&&!authority->path.empty()?authority->path.c_str():nativePath;
+ if(!AppearancesEnabled()||sex>1||private_appearances::Identity(race,sex))return nativePath;
+ const auto family=RetailRaceId(race);if(!family||!db::Status().loaded)return nativePath;
+ // Actor selection precedes component creation. It must not depend on the
+ // old DBC actor, classic-byte option limits, or an already loaded instance.
+ static std::map<uint64_t,std::string> actors;
+ static std::mutex actorMutex;std::lock_guard lock(actorMutex);
+ const uint64_t key=(uint64_t(family)<<1)|sex;
+ if(const auto it=actors.find(key);it!=actors.end())return it->second.c_str();
+ db::Recipe recipe;
+ if(!db::BuildForCharacter(family,sex,nullptr,0,recipe))return nativePath;
+ const auto* path=ResolveModel(recipe.modelFileDataId);
+ if(!ReadableActor(path))return nativePath;
+ const auto [it,inserted]=actors.emplace(key,Key(path));
+ if(inserted)WLOG_INFO("native-retail-actor: wire=%u retail=%u sex=%u fdid=%u path=%s",race,family,sex,recipe.modelFileDataId,it->second.c_str());
+ return it->second.c_str();
  }catch(...){return nativePath;}}
 uint32_t RetailEquipmentRace(const CCharacterComponent& c) noexcept {try{auto* a=For(c.m_data.m_preferences,c.m_data.m_model);return a?a->equipmentRace:0;}catch(...){return 0;}}
 uint32_t RetailChoiceCount(uint32_t race,uint32_t sex,RetailAxis axis) noexcept {try{auto* a=Get(race,sex);const auto i=uint32_t(axis);return a&&!a->privateProfile&&i<5?a->counts[i]:0;}catch(...){return 0;}}

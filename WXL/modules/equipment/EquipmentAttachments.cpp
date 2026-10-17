@@ -75,12 +75,18 @@ bool BindTexture(CM2Model& model,uint32_t type,const std::string& path){
  if(valid)model.ReplaceTexture(type,texture);HandleClose(reinterpret_cast<HOBJECT>(texture));return valid;
 }
 bool Materials(CM2Model& model,const ItemGraphModel& entry,const std::vector<ItemGraphMaterial>& rows,uint32_t race,uint32_t fallback,uint32_t sex){
- if(!entry.texture.empty()&&!BindTexture(model,2,ObjectPath(entry.folder,entry.texture,true)))return false;
+ if(!entry.texture.empty()&&HasSlot(model,2)&&!BindTexture(model,2,ObjectPath(entry.folder,entry.texture,true)))return false;
  std::array<const ItemGraphMaterial*,32> selected{};std::array<int,32> ranks;ranks.fill(-1);
- for(const auto& row:rows){if(!row.textureType||row.textureType>=32||(row.modelIndex!=Missing&&row.modelIndex!=entry.modelIndex))continue;
+ for(const auto& row:rows){if(!row.textureType||row.textureType>=32||!HasSlot(model,row.textureType)||(row.modelIndex!=Missing&&row.modelIndex!=entry.modelIndex))continue;
   const auto rank=Rank(row,race,fallback,sex);if(rank<0||rank<ranks[row.textureType])continue;
   selected[row.textureType]=&row;ranks[row.textureType]=rank;}
- for(uint32_t type=1;type<32;++type)if(selected[type]&&!BindTexture(model,type,ObjectPath(selected[type]->folder,selected[type]->texture,true)))return false;
+ for(uint32_t type=1;type<32;++type)if(selected[type]){
+  // TextureFilePath already owns the complete mounted spelling. Rebuilding
+  // it as ObjectComponents loses non-object and nested material locations.
+  const auto& row=*selected[type];
+  const auto path=row.texturePath.empty()?ObjectPath(row.folder,row.texture,true):Key(row.texturePath);
+  if(!SafePart(path)||!path.ends_with(".blp")||!BindTexture(model,type,path))return false;
+ }
  return true;
 }
 bool SlotOwnsGroup(uint32_t inventory,uint32_t group){
