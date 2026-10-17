@@ -6844,7 +6844,7 @@ int32_t __stdcall CGPlayer_C::OnQuestGiverQuestDetails(CDataStore* msg) {
         }
     }
 
-    CGQuestInfo::SetState(npc, inform, 1, details, questId, startCheat);
+    CGQuestInfo::SetState(npc, inform, QUEST_OFFER, details, questId, startCheat);
     CGQuestInfo::SetLogDescription(objectives);
     CGQuestInfo::AddReward(title, choiceItems, choiceDisplays, choiceCounts, numChoices, rewardItems, rewardDisplays, rewardCounts, numRewards, money, xp, honor, honorMultiplier, spell, spellCast, autoLaunched, suggestedGroupNum, rewardTitle, talents, arenaPoints, factionMask, factionIDs, factionValues, factionOverrides, flags);
     return 1;
@@ -7044,7 +7044,7 @@ int32_t __stdcall CGPlayer_C::OnQuestGiverOfferReward(CDataStore* msg) {
     }
 
     WOWGUID none = { 0 };
-    CGQuestInfo::SetState(npc, none, 3, text, questId, 0);
+    CGQuestInfo::SetState(npc, none, QUEST_REWARD, text, questId, 0);
     CGQuestInfo::AddReward(title, choiceItems, choiceDisplays, choiceCounts, numChoices, rewardItems, rewardDisplays, rewardCounts, numRewards, money, xp, honor, honorMultiplier, spell, spellCast, autoLaunched, suggestedGroupNum, rewardTitle, talents, arenaPoints, factionMask, factionIDs, factionValues, factionOverrides, flags);
     return 1;
 }
@@ -7442,7 +7442,7 @@ int32_t __stdcall CGPlayer_C::OnQuestGiverQuestList(CDataStore* msg) {
     memset(s_questListLevels, 0, sizeof(s_questListLevels));
     memset(s_questListFlags, 0, sizeof(s_questListFlags));
     memset(s_questListRepeatable, 0, sizeof(s_questListRepeatable));
-    CGQuestInfo::SetState(npc, WOWGUID(), 0, greeting, 0, 0);
+    CGQuestInfo::SetState(npc, WOWGUID(), QUEST_GREETING, greeting, 0, 0);
 
     char titles[32][512];
 
@@ -7533,7 +7533,7 @@ int32_t __stdcall CGPlayer_C::OnQuestGiverRequestItems(CDataStore* msg) {
     uint32_t completable3;
     msg->Get(completable3);
 
-    CGQuestInfo::SetState(npc, WOWGUID(), 2, text, questId, 0);
+    CGQuestInfo::SetState(npc, WOWGUID(), QUEST_ACCEPTED, text, questId, 0);
     int32_t canComplete = completable0 && completable1 && completable2 && completable3;
     CGQuestInfo::AddItemRequest(title, itemIds, itemCounts, itemDisplays, numItems, requiredMoney, canComplete, autoLaunched, suggestedGroupNum, flags);
 
