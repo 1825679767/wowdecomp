@@ -389,23 +389,23 @@ int32_t CGUnit_C::GetNewNPCSoundCount(int32_t count, int32_t* soundKitId, int32_
 
     NPCSoundsRec* sounds = g_npcSoundsDB.GetRecord(this->m_displayInfo->m_npcsoundID);
 
-    if (!sounds || !sounds->m_soundID[0]) {
+    if (!sounds || !sounds->m_soundID[NPCSOUND_HELLO]) {
         return -1;
     }
 
     if (count < 5) {
-        *soundKitId = sounds->m_soundID[0];
+        *soundKitId = sounds->m_soundID[NPCSOUND_HELLO];
         *soundIndex = -1;
         return count + 1;
     }
 
-    if (count - 5 < SI2::GetNumSoundsInSoundKit(sounds->m_soundID[2])) {
+    if (count - 5 < SI2::GetNumSoundsInSoundKit(sounds->m_soundID[NPCSOUND_PISSED])) {
         *soundIndex = count - 5;
-        *soundKitId = sounds->m_soundID[2];
+        *soundKitId = sounds->m_soundID[NPCSOUND_PISSED];
         return count + 1;
     }
 
-    *soundKitId = sounds->m_soundID[0];
+    *soundKitId = sounds->m_soundID[NPCSOUND_HELLO];
     *soundIndex = -1;
     return 0;
 }

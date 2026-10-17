@@ -8511,7 +8511,7 @@ void CGUnit_C::PlayNPCSound(bool greeting) {
     }
 
     C3Vector position = this->GetPosition();
-    SI2::PlaySoundKit(greeting ? sounds->m_soundID[0] : sounds->m_soundID[1], &position, &this->m_npcInteractSound, nullptr, 0, nullptr, 1, 0);
+    SI2::PlaySoundKit(greeting ? sounds->m_soundID[NPCSOUND_HELLO] : sounds->m_soundID[NPCSOUND_GOODBYE], &position, &this->m_npcInteractSound, nullptr, 0, nullptr, 1, 0);
 }
 
 // VERIFY: a3ea8ac7 manual
