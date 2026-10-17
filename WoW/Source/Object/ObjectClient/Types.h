@@ -46,6 +46,9 @@ enum UNIT_REACTION : int32_t {
     UNIT_REACTION_REVERED = 6,
     UNIT_REACTION_EXALTED = 7,
     NUM_UNIT_REACTIONS = 8,
+
+    // Unused legacy name for the current rank-4 friendly result.
+    // UNIT_REACTION_AMIABLE = UNIT_REACTION_FRIENDLY,
 };
 
 enum ANIMATION_ID {
