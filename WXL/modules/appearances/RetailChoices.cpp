@@ -53,7 +53,7 @@ const Authority* GetPrivate(uint32_t race,uint32_t sex,uint32_t family){
  if(!id||(family&&family!=id)||g_chrRacesDB.m_numRecords<=0)return nullptr;
  auto* r=g_chrRacesDB.GetRecord(race);auto* d=r?g_creatureDisplayInfoDB.GetRecord(sex?r->m_femaleDisplayID:r->m_maleDisplayID):nullptr;
  auto* m=d?g_creatureModelDataDB.GetRecord(d->m_modelID):nullptr;
- private_appearances::Description desc;if(!m||!private_appearances::Describe(race,sex,m->m_modelName,desc))return nullptr;
+ private_appearances::Description desc;if(!m||!private_appearances::Describe(race,sex,private_appearances::ActorPath(race,sex,m->m_modelName),desc))return nullptr;
  static std::map<uint64_t,std::unique_ptr<Authority>> cache;const uint64_t key=(uint64_t(race)<<1)|sex;
  if(auto it=cache.find(key);it!=cache.end())return it->second->path==desc.path?it->second.get():nullptr;
  auto a=std::make_unique<Authority>();a->family=a->chrModel=desc.id;a->equipmentRace=race;a->path=desc.path;a->privateProfile=true;
@@ -151,7 +151,8 @@ void Dirty(CCharacterComponent& c){c.m_dirtySections=0xffffffffu;c.m_flags|=5u;}
 struct RetailChoiceState {uint32_t model{},revision=1;std::map<uint32_t,uint32_t> overrides;};
 uint32_t RetailRaceId(uint32_t race) noexcept {static constexpr uint32_t ids[]={0,1,2,3,4,5,6,7,8,35,10,11,22,27,17,29,0,76,31,0,30,9,26,0,85,13,25,86,0,34,75,32};return race<std::size(ids)?ids[race]:0;}
 const char* RetailActorModelPath(uint32_t race,uint32_t sex,const char* nativePath) noexcept {try{
- if(!AppearancesEnabled()||sex>1||private_appearances::Identity(race,sex))return nativePath;
+ if(!AppearancesEnabled()||sex>1)return nativePath;
+ if(private_appearances::Identity(race,sex))return private_appearances::ActorPath(race,sex,nativePath);
  const auto family=RetailRaceId(race);if(!family||!db::Status().loaded)return nativePath;
  // Actor selection precedes component creation. It must not depend on the
  // old DBC actor, classic-byte option limits, or an already loaded instance.

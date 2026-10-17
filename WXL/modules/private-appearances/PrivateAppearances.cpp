@@ -45,7 +45,7 @@ bool Geoset(CM2Model* model,uint32_t id){const auto* skin=model->m_shared->m_ski
 bool Texture(CM2Model* model,PrivateAppearanceState& state,uint32_t type,const char* path){
  if(!Slot(model,type)||!SFile::FileExists(path))return false;
  CStatus status;auto* texture=TextureCreate(path,CGxTexFlags(),&status,0);if(!texture)return false;
- if(Key(texture->m_filename)!=Key(path)||texture->m_status.m_highestSeverity>=STATUS_ERROR){HandleClose(reinterpret_cast<HOBJECT>(texture));return false;}
+ if(!TextureIsSame(texture,path)||!TextureGetGxTex(texture,1,&status)||status.m_highestSeverity>=STATUS_ERROR||texture->m_status.m_highestSeverity>=STATUS_ERROR){HandleClose(reinterpret_cast<HOBJECT>(texture));return false;}
  state.textures.emplace(type,texture);return true;
 }
 
@@ -133,6 +133,12 @@ bool Bind(CCharacterComponent& c,PrivateAppearanceState& s){
 }
 void Register(){enabled=CVar::Register("wxlPrivateAppearances","WXL authored private Broken and Tuskarr/Murloc female appearances",0,WXL_ENABLE_PRIVATE_APPEARANCES?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept {return WXL_ENABLE_PRIVATE_APPEARANCES&&NativeEnabled()&&AssetsEnabled()&&BlpEnabled()&&enabled&&enabled->m_intValue;}
+const char* ActorPath(uint32_t race,uint32_t sex,const char* nativePath) noexcept {
+ // Exact current donor HdSwitch private female routes; no broad directory aliases.
+ if(!Enabled()||sex!=1)return nativePath;
+ const char* path=race==14?"character\\tuskarr\\tuskarrfemale_hd.m2":race==28?"creature\\murloc2maria\\murloc2maria.m2":nullptr;
+ return path&&SFile::FileExists(path)?path:nativePath;
+}
 uint32_t Identity(uint32_t race,uint32_t sex) noexcept {return ((race==23&&sex<2)||(sex==1&&(race==14||race==28)))?ap::PrivateModel(uint8_t(race),uint8_t(sex)):0;}
 bool Describe(uint32_t race,uint32_t sex,const char* mountedNativePath,Description& output) noexcept {try{
  const auto id=Identity(race,sex);const auto path=Key(mountedNativePath);

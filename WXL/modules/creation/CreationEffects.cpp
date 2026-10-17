@@ -2,6 +2,7 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 // Authored WXL choreography; native source integration, no injected ABI.
 #include "WXL/CreationEffects.hpp"
+#include "WoW/Source/Glue/CGlueLoading.h"
 #include "WXL/NativeFeatures.hpp"
 #include "WXL/AlternateAppearances.hpp"
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -1311,6 +1312,9 @@ void UpdateCreation() {
  if(actor!=current||serial!=component->m_wxlSerial||actorHandle!=current->m_handle||classId!=uint32_t(p.m_classId)||race!=p.m_raceID||sex!=p.m_sexID){
   StopCreation();actor=current;serial=component->m_wxlSerial;actorHandle=current->m_handle;classId=p.m_classId;race=p.m_raceID;sex=p.m_sexID;
  }
+ // The preview loader hides an incomplete outfit through native visibility
+ // flags, not baseAlpha. Its choreography clock must start after publication.
+ if(CGlueLoading::m_loadState==1){if(start){ClearVisuals();start=0;nextStep=0;finished=false;}return;}
  if(manualControl){UpdateEffectOwners();return;}
  const auto timeline=GetTimeline(classId);if(!timeline.count||finished)return;
  // Alternate form presentation owns a hidden primary. Wait until it is visible.

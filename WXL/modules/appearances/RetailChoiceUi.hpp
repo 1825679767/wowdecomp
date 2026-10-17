@@ -1722,10 +1722,20 @@ do
    self.nativeSaveNote:SetWidth(260)
   end
   self.nativeSaveNote:SetText(WXL_RetailSelectionCanSave() and "" or "Preview only: save support unavailable")
+  local customize = root and root.GenderFrame and root.GenderFrame.CustomizationButton
+  if not customize then return end
   if not self.nativeFormButton then
-   local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-   b:SetWidth(180); b:SetHeight(22); b:SetPoint("BOTTOM", frame, "BOTTOM", 0, 22)
-   b:SetText("Switch appearance form")
+   local b = CreateFrame("Button", nil, root)
+   b:SetWidth(customize:GetWidth()); b:SetHeight(customize:GetHeight())
+   -- Match the mounted retail control's round artwork, not a stock panel button.
+   for _,state in ipairs({"Normal","Pushed","Highlight","Disabled"}) do
+    local getter=customize["Get"..state.."Texture"]
+    local texture=getter and getter(customize)
+    if texture and texture:GetTexture() then b["Set"..state.."Texture"](b,texture:GetTexture()) end
+   end
+   local label=b:CreateFontString(nil,"OVERLAY","GameFontNormalSmall")
+   label:SetPoint("TOP",b,"BOTTOM",0,-2);label:SetText("Switch Form")
+   b:SetFrameStrata(customize:GetFrameStrata())
    b:SetScript("OnClick", function()
     if WXL_ShowAlternateAppearance(not WXL_IsAlternateAppearance()) then
      owner:HidePalette(); owner.generation = nil; owner:RefreshRows()
@@ -1733,7 +1743,16 @@ do
    end)
    self.nativeFormButton = b
   end
-  if WXL_HasAlternateAppearance() then self.nativeFormButton:Show() else self.nativeFormButton:Hide() end
+  self.nativeFormButton:ClearAllPoints()
+  self.nativeFormButton:SetPoint("TOP",customize,"BOTTOM",0,-10)
+  if root:IsShown() and not frame.show and WXL_HasAlternateAppearance() then self.nativeFormButton:Show() else self.nativeFormButton:Hide() end
+ end
+ -- Native ownership switches the actual central preview. Retire the old
+ -- secondary-model panel/button instead of offering two incompatible controls.
+ function owner:RefreshDualFormPreview(force)
+  if self.dualFormButton then self.dualFormButton:Hide() end
+  self:HideDualFormPreview(false)
+  self:RefreshNativeOwnership()
  end
 end
 )lua";

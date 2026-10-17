@@ -136,7 +136,7 @@ void UpdateCreation() noexcept {
         if(!alternateRace)return;
         if(owner){
             SynchronizeEquipment(*owner);
-            owner->alternate.value->RenderPrep(1);
+            owner->alternate.value->RenderPrep(0);
             return;
         }
         if(!AppearanceReady(*primary)||RetailRecipeRace(*primary)!=RetailRaceId(preferences.m_raceID)||!Background())return;
@@ -180,7 +180,9 @@ void UpdateCreation() noexcept {
         // use only a mounted default matching the alternate's exact model.
         SynchronizeEquipment(*next);
         next->alternate.value->RenderPrep(1);
-        if(!AppearanceReady(*next->alternate.value)||RetailRecipeRace(*next->alternate.value)!=alternateRace)return;
+        // Retain a valid alternate while its bounded asynchronous appearance queue
+        // completes; a cold first pass is not a terminal owner-construction failure.
+        if(RetailRecipeRace(*next->alternate.value)!=alternateRace)return;
         next->alternate.value->m_data.m_model->SetAnimating(0);
         owner=std::move(next);
         SetFacing(CCharacterCreation::m_charFacing);

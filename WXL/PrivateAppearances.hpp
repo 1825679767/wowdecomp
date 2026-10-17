@@ -12,6 +12,7 @@ struct Option {uint32_t id,count,defaultChoice;const char* name;};
 struct Description {uint32_t id=0;std::string path;std::vector<Option> options;};
 void Register();
 bool Enabled() noexcept;
+const char* ActorPath(uint32_t race,uint32_t sex,const char* nativePath) noexcept;
 // Only explicitly ported native private profiles have an identity.
 uint32_t Identity(uint32_t race,uint32_t sex) noexcept;
 bool Describe(uint32_t race,uint32_t sex,const char* mountedNativePath,Description&) noexcept;
