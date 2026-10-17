@@ -5009,6 +5009,11 @@ void CCharacterComponent::ProcessFinishedRequest() {
     this->m_dirtySections = 0;
     this->DestroyRenderTextures();
     CCharacterComponent::s_bInRenderPrep = 0;
+    // The legacy worker owned this component until m_request was cleared.
+    // Finish the modern pass now, before Update removes it from the queue.
+    // Otherwise a cold-loaded race keeps the classic atlas indefinitely.
+    wxl::native::ApplyAppearance(*this);
+    if (wxl::native::AppearanceChildrenPending(*this) && !m_link.m_next) s_queue.LinkToTail(this);
 }
 
 // VERIFY: f8ef570f auto
@@ -5185,6 +5190,10 @@ void CCharacterComponent::RenderPrepSections() {
     this->DestroyRenderTextures();
     this->m_link.Unlink();
     CCharacterComponent::s_bInRenderPrep = 0;
+    // Synchronous legacy composition has the same publication boundary as
+    // ProcessFinishedRequest. Publish the retail atlas/whole slots last.
+    wxl::native::ApplyAppearance(*this);
+    if (wxl::native::AppearanceChildrenPending(*this) && !m_link.m_next) s_queue.LinkToTail(this);
 }
 
 // VERIFY: e78118c6 manual
