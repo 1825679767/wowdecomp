@@ -4979,7 +4979,7 @@ void CGUnit_C::OnRightClick() {
                 g_spellDB.GetRecord(CGSpellBook::GetSkinningSpell(this), &spell);
 
                 for (uint32_t i = 0; i < 3; i++) {
-                    if (spell.m_effect[i] == 95) {
+                    if (spell.m_effect[i] == SPELL_EFFECT_SKINNING) {
                         Spell_C_GetMinMaxPoints(&spell, i, &minPoints, &maxPoints, 0, 0, 0, 0);
                         break;
                     }
@@ -8532,7 +8532,7 @@ SummonPropertiesRec* CGUnit_C::GetSummonProperties() const {
 
     if (g_spellDB.GetRecord(this->m_unit->m_unitCreatedBySpell, &spell)) {
         for (int32_t i = 0; i < 3; i++) {
-            if (spell.m_effect[i] == 28) {
+            if (spell.m_effect[i] == SPELL_EFFECT_SUMMON) {
                 return g_summonPropertiesDB.GetRecord(spell.m_effectMiscValueB[i]);
             }
         }
@@ -15755,15 +15755,15 @@ bool CGUnit_C::HasDispellableAura(int32_t dispelType, int32_t harmful, bool mech
         if (charmed) {
             bool charm = false;
 
-            if ((spell.m_effect[0] == 6 || spell.m_effect[0] == 177 || spell.m_effect[0] == 2) && (this->m_auras[i].m_flags & 0x1)) {
+            if ((spell.m_effectAura[0] == SPELL_AURA_MOD_CHARM || spell.m_effectAura[0] == SPELL_AURA_AOE_CHARM || spell.m_effectAura[0] == SPELL_AURA_MOD_POSSESS) && (this->m_auras[i].m_flags & 0x1)) {
                 charm = true;
             }
 
-            if ((spell.m_effect[1] == 6 || spell.m_effect[1] == 177 || spell.m_effect[1] == 2) && (this->m_auras[i].m_flags & 0x2)) {
+            if ((spell.m_effectAura[1] == SPELL_AURA_MOD_CHARM || spell.m_effectAura[1] == SPELL_AURA_AOE_CHARM || spell.m_effectAura[1] == SPELL_AURA_MOD_POSSESS) && (this->m_auras[i].m_flags & 0x2)) {
                 charm = true;
             }
 
-            if ((spell.m_effect[2] == 6 || spell.m_effect[2] == 177 || spell.m_effect[2] == 2) && (this->m_auras[i].m_flags & 0x4)) {
+            if ((spell.m_effectAura[2] == SPELL_AURA_MOD_CHARM || spell.m_effectAura[2] == SPELL_AURA_AOE_CHARM || spell.m_effectAura[2] == SPELL_AURA_MOD_POSSESS) && (this->m_auras[i].m_flags & 0x4)) {
                 charm = true;
             }
 
@@ -15892,7 +15892,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     for (uint32_t i = 0; i < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); i++) {
         int32_t effect = spell->m_effect[i];
 
-        if (effect == 36) {
+        if (effect == SPELL_EFFECT_LEARN_SPELL) {
             int32_t learn = spell->m_effectTriggerSpell[i];
 
             if (!learn) {
@@ -15922,7 +15922,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
             }
         }
 
-        if (effect == 56 || effect == 55 || spell->m_effectAura[i] == SPELL_AURA_MOD_CHARM || spell->m_effectAura[i] == SPELL_AURA_MOD_POSSESS) {
+        if (effect == SPELL_EFFECT_SUMMON_PET || effect == SPELL_EFFECT_TAMECREATURE || spell->m_effectAura[i] == SPELL_AURA_MOD_CHARM || spell->m_effectAura[i] == SPELL_AURA_MOD_POSSESS) {
             const WOWGUID* controlled = &this->m_unit->m_unitFieldCharm;
 
             if (!*controlled) {

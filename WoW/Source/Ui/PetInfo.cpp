@@ -841,7 +841,7 @@ void CGPetInfo::FindPossessedSpell() {
         }
 
         for (uint32_t j = 0; j < 3; j++) {
-            if (spell.m_effect[j] != 28) {
+            if (spell.m_effect[j] != SPELL_EFFECT_SUMMON) {
                 continue;
             }
 
