@@ -219,7 +219,6 @@ int32_t STORMAPI SFile::OpenArchive(const char* path, int32_t priority, uint32_t
 // OFFSET: 0x00421A10
 int32_t STORMAPI SFile::OpenPathAsArchive(SArchive* archive, const char* path, int32_t priority, uint32_t flags, SArchive** result) {
     *result = new (0u, __FILE__, __LINE__) SArchive;
-    (*result)->m_type = SARCHIVE_MPQ;
     (*result)->m_archive = nullptr;
 
     System_SFile::ARCHIVEREC* handle;
