@@ -4,6 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 
+enum DYNAMIC_OBJECT_TYPE : uint8_t {
+    // DYNAMIC_OBJECT_PORTAL = 0,
+    DYNAMIC_OBJECT_AREA_SPELL = 1,
+    DYNAMIC_OBJECT_FARSIGHT_FOCUS = 2,
+};
+
 enum VIRTUAL_MONSTER_SLOT : uint32_t {
     VIRTUAL_MONSTER_SLOT_MAINHAND = 0,
     VIRTUAL_MONSTER_SLOT_OFFHAND = 1,
