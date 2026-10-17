@@ -149,6 +149,7 @@ struct SkinnedChild {
 
 struct AppearanceAssets {
     CM2Model* model = nullptr; // identity only; component owns the model
+    uint32_t chrModel = 0;
     std::vector<uint32_t> signature;
     std::map<uint32_t,std::unique_ptr<Sheet>> sheets;
     std::map<uint32_t,CTexture*> original;
@@ -166,6 +167,7 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
     const auto& prefs = component.m_data.m_preferences;
     const uint32_t race = RetailRecipeRace(component);
     const auto modelId = recipe::ChrModelForRace(race, prefs.m_sexID);
+    output.chrModel = modelId;
     const auto optionCount = recipe::OptionCount(modelId);
     if (!modelId || !optionCount || optionCount > 256) return false;
     const uint32_t layout = recipe::LayoutForModel(modelId);
@@ -323,10 +325,20 @@ void Bind(CCharacterComponent& component, AppearanceAssets& state) {
     // Retain native equipment choices below 2001, except recipe-owned IDs.
     // Modern groups without customization ownership get one authored variant.
     atlas::SelectGeosets(ids,shown,state.ownedGeosets,state.selectedGeosets);
+    // The donor's dragon None row is sentinel 1200. Native tabard defaults
+    // can otherwise expose unselected panels sampling an unbound clothing slot.
+    if (state.chrModel == 89)
+        for (uint32_t i = 0; i < sections.m_count; ++i)
+            if (ids[i] >= 1200 && ids[i] <= 1299) shown[i] = 0;
     // A selected element may survive conditional recipe resolution even when
     // the all-choice union did not include it. Donor selections still win.
     for (uint32_t i = 0; i < sections.m_count; ++i)
         if (ids[i] && std::find(state.selectedGeosets.begin(),state.selectedGeosets.end(),ids[i]) != state.selectedGeosets.end()) shown[i] = 1;
+    // Current WXL explicitly owns DK shell 1701 after recipe selection.
+    // Legacy GeosRenderPrep instead selects 1703 for a DK. Use this actor's
+    // class, including selection/world actors, rather than a global Glue value.
+    for (uint32_t i = 0; i < sections.m_count; ++i)
+        if (ids[i] == 1701) shown[i] = component.m_data.m_preferences.m_classId == 6 ? 1u : 0u;
     atlas::SelectGeosetGroup(ids,shown,state.selectedGeosets,1,99);
     // Donor HeadSwap policy: absent a chosen head, use the most complete
     // authored section. Vertex count is available in the native SKIN schema.

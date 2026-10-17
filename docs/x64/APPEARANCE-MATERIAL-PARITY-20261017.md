@@ -23,6 +23,11 @@ dirty WXL tree, not merely its HEAD or an old exported DLL.
 - Recipe composition requires the actual loaded model path to match its DB2
   identity; it no longer depends on having run an in-process MD21 conversion.
   Preconverted models receive their recipe-owned eyes/body/details too.
+- Restore the donor's explicit DK eye shell 1701 after recipe visibility,
+  using the owning component's class. The legacy path chose 1703 instead.
+  Retain ordinary selectable 1702..1705 variants. Also retain the exact
+  ChrModel 89 dragon tabard None rule, clearing unchosen 1200-group panels
+  before restoring explicitly selected recipe geometry.
 
 Private appearances, NPC ownership, server save validation, race mapping,
 source-held model lifetime and DX11 renderer behavior are retained. No archive
