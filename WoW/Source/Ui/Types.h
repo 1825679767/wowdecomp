@@ -5,6 +5,13 @@
 #include <cstdint>
 #include "Engine/Source/BLPFile/Types.h"
 
+enum ERROR_TEXT_PLACEMENT : int32_t {
+    ERRORTEXT_CHAT = 0,
+    ERRORTEXT_UIINFO = 1,
+    ERRORTEXT_UIERROR = 2,
+    ERRORTEXT_CONSOLE = 3,
+};
+
 enum UNIT_MIRROR_TIMER : int32_t {
     UNIT_MIRROR_TIMER_EXHAUSTION = 0,
     UNIT_MIRROR_TIMER_BREATH = 1,
