@@ -2567,7 +2567,7 @@ void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
         CGGameUI::m_gameTooltip->FadeOut();
 
         if (object) {
-            object->HideHighlightType(1);
+            object->HideHighlightType(HT_MOUSEOVER);
         }
     }
 
@@ -2579,7 +2579,7 @@ void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
     }
 
     if (CGGameUI::m_visible || (g_unitHighlightsCVar && g_unitHighlightsCVar->m_intValue)) {
-        object->ShowHighlightType(1);
+        object->ShowHighlightType(HT_MOUSEOVER);
     }
 
     switch (static_cast<uint32_t>(object->m_obj->m_type)) {
@@ -2684,7 +2684,7 @@ void CGGameUI::ClearTarget(WOWGUID guid, int32_t a2) {
         CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
 
         if (object) {
-            object->HideHighlightType(0);
+            object->HideHighlightType(HT_OBJSELECTION);
 
             if (object->m_obj->m_type & TYPEMASK_UNIT) {
                 CGUnit_C* unit = static_cast<CGUnit_C*>(object);
@@ -2806,7 +2806,7 @@ void CGGameUI::Target(WOWGUID guid) {
         }
 
         if (CGGameUI::m_visible || (g_unitHighlightsCVar && g_unitHighlightsCVar->m_intValue)) {
-            object->ShowHighlightType(0);
+            object->ShowHighlightType(HT_OBJSELECTION);
         }
 
         if (object->m_obj->m_type & TYPEMASK_UNIT) {
@@ -3972,9 +3972,9 @@ void CGGameUI::UpdateUnitHighlights() {
 
         if (object) {
             if (show) {
-                object->ShowHighlightType(1);
+                object->ShowHighlightType(HT_MOUSEOVER);
             } else {
-                object->HideHighlightType(1);
+                object->HideHighlightType(HT_MOUSEOVER);
             }
         }
     }
@@ -3984,9 +3984,9 @@ void CGGameUI::UpdateUnitHighlights() {
 
         if (object) {
             if (show) {
-                object->ShowHighlightType(0);
+                object->ShowHighlightType(HT_OBJSELECTION);
             } else {
-                object->HideHighlightType(0);
+                object->HideHighlightType(HT_OBJSELECTION);
             }
         }
     }

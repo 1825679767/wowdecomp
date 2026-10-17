@@ -974,7 +974,7 @@ int32_t CGObject_C::GetQuestGiverCursor(int32_t highlighted) {
 
 // VERIFY: 02ef1834 auto
 // OFFSET: 0x00743BC0
-void CGObject_C::HideHighlightType(int32_t type) {
+void CGObject_C::HideHighlightType(HIGHLIGHTTYPE type) {
     this->m_modelFlags &= ~(1 << (type + 24));
 
     if (s_highlightedObjectGuid == this->m_obj->m_guid) {
@@ -1214,7 +1214,7 @@ void CGObject_C::SetTypeID(OBJECT_TYPE_ID typeId) {
 
 // VERIFY: 18198d8d auto
 // OFFSET: 0x00743C70
-void CGObject_C::ShowHighlightType(int32_t type) {
+void CGObject_C::ShowHighlightType(HIGHLIGHTTYPE type) {
     this->m_modelFlags |= 1 << (type + 24);
 
     if (this->IsHighlightSuppressed()) {

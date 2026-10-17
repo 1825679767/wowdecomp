@@ -4,6 +4,11 @@
 #include <cstddef>
 #include <cstdint>
 
+enum HIGHLIGHTTYPE : int32_t {
+    HT_OBJSELECTION = 0,
+    HT_MOUSEOVER = 1,
+};
+
 enum UNITSOUNDTYPE : uint32_t {
     UNITSOUNDTYPE_EXERTION = 0,
     UNITSOUNDTYPE_EXERTIONCRITICAL = 1,
