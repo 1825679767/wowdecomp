@@ -4,6 +4,15 @@
 #include <cstddef>
 #include <cstdint>
 
+enum TALKANIMATION : int32_t {
+    TALKANIM_TALK = 0,
+    TALKANIM_QUESTION = 1,
+    TALKANIM_EXCLAMATION = 2,
+    TALKANIM_SHOUT = 3,
+    TALKANIM_LAUGH = 4,
+    TALKANIM_NUMTALKANIMS = 5,
+};
+
 enum HIGHLIGHTTYPE : int32_t {
     HT_OBJSELECTION = 0,
     HT_MOUSEOVER = 1,

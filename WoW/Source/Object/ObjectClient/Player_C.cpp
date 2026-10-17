@@ -6523,13 +6523,13 @@ void CGPlayer_C::HandleOnRightClick(CGUnit_C* unit, bool autoInteract) {
 
     if (unit->m_unit->m_unitNpcFlags & 0x1) {
         CGPlayer_C::TalkToGossip(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
         return;
     }
 
     if (CGUnit_C::UnitCanGossip(unit)) {
         CGPlayer_C::TalkToQuestUnit(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
         return;
     }
 
@@ -6537,46 +6537,46 @@ void CGPlayer_C::HandleOnRightClick(CGUnit_C* unit, bool autoInteract) {
 
     if (npcFlags & 0x2000) {
         CGPlayer_C::QueryTaxiNodes(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x80) {
         CGPlayer_C::ShopFromMerchant(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x10) {
         CGPlayer_C::TalkToTrainer(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x4000) {
         this->TalkToSpiritHealer(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x8000) {
         this->TalkToSpiritGuide(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x10000) {
         this->TalkToBinder(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x20000) {
         CGPlayer_C::TalkToBanker(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (unit->IsGuildMaster()) {
         CGPlayer_C::TalkToPetitionVendor(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x40000) {
         CGPlayer_C::TalkToPetitionVendor(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x80000) {
         this->TalkToTabardVendor(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x100000) {
         CGPlayer_C::TalkToBattleMaster(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x200000) {
         CGPlayer_C::TalkToAuctioneer(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x400000) {
         CGPlayer_C::TalkToStableMaster(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (npcFlags & 0x800000) {
         CGPlayer_C::TalkToGuildBanker(guid);
-        this->RequestTalkEmote(0);
+        this->RequestTalkEmote(TALKANIM_TALK);
     } else if (unit->IsInPartyOrRaid()) {
         CGPlayer_C::TalkToSpellClick(guid);
     } else if (unit->CanBeSpellClickedByLocalPlayer(this)) {

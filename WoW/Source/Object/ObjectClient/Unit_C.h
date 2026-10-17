@@ -783,7 +783,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void DoPowerRegen(POWER_TYPE powerType, uint32_t elapsed);
     void DoPowerRegen(uint32_t elapsed);
     char* GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitle, int32_t* lines);
-    void RequestTalkEmote(int32_t index);
+    void RequestTalkEmote(TALKANIMATION index);
     void ChatBubbleShow(int32_t type, const char* text);
     void ChatBubbleRemove();
     void PlayTextEmoteSound(uint32_t emote, uint32_t emoteNum);

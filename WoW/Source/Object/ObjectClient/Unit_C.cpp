@@ -178,7 +178,7 @@ static WOWGUID s_pendingAttackTarget;
 int32_t g_environmentalDamageVisualKits[6];
 
 // STATIC: 0x00CA1224
-static EmotesRec* s_talkEmotes[5];
+static EmotesRec* s_talkEmotes[TALKANIM_NUMTALKANIMS];
 
 // STATIC: 0x00CA1244
 static UnitThreatHeap* s_unitThreatPool;
@@ -5045,15 +5045,15 @@ static void CacheEmoteRecords() {
         EmotesRec* rec = index >= 0 && index < g_emotesDB.m_numRecords ? &g_emotesDB.m_records[index] : nullptr;
 
         if (rec->m_emoteFlags & 0x8) {
-            s_talkEmotes[0] = rec;
+            s_talkEmotes[TALKANIM_TALK] = rec;
         } else if (rec->m_emoteFlags & 0x10) {
-            s_talkEmotes[1] = rec;
+            s_talkEmotes[TALKANIM_QUESTION] = rec;
         } else if (rec->m_emoteFlags & 0x20) {
-            s_talkEmotes[2] = rec;
+            s_talkEmotes[TALKANIM_EXCLAMATION] = rec;
         } else if (rec->m_emoteFlags & 0x40) {
-            s_talkEmotes[3] = rec;
+            s_talkEmotes[TALKANIM_SHOUT] = rec;
         } else if (rec->m_emoteFlags & 0x100) {
-            s_talkEmotes[4] = rec;
+            s_talkEmotes[TALKANIM_LAUGH] = rec;
         }
     }
 }
@@ -15554,7 +15554,7 @@ void CGUnit_C::PlayEmoteAnimation(uint32_t emote) {
 
 // VERIFY: 3273a6b5 auto
 // OFFSET: 0x0073AD70
-void CGUnit_C::RequestTalkEmote(int32_t index) {
+void CGUnit_C::RequestTalkEmote(TALKANIMATION index) {
     if (!s_talkEmotes[index]) {
         return;
     }
