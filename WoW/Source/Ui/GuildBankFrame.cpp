@@ -611,7 +611,7 @@ void CGGuildBankInfo::QueryGuildBankText(uint8_t tab) {
 void CGGuildBankInfo::SetTabInfo(uint8_t tab, const char* name, const char* icon) {
     char scrubbed[64];
     ScrubString(name, scrubbed, 16, sizeof(scrubbed), 1);
-    int32_t error = ValidateGuildBankTabName(s_locale, scrubbed);
+    VALIDATE_NAME_RESULT error = ValidateGuildBankTabName(s_locale, scrubbed);
 
     if (error) {
         CGGameUI::DisplayNameError(error);

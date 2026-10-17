@@ -5236,7 +5236,7 @@ int32_t Packet_SMSG_GUILD_COMMAND_RESULT(void* param, NETMESSAGE msgId, uint32_t
         }
 
         case 6: {
-            CGGameUI::DisplayNameError(1);
+            CGGameUI::DisplayNameError(NAME_FAILURE);
             break;
         }
 
@@ -9238,7 +9238,7 @@ int32_t Packet_Group_9(void* param, NETMESSAGE msgId, uint32_t time, CDataStore*
         case SMSG_PET_NAME_INVALID: {
             uint32_t error;
             msg->Get(error);
-            CGGameUI::DisplayNameError(error);
+            CGGameUI::DisplayNameError(static_cast<VALIDATE_NAME_RESULT>(error));
             char name[80];
             msg->GetString(name, sizeof(name));
             uint8_t declined;

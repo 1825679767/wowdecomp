@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "WoW/Source/Game/Types.h"
 #include <windows.h>
 #include "Engine/Source/Event/Types.h"
 #include "Engine/Source/Os/OsFile.h"
@@ -200,7 +201,7 @@ class CGGameUI {
     static void StartCinematic(int32_t cinematic);
     static void SetInstanceLockTime(uint32_t time, uint32_t completedMask, uint32_t extending);
     static void SetInstanceBootTime(uint32_t time);
-    static void DisplayNameError(uint32_t error);
+    static void DisplayNameError(VALIDATE_NAME_RESULT error);
     static void UpdateActivePlayer();
     static void ClearClientControls();
     static void OpenPlayerSkinned(bool a1);

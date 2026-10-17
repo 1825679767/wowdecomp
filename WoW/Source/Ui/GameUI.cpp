@@ -5838,53 +5838,53 @@ void CGGameUI::SetCursorItem(WOWGUID item, WOWGUID container, uint32_t slot, int
 
 // VERIFY: 632849ec manual
 // OFFSET: 0x005218C0
-void CGGameUI::DisplayNameError(uint32_t error) {
+void CGGameUI::DisplayNameError(VALIDATE_NAME_RESULT error) {
     switch (error) {
-        case 2:
+        case NAME_NO_NAME:
             CGGameUI::DisplayError(ERR_NAME_NO_NAME);
             break;
 
-        case 3:
+        case NAME_TOO_SHORT:
             CGGameUI::DisplayError(ERR_NAME_TOO_SHORT);
             break;
 
-        case 4:
+        case NAME_TOO_LONG:
             CGGameUI::DisplayError(ERR_NAME_TOO_LONG);
             break;
 
-        case 6:
+        case NAME_MIXED_LANGUAGES:
             CGGameUI::DisplayError(ERR_NAME_MIXED_LANGUAGES);
             break;
 
-        case 7:
+        case NAME_PROFANE:
             CGGameUI::DisplayError(ERR_NAME_PROFANE);
             break;
 
-        case 8:
+        case NAME_RESERVED:
             CGGameUI::DisplayError(ERR_NAME_RESERVED);
             break;
 
-        case 11:
+        case NAME_THREE_CONSECUTIVE:
             CGGameUI::DisplayError(ERR_NAME_THREE_CONSECUTIVE);
             break;
 
-        case 12:
+        case NAME_INVALID_SPACE:
             CGGameUI::DisplayError(ERR_NAME_INVALID_SPACE);
             break;
 
-        case 13:
+        case NAME_CONSECUTIVE_SPACES:
             CGGameUI::DisplayError(ERR_NAME_CONSECUTIVE_SPACES);
             break;
 
-        case 14:
+        case NAME_RUSSIAN_CONSECUTIVE_SILENT_CHARACTERS:
             CGGameUI::DisplayError(ERR_NAME_RUSSIAN_CONSECUTIVE_SILENT_CHARACTERS);
             break;
 
-        case 15:
+        case NAME_RUSSIAN_SILENT_CHARACTER_AT_BEGINNING_OR_END:
             CGGameUI::DisplayError(ERR_NAME_RUSSIAN_SILENT_CHARACTER_AT_BEGINNING_OR_END);
             break;
 
-        case 16:
+        case NAME_DECLENSION_DOESNT_MATCH_BASE_NAME:
             CGGameUI::DisplayError(ERR_NAME_DECLENSION_DOESNT_MATCH_BASE_NAME);
             break;
 
