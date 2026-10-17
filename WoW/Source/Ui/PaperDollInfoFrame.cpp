@@ -355,7 +355,7 @@ void CGCharacterInfo::PickupInventoryItem(int32_t slot) {
             return;
         }
 
-        if (virtualId && CGGameUI::m_cursorItemType == 9) {
+        if (virtualId && CGGameUI::m_cursorItemType == UICURSOR_AMMO) {
             CDataStore msg;
             msg.Put(static_cast<uint32_t>(CMSG_SET_AMMO));
             msg.Put(static_cast<uint32_t>(virtualId));
@@ -376,7 +376,7 @@ void CGCharacterInfo::PickupInventoryItem(int32_t slot) {
         ItemStats_C* stats = g_itemDBCache.GetRecord(ammo, none, nullptr, nullptr, false);
 
         if (stats) {
-            CGGameUI::SetCursorVirtualItem(ammo, stats->m_displayId, 0, 9, 0);
+            CGGameUI::SetCursorVirtualItem(ammo, stats->m_displayId, 0, UICURSOR_AMMO, 0);
         }
 
         CDataStore msg;
@@ -418,7 +418,7 @@ void CGCharacterInfo::PickupInventoryItem(int32_t slot) {
     }
 
     if (virtualId) {
-        if (CGGameUI::m_cursorItemType == 5 && CGMerchantInfo::m_merchant) {
+        if (CGGameUI::m_cursorItemType == UICURSOR_MERCHANT && CGMerchantInfo::m_merchant) {
             MerchantItem* merchantItem = CGMerchantInfo::GetItem(virtualSlot);
 
             if (merchantItem) {
@@ -749,7 +749,7 @@ int32_t CGCharacterInfo::PutItemInBackpack(uint32_t slot) {
     }
 
     if (!cursorItem) {
-        if (CGGameUI::m_cursorItemType == 5 && CGMerchantInfo::m_merchant) {
+        if (CGGameUI::m_cursorItemType == UICURSOR_MERCHANT && CGMerchantInfo::m_merchant) {
             BuyItemInBag(CGMerchantInfo::m_merchant, CGMerchantInfo::GetItem(virtualSlot), 1, bag);
         }
 

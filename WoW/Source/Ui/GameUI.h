@@ -175,7 +175,7 @@ class CGGameUI {
     static int32_t OnTerrainClick(const CTerrainClickEvent& evt);
     static void Target(WOWGUID guid);
     static void DeleteCursorItem();
-    static int32_t m_cursorItemType;
+    static UICURSORTYPE m_cursorItemType;
     static int32_t m_threatWarningEnabled;
     static char m_lastErrorMessage[3000];
     static int32_t m_cursorEquipmentSet;
@@ -313,7 +313,7 @@ class CGGameUI {
     static WOWGUID ClosestObjectMatch(const char* name, uint32_t typeMask, int32_t targetType, int32_t exact, float maxDistance, int32_t ignoreHostileTotems);
     static bool CanInspect(CGUnit_C* unit);
     static void SetCursorMoney(uint32_t amount);
-    static void SetCursorMoney(uint32_t amount, int32_t type, int32_t event);
+    static void SetCursorMoney(uint32_t amount, UICURSORTYPE type, int32_t event);
     static int32_t VirtualItemIsLocked(int32_t id, uint32_t virtualSlot, int32_t a3);
     static void LockVirtualItem(int32_t id, uint32_t virtualSlot, int32_t a3);
     static void TargetTradeItem();
@@ -401,13 +401,13 @@ class CGGameUI {
     static void GetCursorVirtualItem(int32_t& id, int32_t& slot);
     static int32_t GetVirtualItemCount(int32_t id, uint32_t virtualSlot, int32_t a3);
     static void UnlockVirtualItem(int32_t id, uint32_t virtualSlot, int32_t a3);
-    static int32_t GetCursorVirtualItemOfType(int32_t type);
+    static int32_t GetCursorVirtualItemOfType(UICURSORTYPE type);
     static void DropCursorSpell();
     static void SetCursorSpell(int32_t spellId);
     static void SetCursorPetAction(const PetAction* action);
     static void SetCursorPet(int32_t index);
     static void SetCursorMacro(int32_t macroId);
-    static void SetCursorVirtualItem(int32_t id, int32_t displayId, int32_t slot, int32_t type, int32_t stackSplit);
+    static void SetCursorVirtualItem(int32_t id, int32_t displayId, int32_t slot, UICURSORTYPE type, int32_t stackSplit);
     static void SetCursorEquipmentSet(int32_t setId);
     static uint8_t s_inWorld;
     static const char* m_minimapZoneText;

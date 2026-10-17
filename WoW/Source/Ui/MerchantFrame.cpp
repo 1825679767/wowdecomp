@@ -75,7 +75,7 @@ void CGMerchantInfo::CloseMerchant() {
     CGMerchantInfo::m_numMerchantItems = 0;
     FrameScript_SignalEvent(SCRIPT_EVENT_MERCHANT_CLOSED, nullptr);
 
-    if (CGGameUI::m_cursorItemType == 5 && CGGameUI::GetCursorVirtualItem()) {
+    if (CGGameUI::m_cursorItemType == UICURSOR_MERCHANT && CGGameUI::GetCursorVirtualItem()) {
         CGGameUI::ClearCursor(1, 1);
     }
 

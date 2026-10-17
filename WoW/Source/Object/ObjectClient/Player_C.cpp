@@ -10158,7 +10158,7 @@ void CGPlayer_C::AutoEquipCursorItem(int32_t ignoreBind) {
         return;
     }
 
-    if (CGGameUI::m_cursorItemType == 9) {
+    if (CGGameUI::m_cursorItemType == UICURSOR_AMMO) {
         int32_t ammo = CGGameUI::GetCursorVirtualItem();
 
         if (ammo) {
