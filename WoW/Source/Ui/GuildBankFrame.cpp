@@ -768,7 +768,7 @@ int32_t Packet_SMSG_GUILD_BANK_LIST(void* param, NETMESSAGE msgId, uint32_t time
 
         msg->Get(reinterpret_cast<uint32_t&>(CGGuildBankInfo::m_tabSlots[tab].m_data[slotIndex].m_count));
         msg->Get(CGGuildBankInfo::m_tabSlots[tab].m_data[slotIndex].m_enchantId);
-        msg->Get(CGGuildBankInfo::m_tabSlots[tab].m_data[slotIndex].m_spellCharges);
+        msg->Get(reinterpret_cast<uint8_t&>(CGGuildBankInfo::m_tabSlots[tab].m_data[slotIndex].m_spellCharges));
         uint8_t numEnchants;
         msg->Get(numEnchants);
         slot = &CGGuildBankInfo::m_tabSlots[tab].m_data[slotIndex];
