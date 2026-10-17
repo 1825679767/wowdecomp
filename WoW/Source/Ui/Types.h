@@ -21,6 +21,9 @@ enum UICURSORTYPE : int32_t {
     UICURSOR_GUILDBANK_MONEY = 12,
     UICURSOR_EQUIPMENT_SET = 13,
     NUM_UICURSOR_TYPES = 14,
+
+    // Pet spells share the current spell payload; there is no separate current kind.
+    // UICURSOR_PET_SPELL = UICURSOR_SPELL,
 };
 
 enum UIErrors {
