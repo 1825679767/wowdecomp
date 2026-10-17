@@ -1,4 +1,5 @@
 #include "WXL/AppearanceSession.hpp"
+#include "WXL/RetailChoices.hpp"
 #include "CharacterSelection.h"
 #include <cstring>
 #include "Engine/Source/ConsoleBase/ConsoleVar.h"
@@ -445,6 +446,7 @@ void CCharacterSelection::ShowCharacter() {
         }
 
         CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component = CCharacterComponent::AllocComponent();
+        if (!CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component) return;
 
         CHARACTER_INFO& info = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_characterInfo;
         data.m_preferences.m_raceID = info.m_raceID;
@@ -455,10 +457,16 @@ void CCharacterSelection::ShowCharacter() {
         data.m_preferences.m_hairStyleId = info.m_hairStyleID;
         data.m_preferences.m_hairColorId = info.m_hairColorID;
         data.m_preferences.m_facialHairId = info.m_facialHairStyleID;
-        data.m_model = CCharacterSelection::m_modelFrame->GetScene()->CreateModel(playerRec->m_modelName, 0);
+        const char* actorPath = wxl::native::RetailActorModelPath(info.m_raceID,info.m_sexID,playerRec->m_modelName);
+        data.m_model = CCharacterSelection::m_modelFrame->GetScene()->CreateModel(actorPath, 0);
         data.m_flags |= 0x2;
 
-        CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->Init(&data, nullptr);
+        auto*& component = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component;
+        if (!data.m_model || !component->Init(&data, nullptr)) {
+            CCharacterComponent::FreeComponent(component);
+            component = nullptr;
+            return;
+        }
 
         CM2Model* characterModel = CCharacterSelection::s_characterList[CCharacterSelection::s_selectionIndex].m_component->m_data.m_model;
         characterModel->m_lightingCallback = &CCharacterSelection::GenericLightingCallback;

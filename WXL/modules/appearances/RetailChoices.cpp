@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <cmath>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -69,7 +70,10 @@ const Authority* Get(uint32_t race,uint32_t sex,uint32_t family=0){
  const char* path=valid?ResolveModel(recipe.modelFileDataId):nullptr;
  auto* raceRec=g_chrRacesDB.GetRecord(race);auto* display=raceRec?g_creatureDisplayInfoDB.GetRecord(sex?raceRec->m_femaleDisplayID:raceRec->m_maleDisplayID):nullptr;
  auto* model=display?g_creatureModelDataDB.GetRecord(display->m_modelID):nullptr;
- valid=valid&&path&&raceRec&&(family==primary?(model&&Key(path)==Key(model->m_modelName)):family==alternate);a->path=Key(path);
+ // ChrRaces' old display can still name the pre-retail actor (notably slots
+ // 24/27). The mounted recipe owns the new actor; callers select this path
+ // before construction. For() still requires the actual instance to match it.
+ valid=valid&&path&&raceRec&&(family==primary||family==alternate);a->path=Key(path);
  std::vector<uint8_t> source;
  valid=valid&&ReadAsset(path,source)&&source.size()>=8&&!std::memcmp(source.data(),"MD21",4);
  const auto count=valid?db::OptionCount(a->chrModel):0;valid=valid&&count&&count<=256;
@@ -101,7 +105,12 @@ const Authority* Get(uint32_t race,uint32_t sex,uint32_t family=0){
  // Select helmet suffix/visibility policy only from mounted native defaults
  // whose actual model path equals this recipe. Multiple native race records
  // are ambiguous for alternate visibility masks; body identity never inherits the primary wire race suffix.
- if(valid&&family==primary)a->equipmentRace=race;
+ if(valid&&family==primary){
+  a->equipmentRace=race;
+  // These two wire slots still carry their original Illidari DBC displays.
+  // Use the same explicit allied-body fallback as EquipmentAttachments.
+  if(!model||Key(model->m_modelName)!=a->path){if(race==24)a->equipmentRace=3;else if(race==27)a->equipmentRace=4;}
+ }
  else if(valid){
   std::string prefix;bool ambiguous=false;
   for(int32_t i=0;i<g_chrRacesDB.m_numRecords;++i){
@@ -132,6 +141,11 @@ void Dirty(CCharacterComponent& c){c.m_dirtySections=0xffffffffu;c.m_flags|=5u;}
 }
 struct RetailChoiceState {uint32_t model{},revision=1;std::map<uint32_t,uint32_t> overrides;};
 uint32_t RetailRaceId(uint32_t race) noexcept {static constexpr uint32_t ids[]={0,1,2,3,4,5,6,7,8,35,10,11,22,27,17,29,0,76,31,0,30,9,26,0,85,13,25,86,0,34,75,32};return race<std::size(ids)?ids[race]:0;}
+const char* RetailActorModelPath(uint32_t race,uint32_t sex,const char* nativePath) noexcept {try{
+ if(private_appearances::Identity(race,sex))return nativePath;
+ const auto* authority=Get(race,sex);
+ return authority&&!authority->path.empty()?authority->path.c_str():nativePath;
+ }catch(...){return nativePath;}}
 uint32_t RetailEquipmentRace(const CCharacterComponent& c) noexcept {try{auto* a=For(c.m_data.m_preferences,c.m_data.m_model);return a?a->equipmentRace:0;}catch(...){return 0;}}
 uint32_t RetailChoiceCount(uint32_t race,uint32_t sex,RetailAxis axis) noexcept {try{auto* a=Get(race,sex);const auto i=uint32_t(axis);return a&&!a->privateProfile&&i<5?a->counts[i]:0;}catch(...){return 0;}}
 bool RetailChoicesReady(const CharacterPreferences& p,const CM2Model* model) noexcept {try{return For(p,model)!=nullptr;}catch(...){return false;}}
@@ -246,10 +260,11 @@ int LuaContext(lua_State* L){try{auto* c=Current();if(!c)return 0;const auto& p=
  for(auto n:{p.m_raceID,p.m_sexID,p.m_classId,p.m_skinID,p.m_faceId,p.m_hairStyleId,p.m_hairColorId,p.m_facialHairId,RetailChoiceRevision(*c)})key+=":"+std::to_string(n);
  lua_pushlstring(L,key.data(),key.size());return 1;}catch(...){return 0;}}
 int LuaSelection(lua_State* L){static thread_local std::vector<uint32_t> selected;auto* c=Current();if(!c||!CollectRetailChoices(*c,selected))return 0;lua_createtable(L,int(selected.size()),0);for(size_t i=0;i<selected.size();++i){lua_pushinteger(L,selected[i]);lua_rawseti(L,-2,int(i+1));}return 1;}
+#include "RetailChoiceDonorBridge.inl"
 }
 void UpdateRetailChoiceUi(){const auto now=OsGetAsyncTimeMs();if(now-uiLastTick<200)return;uiLastTick=now;creation_equipment::UpdateUi();
- if(!uiInstalled){FrameScript_Execute(RetailChoiceUi,"native-retail-choice-controls",nullptr);uiInstalled=true;}
- FrameScript_Execute("if WXLNativeRetailOptions then WXLNativeRetailOptions:Refresh() end","native-retail-choice-refresh",nullptr);}
+ if(!uiInstalled){FrameScript_Execute(RetailChoiceUi,"native-retail-choice-controls",nullptr);FrameScript_Execute(RetailChoiceDonorUi,"native-donor-customization-controls",nullptr);uiInstalled=true;}
+ FrameScript_Execute("if WXLNativeRetailOptions then WXLNativeRetailOptions:Refresh() end if WXLModernM2CustomizationBridge then WXLModernM2CustomizationBridge:RefreshNativeOwnership() end","native-retail-choice-refresh",nullptr);}
 void HideRetailChoiceUi(){FrameScript_Execute("if WXLNativeRetailOptions then WXLNativeRetailOptions:Hide() end","native-retail-choice-hide",nullptr);}
-void InitializeRetailChoiceLua(){creation_equipment::InitializeLua();barber_appearance::InitializeLua();alternate_appearances::InitializeLua();uiInstalled=false;uiLastTick=0;FrameScript_RegisterFunction("WXL_ResetRetailChoices",&LuaReset);FrameScript_RegisterFunction("WXL_RandomizeRetailChoices",&LuaRandomize);FrameScript_RegisterFunction("_WXL_M2_CUSTOMIZATION_RESET",&LuaReset);FrameScript_RegisterFunction("_WXL_M2_CUSTOMIZATION_RANDOMIZE",&LuaRandomize);FrameScript_RegisterFunction("WXL_GetRetailChoiceContext",&LuaContext);FrameScript_RegisterFunction("WXL_RetailSelectionCanSave",&LuaCanSave);FrameScript_RegisterFunction("WXL_GetRetailOptions",&LuaOptions);FrameScript_RegisterFunction("WXL_GetRetailChoices",&LuaChoices);FrameScript_RegisterFunction("WXL_SetRetailChoice",&LuaSelect);FrameScript_RegisterFunction("WXL_GetRetailSelection",&LuaSelection);}
+void InitializeRetailChoiceLua(){InitializeDonorLua();creation_equipment::InitializeLua();barber_appearance::InitializeLua();alternate_appearances::InitializeLua();uiInstalled=false;uiLastTick=0;FrameScript_RegisterFunction("WXL_ResetRetailChoices",&LuaReset);FrameScript_RegisterFunction("WXL_RandomizeRetailChoices",&LuaRandomize);FrameScript_RegisterFunction("_WXL_M2_CUSTOMIZATION_RESET",&LuaReset);FrameScript_RegisterFunction("_WXL_M2_CUSTOMIZATION_RANDOMIZE",&LuaRandomize);FrameScript_RegisterFunction("WXL_GetRetailChoiceContext",&LuaContext);FrameScript_RegisterFunction("WXL_RetailSelectionCanSave",&LuaCanSave);FrameScript_RegisterFunction("WXL_GetRetailOptions",&LuaOptions);FrameScript_RegisterFunction("WXL_GetRetailChoices",&LuaChoices);FrameScript_RegisterFunction("WXL_SetRetailChoice",&LuaSelect);FrameScript_RegisterFunction("WXL_GetRetailSelection",&LuaSelection);}
 }

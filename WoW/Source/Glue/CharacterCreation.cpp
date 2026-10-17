@@ -598,7 +598,9 @@ void CCharacterCreation::InitCharacterComponents(ComponentData* data, bool rando
     auto* previous = CCharacterCreation::m_character;
     auto* candidate = CCharacterComponent::AllocComponent();
     if (!candidate) return;
-    data->m_model = CCharacterCreation::m_charCustomizeFrame->GetScene()->CreateModel(modelRec->m_modelName, 0);
+    const char* actorPath = wxl::native::RetailActorModelPath(data->m_preferences.m_raceID,
+        data->m_preferences.m_sexID, modelRec->m_modelName);
+    data->m_model = CCharacterCreation::m_charCustomizeFrame->GetScene()->CreateModel(actorPath, 0);
     if (!data->m_model) { CCharacterComponent::FreeComponent(candidate); return; }
 
     CCharacterCreation::m_charCustomizeFrame->m_lightArray2[0].unk_01BC = 1;

@@ -1,5 +1,6 @@
 #include "WXL/Skyriding.hpp"
 #include "WXL/EquipmentAttachments.hpp"
+#include "WXL/RetailChoices.hpp"
 #include "Unit_C.h"
 #include "WXL/AppearanceSession.hpp"
 #include "WoW/Source/Ui/BarberShop.h"
@@ -7921,6 +7922,15 @@ int32_t CGUnit_C::GetModelFileName(const char** name) const {
 
     if (modelData) {
         *name = modelData->m_modelName;
+        // Only a player's actual primary race display follows the playable
+        // recipe. Creature displays, transformations and alternate forms keep
+        // their own native model authority.
+        if (this->m_obj && (this->m_obj->m_type & TYPEMASK_PLAYER) && this->m_unit && this->m_displayInfo) {
+            const uint32_t race = this->m_unit->m_unitFieldBytes0[0];
+            const uint32_t sex = this->m_unit->m_unitFieldBytes0[2];
+            if (sex < 2 && this->m_displayInfo->m_id == GetDisplayIdFromRaceAndGender(race,sex))
+                *name = wxl::native::RetailActorModelPath(race,sex,*name);
+        }
         return *name != nullptr;
     }
 

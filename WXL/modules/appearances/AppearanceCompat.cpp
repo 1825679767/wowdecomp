@@ -238,9 +238,18 @@ bool Build(CCharacterComponent& component, AppearanceAssets& output) {
     if (!painted) return false;
     // Native item priorities have already resolved the layers. Paint the same
     // handles into their retail rectangles instead of the global classic sheet.
-    for (uint32_t region = 0; region < NUM_COMPONENT_SECTIONS; ++region) {
+    for (uint32_t region = 0; region < 8; ++region) {
         const auto& nativeSection = component.m_section[region];
-        for (uint32_t priority = 0; priority < 7; ++priority) {
+        // Match native CreateRequestAU/AL/HA/TU/TL/LU/LL/FO. Cached handles
+        // can outlive a cleared priority bit; they are not active overlays.
+        const bool hidesPants = (component.m_flags & 0x20) != 0;
+        constexpr uint32_t lastLayer[] = {2,7,1,5,7,3,6,1};
+        uint32_t first = 0, last = lastLayer[region];
+        if ((region == 5 || region == 6) && hidesPants) {
+            first = 1; last = region == 5 ? 2 : 4;
+        }
+        for (uint32_t priority = first; priority < last; ++priority) {
+            if (!(nativeSection.m_layerMask & (1u << priority))) continue;
             void* handle = nativeSection.m_layerTex[priority];
             if (!handle) continue;
             TCTEXTUREINFO info{};
@@ -301,8 +310,44 @@ void Bind(CCharacterComponent& component, AppearanceAssets& state) {
     // The nested native geoset post-pass may have reapplied helmet visibility.
     // Restore that owned mask before the recipe publishes its own base choices.
     wxl::native::equipment_attachments::BeginGeometry(component);
-    for (uint16_t geoset : state.ownedGeosets) component.m_data.m_model->SetGeometryVisible(geoset,geoset,0);
-    for (uint16_t geoset : state.selectedGeosets) component.m_data.m_model->SetGeometryVisible(geoset,geoset,1);
+    auto* model = component.m_data.m_model;
+    const auto& sections = model->m_shared->m_skinData->m_skinSections;
+    std::vector<uint16_t> ids;
+    std::vector<uint32_t> shown;
+    ids.reserve(sections.m_count);
+    shown.reserve(sections.m_count);
+    for (uint32_t i = 0; i < sections.m_count; ++i) {
+        ids.push_back(sections[i].m_skinSectionId);
+        shown.push_back(model->m_skinSections[i]);
+    }
+    // Retain native equipment choices below 2001, except recipe-owned IDs.
+    // Modern groups without customization ownership get one authored variant.
+    atlas::SelectGeosets(ids,shown,state.ownedGeosets,state.selectedGeosets);
+    // A selected element may survive conditional recipe resolution even when
+    // the all-choice union did not include it. Donor selections still win.
+    for (uint32_t i = 0; i < sections.m_count; ++i)
+        if (ids[i] && std::find(state.selectedGeosets.begin(),state.selectedGeosets.end(),ids[i]) != state.selectedGeosets.end()) shown[i] = 1;
+    atlas::SelectGeosetGroup(ids,shown,state.selectedGeosets,1,99);
+    // Donor HeadSwap policy: absent a chosen head, use the most complete
+    // authored section. Vertex count is available in the native SKIN schema.
+    const bool choseHead = std::any_of(state.selectedGeosets.begin(),state.selectedGeosets.end(),
+        [](uint16_t id){ return id / 100 == 32; });
+    if (!choseHead) {
+        uint16_t head = 0;
+        uint32_t mostVertices = 0;
+        for (uint32_t i = 0; i < sections.m_count; ++i) {
+            if (ids[i] / 100 == 32 && sections[i].m_vertexCount > mostVertices) {
+                head = ids[i];
+                mostVertices = sections[i].m_vertexCount;
+            }
+        }
+        if (head) {
+            const std::array<uint16_t,1> chosenHead{head};
+            atlas::SelectGeosetGroup(ids,shown,chosenHead,3200,3299);
+        }
+    }
+    for (uint32_t i = 0; i < sections.m_count; ++i)
+        if (shown[i] != model->m_skinSections[i]) model->SetGeometryVisible(ids[i],ids[i],shown[i]);
     component.m_data.m_model->OptimizeVisibleGeometry();
     for (const auto& [type,sheet] : state.sheets) component.m_data.m_model->ReplaceTexture(type,sheet->texture);
     for (const auto& child : state.children)
