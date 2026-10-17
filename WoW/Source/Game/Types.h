@@ -24,6 +24,10 @@ enum VALIDATE_NAME_RESULT : int32_t {
     NAME_RUSSIAN_SILENT_CHARACTER_AT_BEGINNING_OR_END = 15,
     NAME_DECLENSION_DOESNT_MATCH_BASE_NAME = 16,
     NUM_NAME_RESULTS = 17,
+
+    // Unused 0.5.3-only names/values; do not use these as 3.3.5 result codes.
+    // NAME_STARTS_WITH_GRAVE = 3,
+    // NAME_TWO_GRAVES = 4,
 };
 
 struct LoadedWardenModule {
