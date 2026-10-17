@@ -244,7 +244,7 @@ class CGGameUI {
     static WOWGUID m_comboTarget;
     static uint16_t m_accountDataGeneration;
     static TotemInfo m_totems[4];
-    static MirrorTimerInfo m_mirrorTimerInfo[3];
+    static MirrorTimerInfo m_mirrorTimerInfo[NUM_UNIT_MIRROR_TIMERS];
     static MirrorTimerInfo* MirrorTimerGetInfo(uint32_t index);
     static uint32_t GetInstanceDifficulty();
 
@@ -459,7 +459,7 @@ class CTerrainClickEvent {
 };
 
 struct MirrorTimerInfo {
-    /* 0000 */ int32_t m_type;
+    /* 0000 */ UNIT_MIRROR_TIMER m_type;
     /* 0004 */ int32_t m_value;
     /* 0008 */ int32_t m_maxValue;
     /* 000C */ int32_t m_scale;
@@ -564,8 +564,8 @@ extern CVar* s_cvLfgSelectedRoles;
 extern CVar* s_cvLfdCollapsedHeaders;
 extern CVar* s_cvLfdSelectedDungeons;
 
-const char* MirrorTimerTypeToken(int32_t type);
-const char* GetMirrorTimerLabel(int32_t type, int32_t spellId);
+const char* MirrorTimerTypeToken(UNIT_MIRROR_TIMER type);
+const char* GetMirrorTimerLabel(UNIT_MIRROR_TIMER type, int32_t spellId);
 
 void BroadcastUIError(int32_t error, const char* name);
 

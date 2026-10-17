@@ -1160,7 +1160,7 @@ int32_t CGGameUI::unused_BD08CC;
 TotemInfo CGGameUI::m_totems[4];
 
 // STATIC: 0x00BD0B80
-MirrorTimerInfo CGGameUI::m_mirrorTimerInfo[3];
+MirrorTimerInfo CGGameUI::m_mirrorTimerInfo[NUM_UNIT_MIRROR_TIMERS];
 
 // STATIC: 0x00BD080C
 int32_t CGGameUI::m_areaID;
@@ -1955,9 +1955,9 @@ void CGGameUI::InitializeGame() {
         totem.m_icon = nullptr;
     }
 
-    for (int32_t i = 0; i < 3; i++) {
+    for (int32_t i = 0; i < NUM_UNIT_MIRROR_TIMERS; i++) {
         MirrorTimerInfo& timer = CGGameUI::m_mirrorTimerInfo[i];
-        timer.m_type = 3;
+        timer.m_type = UNIT_MIRROR_TIMER_INACTIVE;
         timer.m_startTime = 0;
         timer.m_spellId = 0;
         timer.m_paused = 0;
@@ -4222,15 +4222,15 @@ void CGGameUI::RegisterSavedVariable(const char* name, int32_t perCharacter) {
 
 // VERIFY: 4ea406ee auto
 // OFFSET: 0x00513E00
-const char* MirrorTimerTypeToken(int32_t type) {
+const char* MirrorTimerTypeToken(UNIT_MIRROR_TIMER type) {
     switch (type) {
-        case 0:
+        case UNIT_MIRROR_TIMER_EXHAUSTION:
             return "EXHAUSTION";
 
-        case 1:
+        case UNIT_MIRROR_TIMER_BREATH:
             return "BREATH";
 
-        case 2:
+        case UNIT_MIRROR_TIMER_FEIGNDEATH:
             return "FEIGNDEATH";
     }
 
@@ -4275,7 +4275,7 @@ void CGGameUI::TargetTradeItem() {
 
 // VERIFY: 4e87f51f manual
 // OFFSET: 0x005199A0
-const char* GetMirrorTimerLabel(int32_t type, int32_t spellId) {
+const char* GetMirrorTimerLabel(UNIT_MIRROR_TIMER type, int32_t spellId) {
     SpellRec spell;
 
     if (g_spellDB.GetRecord(spellId, &spell)) {
@@ -4391,17 +4391,17 @@ int32_t CGGameUI::OnMirrorTimerEvent(void* param, NETMESSAGE msgId, uint32_t tim
         msg->Get(paused);
         msg->Get(spellId);
 
-        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_START, "%s%d%d%d%d%s", MirrorTimerTypeToken(type), value, maxValue, scale, paused, GetMirrorTimerLabel(type, spellId));
+        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_START, "%s%d%d%d%d%s", MirrorTimerTypeToken(static_cast<UNIT_MIRROR_TIMER>(type)), value, maxValue, scale, paused, GetMirrorTimerLabel(static_cast<UNIT_MIRROR_TIMER>(type), spellId));
 
-        if (type == 0) {
+        if (type == UNIT_MIRROR_TIMER_EXHAUSTION) {
             CGTutorial::TriggerTutorial(26);
-        } else if (type == 1) {
+        } else if (type == UNIT_MIRROR_TIMER_BREATH) {
             CGTutorial::TriggerTutorial(28);
         }
 
-        if (type <= 2) {
+        if (type <= UNIT_MIRROR_TIMER_FEIGNDEATH) {
             MirrorTimerInfo* info = &CGGameUI::m_mirrorTimerInfo[type];
-            info->m_type = type;
+            info->m_type = static_cast<UNIT_MIRROR_TIMER>(type);
             info->m_value = value;
             info->m_maxValue = maxValue;
             info->m_scale = scale;
@@ -4418,18 +4418,18 @@ int32_t CGGameUI::OnMirrorTimerEvent(void* param, NETMESSAGE msgId, uint32_t tim
         uint8_t paused;
         msg->Get(type);
         msg->Get(paused);
-        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_PAUSE, "%s%d", MirrorTimerTypeToken(type), paused);
+        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_PAUSE, "%s%d", MirrorTimerTypeToken(static_cast<UNIT_MIRROR_TIMER>(type)), paused);
         return 1;
     }
 
     if (msgId == SMSG_STOP_MIRROR_TIMER) {
         uint32_t type;
         msg->Get(type);
-        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_STOP, "%s", MirrorTimerTypeToken(type));
+        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_STOP, "%s", MirrorTimerTypeToken(static_cast<UNIT_MIRROR_TIMER>(type)));
 
-        if (type <= 2) {
+        if (type <= UNIT_MIRROR_TIMER_FEIGNDEATH) {
             MirrorTimerInfo* info = &CGGameUI::m_mirrorTimerInfo[type];
-            info->m_type = 3;
+            info->m_type = UNIT_MIRROR_TIMER_INACTIVE;
             info->m_value = 0;
             info->m_maxValue = 0;
             info->m_scale = 0;
@@ -4635,20 +4635,20 @@ TotemInfo* CGGameUI::GetTotemInfo(WOWGUID guid) {
 // OFFSET: 0x00513E40
 int32_t CGGameUI::MirrorTimerToIndex(const char* timer) {
     if (!SStrCmpI(timer, "EXHAUSTION", STORM_MAX_STR)) {
-        return 0;
+        return UNIT_MIRROR_TIMER_EXHAUSTION;
     }
 
     if (!SStrCmpI(timer, "BREATH", STORM_MAX_STR)) {
-        return 1;
+        return UNIT_MIRROR_TIMER_BREATH;
     }
 
-    return (SStrCmpI(timer, "FEIGNDEATH", STORM_MAX_STR) != 0) + 2;
+    return (SStrCmpI(timer, "FEIGNDEATH", STORM_MAX_STR) != 0) + UNIT_MIRROR_TIMER_FEIGNDEATH;
 }
 
 // VERIFY: 61c73da2 manual
 // OFFSET: 0x00513F20
 MirrorTimerInfo* CGGameUI::MirrorTimerGetInfo(uint32_t index) {
-    if (index > 2) {
+    if (index > UNIT_MIRROR_TIMER_FEIGNDEATH) {
         return nullptr;
     }
 
@@ -7226,9 +7226,9 @@ void CGGameUI::ShutdownGame() {
     CGGameUI::m_minimapZoneText = nullptr;
     CGGameUI::s_threatMap.Clear();
 
-    for (int32_t i = 0; i < 3; i++) {
+    for (int32_t i = 0; i < NUM_UNIT_MIRROR_TIMERS; i++) {
         MirrorTimerInfo& timer = CGGameUI::m_mirrorTimerInfo[i];
-        timer.m_type = 3;
+        timer.m_type = UNIT_MIRROR_TIMER_INACTIVE;
         timer.m_startTime = 0;
         timer.m_spellId = 0;
         timer.m_paused = 0;
@@ -7813,10 +7813,10 @@ uint32_t CGGameUI::GetInstanceDifficulty() {
 // VERIFY: bf3170ba manual
 // OFFSET: 0x00513EA0
 void CGGameUI::CancelMirrorTimers() {
-    for (int32_t i = 0; i < 3; i++) {
-        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_STOP, "%s", MirrorTimerTypeToken(i));
+    for (int32_t i = 0; i < NUM_UNIT_MIRROR_TIMERS; i++) {
+        FrameScript_SignalEvent(SCRIPT_EVENT_MIRROR_TIMER_STOP, "%s", MirrorTimerTypeToken(static_cast<UNIT_MIRROR_TIMER>(i)));
         MirrorTimerInfo* info = &CGGameUI::m_mirrorTimerInfo[i];
-        info->m_type = 3;
+        info->m_type = UNIT_MIRROR_TIMER_INACTIVE;
         info->m_startTime = 0;
         info->m_spellId = 0;
         info->m_paused = 0;

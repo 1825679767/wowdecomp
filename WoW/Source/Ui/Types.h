@@ -5,6 +5,14 @@
 #include <cstdint>
 #include "Engine/Source/BLPFile/Types.h"
 
+enum UNIT_MIRROR_TIMER : int32_t {
+    UNIT_MIRROR_TIMER_EXHAUSTION = 0,
+    UNIT_MIRROR_TIMER_BREATH = 1,
+    UNIT_MIRROR_TIMER_FEIGNDEATH = 2,
+    NUM_UNIT_MIRROR_TIMERS = 3,
+    UNIT_MIRROR_TIMER_INACTIVE = 3,
+};
+
 enum LOOT_ACQUIRE : uint32_t {
     LOOT_ACQUIRE_FAILED = 0,
     LOOT_ACQUIRE_UNKNOWN_1 = 1,

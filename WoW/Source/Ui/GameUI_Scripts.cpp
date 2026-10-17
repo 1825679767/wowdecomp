@@ -2534,7 +2534,7 @@ static int32_t Script_GetMirrorTimerInfo(lua_State* L) {
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
 
-    if (index > 2) {
+    if (index > UNIT_MIRROR_TIMER_FEIGNDEATH) {
         luaL_error(L, "ERROR: Invalid timer (Ex: \"BREATH\"");
         return 0;
     }
@@ -4433,7 +4433,7 @@ static int32_t Script_GetMirrorTimerProgress(lua_State* L) {
 
     uint32_t index = CGGameUI::MirrorTimerToIndex(lua_tolstring(L, 1, nullptr));
 
-    if (index > 2) {
+    if (index > UNIT_MIRROR_TIMER_FEIGNDEATH) {
         luaL_error(L, "ERROR: Invalid timer (Ex: \"BREATH\"");
         return 0;
     }
