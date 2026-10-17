@@ -29,6 +29,8 @@
 const float CParticleEmitter2::VEL_UPDATE_TIME = 0.033333335f;
 const float CParticleEmitter2::MIN_ZSOURCE = 0.001f;
 
+static const float s_maxTimeStep = 0.1f;
+
 // STATIC: 0x00B2D530
 static int32_t s_particleRenderEnable = 1;
 
@@ -1040,14 +1042,14 @@ void CParticleEmitter2::UpdateXform(const C44Matrix& transform, const C3Vector& 
 void CParticleEmitter2::InternalUpdate(float deltaTime, int32_t child) {
     float time = 0.0f;
 
-    if (deltaTime < 0.0f || (time = deltaTime, deltaTime <= 0.1f)) {
+    if (deltaTime < 0.0f || (time = deltaTime, deltaTime <= s_maxTimeStep)) {
         this->m_burstOffset = this->m_followOffset;
         this->StepUpdate(time, child);
         return;
     }
 
     float steps = floor(time * 10.0f);
-    float remainder = deltaTime - steps * 0.1f;
+    float remainder = deltaTime - steps * s_maxTimeStep;
     float maxSteps = floor(this->m_params.m_life * 10.0f);
 
     if (maxSteps < steps) {
@@ -1060,7 +1062,7 @@ void CParticleEmitter2::InternalUpdate(float deltaTime, int32_t child) {
     this->m_burstOffset = C3Vector(this->m_followOffset.x * scale, this->m_followOffset.y * scale, scale * this->m_followOffset.z);
 
     for (; count; count--) {
-        this->StepUpdate(0.1f, child);
+        this->StepUpdate(s_maxTimeStep, child);
     }
 
     this->StepUpdate(remainder, child);
