@@ -2597,11 +2597,11 @@ void CGTooltip::AddTalentLearnText(const TalentRec* talent, CGTalentGroup_C* gro
 static int32_t SetSpellPowerCost(char* cost, const SpellRec* spell, const CGUnit_C* caster, int32_t powerCost, const PowerDisplayRec* display) {
     char format[128];
     int32_t costPerSecond = Spell_C_GetPowerCostPerSecond(spell, caster);
-    powerCost = static_cast<uint32_t>(powerCost) / Spell_C_GetPowerDisplayMod(spell->m_powerType);
-    costPerSecond = static_cast<uint32_t>(costPerSecond) / Spell_C_GetPowerDisplayMod(spell->m_powerType);
+    powerCost = static_cast<uint32_t>(powerCost) / Spell_C_GetPowerDisplayMod(static_cast<POWER_TYPE>(spell->m_powerType));
+    costPerSecond = static_cast<uint32_t>(costPerSecond) / Spell_C_GetPowerDisplayMod(static_cast<POWER_TYPE>(spell->m_powerType));
     const char* token = static_cast<uint32_t>(spell->m_powerType) > 6 ? "HEALTH_COST" : s_powerCostTokens[spell->m_powerType];
 
-    if (spell->m_powerType == 5) {
+    if (spell->m_powerType == POWER_TYPE_RUNES) {
         SpellRuneCostRec* runes = g_spellRuneCostDB.GetRecord(spell->m_runeCostID);
 
         if (!runes) {

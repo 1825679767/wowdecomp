@@ -908,15 +908,15 @@ static int32_t Script_UnitPower(lua_State* L) {
         }
 
         if ((!(unit->m_unit->m_unitDynamicFlags & 0x20) || CGGameUI::IsRaidMemberOrPet(unit->m_obj->m_guid)) && (powerType == unit->m_unit->m_unitFieldBytes0[3] || unit->IsActivePlayer())) {
-            power = static_cast<uint32_t>(unit->GetPredictedPower(powerType)) / Spell_C_GetPowerDisplayMod(powerType);
+            power = static_cast<uint32_t>(unit->GetPredictedPower(static_cast<POWER_TYPE>(powerType))) / Spell_C_GetPowerDisplayMod(static_cast<POWER_TYPE>(powerType));
         }
     } else if (CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(unitGuid)) {
         if (powerType == 7 || powerType == state->m_powerType) {
-            power = state->m_power / Spell_C_GetPowerDisplayMod(state->m_powerType);
+            power = state->m_power / Spell_C_GetPowerDisplayMod(static_cast<POWER_TYPE>(state->m_powerType));
         }
     } else if (CGPartyPetState* petState = CGPartyMemberStateRepository::FindPetState(unitGuid)) {
         if (powerType == 7 || powerType == petState->m_powerType) {
-            power = petState->m_power / Spell_C_GetPowerDisplayMod(petState->m_powerType);
+            power = petState->m_power / Spell_C_GetPowerDisplayMod(static_cast<POWER_TYPE>(petState->m_powerType));
         }
     }
 
@@ -954,14 +954,14 @@ static int32_t Script_UnitPowerMax(lua_State* L) {
             powerType = unit->m_unit->m_unitFieldBytes0[3];
         }
 
-        power = unit->m_unit->m_unitFieldMaxpower[powerType] / Spell_C_GetPowerDisplayMod(powerType);
+        power = unit->m_unit->m_unitFieldMaxpower[powerType] / Spell_C_GetPowerDisplayMod(static_cast<POWER_TYPE>(powerType));
     } else if (CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(unitGuid)) {
         if (powerType == 7 || powerType == state->m_powerType) {
-            power = state->m_maxPower / Spell_C_GetPowerDisplayMod(state->m_powerType);
+            power = state->m_maxPower / Spell_C_GetPowerDisplayMod(static_cast<POWER_TYPE>(state->m_powerType));
         }
     } else if (CGPartyPetState* petState = CGPartyMemberStateRepository::FindPetState(unitGuid)) {
         if (powerType == 7 || powerType == petState->m_powerType) {
-            power = petState->m_maxPower / Spell_C_GetPowerDisplayMod(petState->m_powerType);
+            power = petState->m_maxPower / Spell_C_GetPowerDisplayMod(static_cast<POWER_TYPE>(petState->m_powerType));
         }
     }
 
@@ -1004,19 +1004,19 @@ static int32_t Script_UnitPowerType(lua_State* L) {
     if (!index) {
         if (unit) {
             lua_pushnumber(L, unit->m_unit->m_unitFieldBytes0[3]);
-            lua_pushstring(L, GetPowerString(unit->m_unit->m_unitFieldBytes0[3]));
+            lua_pushstring(L, GetPowerString(static_cast<POWER_TYPE>(unit->m_unit->m_unitFieldBytes0[3])));
             return 2;
         }
 
         if (CGPartyMemberState* state = CGPartyMemberStateRepository::GetState(unitGuid)) {
             lua_pushnumber(L, state->m_powerType);
-            lua_pushstring(L, GetPowerString(state->m_powerType));
+            lua_pushstring(L, GetPowerString(static_cast<POWER_TYPE>(state->m_powerType)));
             return 2;
         }
 
         if (CGPartyPetState* petState = CGPartyMemberStateRepository::FindPetState(unitGuid)) {
             lua_pushnumber(L, petState->m_powerType);
-            lua_pushstring(L, GetPowerString(petState->m_powerType));
+            lua_pushstring(L, GetPowerString(static_cast<POWER_TYPE>(petState->m_powerType)));
             return 2;
         }
     }
@@ -1902,8 +1902,8 @@ static int32_t Script_GetManaRegen(lua_State* L) {
         return 2;
     }
 
-    lua_pushnumber(L, player->GetPowerRegen(0, false) + 0.001f);
-    lua_pushnumber(L, player->GetPowerRegen(0, true) + 0.001f);
+    lua_pushnumber(L, player->GetPowerRegen(POWER_TYPE_MANA, false) + 0.001f);
+    lua_pushnumber(L, player->GetPowerRegen(POWER_TYPE_MANA, true) + 0.001f);
     return 2;
 }
 
@@ -1914,8 +1914,8 @@ static int32_t Script_GetPowerRegen(lua_State* L) {
 
     if (player) {
         uint8_t powerType = player->m_unit->m_unitFieldBytes0[3];
-        lua_pushnumber(L, player->GetPowerRegen(powerType, false) + 0.001f);
-        lua_pushnumber(L, player->GetPowerRegen(powerType, true) + 0.001f);
+        lua_pushnumber(L, player->GetPowerRegen(static_cast<POWER_TYPE>(powerType), false) + 0.001f);
+        lua_pushnumber(L, player->GetPowerRegen(static_cast<POWER_TYPE>(powerType), true) + 0.001f);
     } else {
         lua_pushnumber(L, 0.0);
         lua_pushnumber(L, 0.0);

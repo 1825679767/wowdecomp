@@ -405,18 +405,18 @@ int32_t NPCFlagsHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, 
 // OFFSET: 0x007234D0
 int32_t UnitPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
-    int32_t powerType = (fieldOffset - offsetof(CGUnitData, m_unitFieldPower)) / sizeof(uint32_t);
+    POWER_TYPE powerType = static_cast<POWER_TYPE>((fieldOffset - offsetof(CGUnitData, m_unitFieldPower)) / sizeof(uint32_t));
 
     if (g_predictedPowerCVar->m_intValue && (guid == ClntObjMgrGetActivePlayer() || guid == CGPetInfo::GetPet(0))) {
-        int32_t power = powerType == -2 ? unit->m_unit->m_unitFieldHealth : unit->m_unit->m_unitFieldPower[powerType];
-        int32_t predicted = g_predictedPowerCVar->m_intValue ? unit->m_predictedPower[powerType] : (powerType == -2 ? unit->m_unit->m_unitFieldHealth : unit->m_unit->m_unitFieldPower[powerType]);
+        int32_t power = powerType == POWER_TYPE_HEALTH ? unit->m_unit->m_unitFieldHealth : unit->m_unit->m_unitFieldPower[powerType];
+        int32_t predicted = g_predictedPowerCVar->m_intValue ? unit->m_predictedPower[powerType] : (powerType == POWER_TYPE_HEALTH ? unit->m_unit->m_unitFieldHealth : unit->m_unit->m_unitFieldPower[powerType]);
 
         if (power <= predicted) {
             return 1;
         }
     }
 
-    if (powerType == -2) {
+    if (powerType == POWER_TYPE_HEALTH) {
         unit->SetPredictedPower(powerType, unit->m_unit->m_unitFieldHealth);
         return 1;
     }
@@ -430,9 +430,9 @@ int32_t UnitPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // OFFSET: 0x007235C0
 int32_t UnitMaxPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
-    int32_t powerType = (fieldOffset - offsetof(CGUnitData, m_unitFieldMaxpower)) / sizeof(uint32_t);
+    POWER_TYPE powerType = static_cast<POWER_TYPE>((fieldOffset - offsetof(CGUnitData, m_unitFieldMaxpower)) / sizeof(uint32_t));
 
-    if (powerType == -2) {
+    if (powerType == POWER_TYPE_HEALTH) {
         unit->SetPredictedPower(powerType, unit->m_unit->m_unitFieldHealth);
         return 1;
     }
@@ -446,9 +446,9 @@ int32_t UnitMaxPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t f
 // OFFSET: 0x00723620
 int32_t UnitDisplayPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
-    int32_t powerType = unit->m_unit->m_unitFieldBytes0[3];
+    POWER_TYPE powerType = static_cast<POWER_TYPE>(unit->m_unit->m_unitFieldBytes0[3]);
 
-    if (powerType == -2) {
+    if (powerType == POWER_TYPE_HEALTH) {
         unit->SetPredictedPower(powerType, unit->m_unit->m_unitFieldHealth);
         return 1;
     }
@@ -6681,23 +6681,23 @@ void CGUnit_C::GetRangedAttackSkillRank(int32_t& rank, int32_t& bonus) {
 
 // VERIFY: 514b93b6 auto
 // OFFSET: 0x0071B770
-uint32_t CGUnit_C::GetBasePowerForType(int32_t powerType) const {
+uint32_t CGUnit_C::GetBasePowerForType(POWER_TYPE powerType) const {
     switch (powerType) {
-        case -2:
+        case POWER_TYPE_HEALTH:
             return this->m_unit->m_unitFieldBaseHealth;
 
-        case 0:
+        case POWER_TYPE_MANA:
             return this->m_unit->m_unitFieldBaseMana;
 
-        case 1:
-        case 6:
+        case POWER_TYPE_RAGE:
+        case POWER_TYPE_RUNIC_POWER:
             return 1000;
 
-        case 2:
-        case 3:
+        case POWER_TYPE_FOCUS:
+        case POWER_TYPE_ENERGY:
             return 100;
 
-        case 5:
+        case POWER_TYPE_RUNES:
             return 1;
 
         default:
@@ -11944,12 +11944,12 @@ int32_t CGUnit_C::GetPredictedHealth() const {
 
 // VERIFY: cbdca188 auto
 // OFFSET: 0x0071C2E0
-int32_t CGUnit_C::GetPredictedPower(int32_t powerType) const {
+int32_t CGUnit_C::GetPredictedPower(POWER_TYPE powerType) const {
     if (g_predictedPowerCVar->m_intValue) {
         return this->m_predictedPower[powerType];
     }
 
-    if (powerType == -2) {
+    if (powerType == POWER_TYPE_HEALTH) {
         return this->m_unit->m_unitFieldHealth;
     }
 
@@ -13727,7 +13727,7 @@ void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t no
 
 // VERIFY: 4d7f7127 manual
 // OFFSET: 0x00722CF0
-void CGUnit_C::ModifyPredictedPower(int32_t powerType, int32_t delta) {
+void CGUnit_C::ModifyPredictedPower(POWER_TYPE powerType, int32_t delta) {
     if (delta < 0 && (this->m_unit->m_unitFieldFlags2 & 0x100)) {
         return;
     }
@@ -13743,11 +13743,11 @@ void CGUnit_C::ModifyPredictedPower(int32_t powerType, int32_t delta) {
         return;
     }
 
-    int32_t maximum = powerType == -2 ? this->m_unit->m_unitFieldMaxhealth : this->m_unit->m_unitFieldMaxpower[powerType];
+    int32_t maximum = powerType == POWER_TYPE_HEALTH ? this->m_unit->m_unitFieldMaxhealth : this->m_unit->m_unitFieldMaxpower[powerType];
 
     if (value > maximum) {
-        if (powerType == -2) {
-            this->SetPredictedPower(-2, this->m_unit->m_unitFieldMaxhealth);
+        if (powerType == POWER_TYPE_HEALTH) {
+            this->SetPredictedPower(POWER_TYPE_HEALTH, this->m_unit->m_unitFieldMaxhealth);
             return;
         }
 
@@ -15217,7 +15217,7 @@ int32_t Packet_SMSG_POWER_UPDATE(void* param, NETMESSAGE msgId, uint32_t time, C
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
     if (unit) {
-        unit->SetPredictedPower(powerType, value);
+        unit->SetPredictedPower(static_cast<POWER_TYPE>(powerType), value);
     }
 
     return 1;
@@ -17857,7 +17857,7 @@ int32_t Packet_SMSG_PET_ACTION_SOUND(void* param, NETMESSAGE msgId, uint32_t tim
 
 // VERIFY: 4b8cff5c manual
 // OFFSET: 0x00722D80
-void CGUnit_C::DoPowerRegen(int32_t powerType, uint32_t elapsed) {
+void CGUnit_C::DoPowerRegen(POWER_TYPE powerType, uint32_t elapsed) {
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && (reinterpret_cast<const uint8_t*>(&static_cast<CGPlayer_C*>(this)->m_player->m_playerFieldBytes2)[2] & (1 << powerType))) {
         return;
     }
@@ -17895,7 +17895,7 @@ void CGUnit_C::DoPowerRegen(int32_t powerType, uint32_t elapsed) {
     float delta = regen * static_cast<float>(elapsed) * 0.001f;
 
     if (delta >= 0.0f) {
-        int32_t maxPower = powerType == -2 ? this->m_unit->m_unitFieldMaxhealth : this->m_unit->m_unitFieldMaxpower[powerType];
+        int32_t maxPower = powerType == POWER_TYPE_HEALTH ? this->m_unit->m_unitFieldMaxhealth : this->m_unit->m_unitFieldMaxpower[powerType];
 
         if (this->GetPredictedPower(powerType) < maxPower) {
             int32_t predicted = this->GetPredictedPower(powerType);
@@ -17928,20 +17928,20 @@ void CGUnit_C::DoPowerRegen(uint32_t elapsed) {
         return;
     }
 
-    int32_t powerType = this->m_unit->m_unitFieldBytes0[3];
+    POWER_TYPE powerType = static_cast<POWER_TYPE>(this->m_unit->m_unitFieldBytes0[3]);
     this->DoPowerRegen(powerType, elapsed);
 
     if (this->m_unit->m_unitFieldBytes0[1] == 11) {
         if (powerType) {
-            this->DoPowerRegen(0, elapsed);
+            this->DoPowerRegen(POWER_TYPE_MANA, elapsed);
         }
 
-        if (powerType != 3) {
-            this->DoPowerRegen(3, elapsed);
+        if (powerType != POWER_TYPE_ENERGY) {
+            this->DoPowerRegen(POWER_TYPE_ENERGY, elapsed);
         }
     }
 
-    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && powerType == 6) {
+    if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && powerType == POWER_TYPE_RUNIC_POWER) {
         uint32_t runes = CGRuneInfo::m_predictedRunes;
         uint32_t previous = CGRuneInfo::m_predictedRunes;
         uint32_t now = FrameTime::s_curTimeMs;
