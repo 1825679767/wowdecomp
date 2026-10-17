@@ -538,7 +538,7 @@ int32_t VirtualItemIDMirrorHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t 
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
     if (unit) {
-        unit->OnVirtualItemChanged((fieldOffset - offsetof(CGUnitData, m_unitVirtualItemSlotId)) / sizeof(uint32_t), *static_cast<const int32_t*>(oldValue));
+        unit->OnVirtualItemChanged(static_cast<VIRTUAL_MONSTER_SLOT>((fieldOffset - offsetof(CGUnitData, m_unitVirtualItemSlotId)) / sizeof(uint32_t)), *static_cast<const int32_t*>(oldValue));
     }
 
     return 1;
@@ -4406,8 +4406,8 @@ void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
         anim = animId;
     } else {
         if (!(flags & 0x8) && (animId == ANIM_SPECIAL_1H || animId == ANIM_SPECIAL_2H)) {
-            const CGUnitVirtualItem* mainHand = this->GetVirtualItem(0, false);
-            const CGUnitVirtualItem* offHand = this->GetVirtualItem(1, false);
+            const CGUnitVirtualItem* mainHand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
+            const CGUnitVirtualItem* offHand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
             if (!mainHand && !offHand) {
                 animId = ANIM_SPECIAL_UNARMED;
@@ -5771,17 +5771,17 @@ int32_t __stdcall CGUnit_C::IsTwoHanded(const CGUnitVirtualItem* item) {
 // VERIFY: 46787e5a auto
 // OFFSET: 0x00714DD0
 uint32_t CGUnit_C::GetCombatReadyAnim() const {
-    const CGUnitVirtualItem* item = this->GetVirtualItem(0, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
 
     if (!item || item->m_classID != 2) {
-        item = this->GetVirtualItem(1, false);
+        item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
     }
 
     if (!item || item->m_classID != 2) {
         return ANIM_READY_UNARMED;
     }
 
-    uint32_t anim = ANIM_READY_2H - (this->GetVirtualItem(1, false) != nullptr);
+    uint32_t anim = ANIM_READY_2H - (this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false) != nullptr);
 
     switch (item->m_subclassID) {
         case 0:
@@ -5822,7 +5822,7 @@ int32_t CGUnit_C::ChooseRangedLoadAnim(uint32_t flags, uint32_t* anim) const {
     }
 
     *anim = ANIM_READY_UNARMED;
-    const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
     if (!item || item->m_classID != 2) {
         return 1;
@@ -6320,7 +6320,7 @@ bool CGUnit_C::DoNotLogDeath() const {
 
 // VERIFY: a3b6dbb4 auto
 // OFFSET: 0x00718B10
-uint32_t CGUnit_C::GetVirtualItemDisplayID(uint32_t slot) const {
+uint32_t CGUnit_C::GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT slot) const {
     return this->m_virtualItemDisplayId[slot];
 }
 
@@ -6366,14 +6366,14 @@ int32_t CGUnit_C::IsDisarmed(int32_t hand) const {
     }
 
     if (this->m_unit->m_unitFieldFlags & 0x200000) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(0, true);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true);
 
         if (!hand) {
             return item && item->m_classID == 2;
         }
 
         if (!this->IsDisarmed(0)) {
-            const CGUnitVirtualItem* offhand = this->GetVirtualItem(1, true);
+            const CGUnitVirtualItem* offhand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true);
 
             if (offhand && offhand->m_classID == 2) {
                 return 1;
@@ -8132,7 +8132,7 @@ uint32_t CGUnit_C::GetHappinessIndex() const {
 
 // VERIFY: e993503e auto
 // OFFSET: 0x0071F440
-const CGUnitVirtualItem* CGUnit_C::GetVirtualItem(uint32_t slot, bool ignoreDisarm) const {
+const CGUnitVirtualItem* CGUnit_C::GetVirtualItem(VIRTUAL_MONSTER_SLOT slot, bool ignoreDisarm) const {
     if (!this->GetVirtualItemDisplayID(slot)) {
         return nullptr;
     }
@@ -8141,24 +8141,24 @@ const CGUnitVirtualItem* CGUnit_C::GetVirtualItem(uint32_t slot, bool ignoreDisa
         return &this->m_virtualItem[slot];
     }
 
-    if (slot == 0) {
+    if (slot == VIRTUAL_MONSTER_SLOT_MAINHAND) {
         if (this->m_unit->m_unitFieldFlags & 0x200000) {
-            const CGUnitVirtualItem* item = this->GetVirtualItem(0, true);
+            const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true);
 
             if (item) {
                 if (item->m_classID != 2) {
-                    return &this->m_virtualItem[0];
+                    return &this->m_virtualItem[VIRTUAL_MONSTER_SLOT_MAINHAND];
                 }
 
                 return nullptr;
             }
         }
-    } else if (slot == 1) {
+    } else if (slot == VIRTUAL_MONSTER_SLOT_OFFHAND) {
         if (this->m_unit->m_unitFieldFlags & 0x200000) {
-            this->GetVirtualItem(0, true);
+            this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true);
 
             if (!this->IsDisarmed(0)) {
-                const CGUnitVirtualItem* offhand = this->GetVirtualItem(1, true);
+                const CGUnitVirtualItem* offhand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true);
 
                 if (offhand && offhand->m_classID == 2) {
                     return nullptr;
@@ -8169,7 +8169,7 @@ const CGUnitVirtualItem* CGUnit_C::GetVirtualItem(uint32_t slot, bool ignoreDisa
         if (this->m_unit->m_unitFieldFlags2 & 0x80) {
             return nullptr;
         }
-    } else if (slot == 2) {
+    } else if (slot == VIRTUAL_MONSTER_SLOT_RANGED) {
         if (this->m_unit->m_unitFieldFlags2 & 0x400) {
             return nullptr;
         }
@@ -8446,7 +8446,7 @@ int32_t CGUnit_C::AddPassenger(CPassenger* passenger, int32_t a2) {
 
 // VERIFY: 97ef0b7c auto
 // OFFSET: 0x0071F540
-int32_t CGUnit_C::GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& rec) const {
+int32_t CGUnit_C::GetVirtualItemDisplayRec(VIRTUAL_MONSTER_SLOT slot, ItemDisplayInfoRec& rec) const {
     return g_itemDisplayInfoDB.GetRecord(this->m_virtualItemDisplayId[slot], &rec);
 }
 
@@ -8599,7 +8599,7 @@ void CGUnit_C::UpdateAmmoModel(uint32_t displayId, uint32_t invType) {
     }
 
     uint32_t ammoType = 24;
-    const CGUnitVirtualItem* ranged = this->GetVirtualItem(2, false);
+    const CGUnitVirtualItem* ranged = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
     if (invType == 30) {
         if (ranged) {
@@ -9649,7 +9649,7 @@ CGUnit_C::CGUnit_C(uint32_t time, const CClientObjCreate& create)
 
     this->InitPredictedPower();
 
-    for (int32_t i = 0; i < 3; i++) {
+    for (int32_t i = 0; i < NUM_VIRTUAL_MONSTER_SLOTS; i++) {
         ItemRec* rec = g_itemDB.GetRecord(this->m_unit->m_unitVirtualItemSlotId[i]);
         CGUnitVirtualItem item;
 
@@ -10126,7 +10126,7 @@ void CGUnit_C::Reenable() {
 
     this->ShowLootEffect();
 
-    for (int32_t i = 0; i < 3; i++) {
+    for (int32_t i = 0; i < NUM_VIRTUAL_MONSTER_SLOTS; i++) {
         ItemRec* rec = g_itemDB.GetRecord(this->m_unit->m_unitVirtualItemSlotId[i]);
         CGUnitVirtualItem item;
 
@@ -13383,7 +13383,7 @@ void CGUnit_C::PlayAttackerRound(const ATTACKROUNDINFO& info) {
     uint32_t anim = 16;
 
     if (info.m_hitInfo & 0x4) {
-        const CGUnitVirtualItem* offhand = this->GetVirtualItem(1, false);
+        const CGUnitVirtualItem* offhand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
         if (offhand && offhand->m_classID == 2) {
             anim = (offhand->m_subclassID == 15) + 87;
@@ -13391,10 +13391,10 @@ void CGUnit_C::PlayAttackerRound(const ATTACKROUNDINFO& info) {
             anim = 117;
         }
     } else {
-        const CGUnitVirtualItem* mainhand = this->GetVirtualItem(0, false);
+        const CGUnitVirtualItem* mainhand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
 
         if (mainhand && mainhand->m_classID == 2) {
-            uint32_t oneHanded = 18 - (this->GetVirtualItem(1, false) != nullptr);
+            uint32_t oneHanded = 18 - (this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false) != nullptr);
 
             switch (mainhand->m_subclassID) {
                 case 0:
@@ -13699,7 +13699,7 @@ void CGUnit_C::OnAuraUpdate(CDataStore* msg, bool updateAll) {
 // OFFSET: 0x00736D30
 void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t noSend) {
     if (this->IsPlayingWeaponAnim()) {
-        showWeapons = CGUnit_C::ResolveSheathState(showWeapons, this->GetVirtualItem(0, false), this->GetVirtualItem(1, false));
+        showWeapons = CGUnit_C::ResolveSheathState(showWeapons, this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false), this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false));
     }
 
     if (showWeapons == 2 && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
@@ -13992,7 +13992,7 @@ int32_t CGUnit_C::ShowRangedWeapon(bool sheathed, bool* rightHand) {
         return 0;
     }
 
-    const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
     if (!item) {
         return 0;
@@ -14021,7 +14021,7 @@ int32_t CGUnit_C::ShowRangedWeapon(bool sheathed, bool* rightHand) {
     ItemDisplayInfoRec displayRec;
     const ItemDisplayInfoRec* displayRecPtr = nullptr;
 
-    if (this->GetVirtualItemDisplayRec(2, displayRec)) {
+    if (this->GetVirtualItemDisplayRec(VIRTUAL_MONSTER_SLOT_RANGED, displayRec)) {
         displayRecPtr = &displayRec;
     }
 
@@ -14096,7 +14096,7 @@ int32_t CGUnit_C::SheatheHandItem(uint32_t hand, int32_t sheathe) {
         return 0;
     }
 
-    const CGUnitVirtualItem* item = this->GetVirtualItem(hand, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand), false);
 
     if (!item) {
         return 0;
@@ -14208,7 +14208,7 @@ void CGUnit_C::SetSheatheStateInstant() {
                     this->ClearTrackingTarget(false, true);
                 }
 
-                const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+                const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
                 if (item) {
                     if (item->m_inventoryType == INVTYPE_RANGEDRIGHT || item->m_inventoryType == INVTYPE_THROWN) {
@@ -14280,7 +14280,7 @@ int32_t CGUnit_C::UnsheatheRightWeapon() {
     }
 
     if (this->m_sheatheState == 1) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(0, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
 
         if (!item) {
             return 0;
@@ -14291,7 +14291,7 @@ int32_t CGUnit_C::UnsheatheRightWeapon() {
     }
 
     if (this->m_sheatheState == 2) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
         if (item && (item->m_inventoryType == INVTYPE_RANGEDRIGHT || item->m_inventoryType == INVTYPE_THROWN)) {
             this->ShowRangedWeapon(true, nullptr);
@@ -14313,7 +14313,7 @@ int32_t CGUnit_C::UnsheatheLeftWeapon() {
     }
 
     if (this->m_sheatheState == 1) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(1, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
         if (!item) {
             return 0;
@@ -14324,7 +14324,7 @@ int32_t CGUnit_C::UnsheatheLeftWeapon() {
     }
 
     if (this->m_sheatheState == 2) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
         if (item && item->m_inventoryType != INVTYPE_RANGEDRIGHT && item->m_inventoryType != INVTYPE_THROWN) {
             this->ShowRangedWeapon(true, nullptr);
@@ -14345,8 +14345,8 @@ void CGUnit_C::SetSheatheStateAnimate() {
         }
 
         case 1: {
-            const CGUnitVirtualItem* right = this->GetVirtualItem(0, false);
-            const CGUnitVirtualItem* left = this->GetVirtualItem(1, false);
+            const CGUnitVirtualItem* right = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
+            const CGUnitVirtualItem* left = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
             if (right) {
                 this->SetKeyBoneSequence(this->m_worldModel, 3, ((1 << right->m_sheatheType) & 0x88) ? 90 : 89, 0xFFFFFFFF, 0, 1.0f, 1, 1, 0);
@@ -14376,7 +14376,7 @@ void CGUnit_C::SetSheatheStateAnimate() {
                 this->ClearTrackingTarget(false, true);
             }
 
-            const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+            const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
             if (!item) {
                 break;
@@ -14401,8 +14401,8 @@ void CGUnit_C::SetSheatheStateAnimate() {
     }
 
     if (this->m_sheatheState == 1) {
-        const CGUnitVirtualItem* right = this->GetVirtualItem(0, false);
-        const CGUnitVirtualItem* left = this->GetVirtualItem(1, false);
+        const CGUnitVirtualItem* right = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
+        const CGUnitVirtualItem* left = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
         if (right) {
             this->SetKeyBoneSequence(this->m_worldModel, 3, ((1 << right->m_sheatheType) & 0x88) ? 90 : 89, 0xFFFFFFFF, 0, 1.0f, 1, 1, 0);
@@ -14414,7 +14414,7 @@ void CGUnit_C::SetSheatheStateAnimate() {
             this->m_animationState |= 0x200000;
         }
     } else if (this->m_sheatheState == 2) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
         if (item) {
             this->ShowRangedWeapon(true, nullptr);
@@ -14943,8 +14943,8 @@ void CGUnit_C::OnKeyBoneAnimEnd(CM2Model* model, uint32_t boneId, uint32_t seque
 // VERIFY: fab76f79 auto
 // OFFSET: 0x00732500
 void CGUnit_C::ExchangeSheathedWeapon(const C3Vector* position, uint32_t hand, uint32_t flag) {
-    const CGUnitVirtualItem* item = this->GetVirtualItem(hand, false);
-    const CGUnitVirtualItem* ranged = this->GetVirtualItem(2, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand), false);
+    const CGUnitVirtualItem* ranged = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
     uint32_t state;
     bool sheathe;
 
@@ -18550,12 +18550,12 @@ void CGUnit_C::OnFlagChanged(uint32_t oldFlags) {
     }
 
     if (changed & 0x200000) {
-        const CGUnitVirtualItem* mainHand = this->GetVirtualItem(0, true);
+        const CGUnitVirtualItem* mainHand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true);
 
         if (mainHand && mainHand->m_classID == 2) {
             const CGUnitVirtualItem* item;
 
-            if ((this->m_unit->m_unitFieldFlags & 0x200000) && (item = this->GetVirtualItem(0, true)) && item->m_classID == 2 && this->m_sheatheState <= 1) {
+            if ((this->m_unit->m_unitFieldFlags & 0x200000) && (item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true)) && item->m_classID == 2 && this->m_sheatheState <= 1) {
                 CCharacterComponent::RemoveHandItem(this->m_worldModel, INVSLOT_MAINHAND, static_cast<SHEATHE_TYPE>(this->m_sheatheState ? 0 : mainHand->m_sheatheType), false);
             } else {
                 if (this->unk_0988) {
@@ -18566,12 +18566,12 @@ void CGUnit_C::OnFlagChanged(uint32_t oldFlags) {
             }
         }
 
-        const CGUnitVirtualItem* offHand = this->GetVirtualItem(1, true);
+        const CGUnitVirtualItem* offHand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true);
 
         if (offHand && offHand->m_classID == 2) {
             const CGUnitVirtualItem* item;
 
-            if ((((this->m_unit->m_unitFieldFlags & 0x200000) && (this->GetVirtualItem(0, true), !this->IsDisarmed(0)) && (item = this->GetVirtualItem(1, true)) && item->m_classID == 2) || static_cast<int8_t>(this->m_unit->m_unitFieldFlags2) < 0) && this->m_sheatheState == 1) {
+            if ((((this->m_unit->m_unitFieldFlags & 0x200000) && (this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true), !this->IsDisarmed(0)) && (item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true)) && item->m_classID == 2) || static_cast<int8_t>(this->m_unit->m_unitFieldFlags2) < 0) && this->m_sheatheState == 1) {
                 CCharacterComponent::RemoveHandItem(this->m_worldModel, INVSLOT_OFFHAND, SHEATHE_NONE, false);
             } else {
                 this->AddHandItem(1);
@@ -18869,14 +18869,14 @@ void CGUnit_C::PlayParryAnimation() {
         return;
     }
 
-    const CGUnitVirtualItem* item = this->GetVirtualItem(0, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
 
     if (!item || item->m_classID != 2 || !this->m_unit->m_unitFieldBytes2[0]) {
         this->PlayBaseAnimation(ANIM_PARRY_UNARMED, 0);
         return;
     }
 
-    uint32_t twoHandAnim = ANIM_PARRY_2H - (this->GetVirtualItem(1, false) != nullptr);
+    uint32_t twoHandAnim = ANIM_PARRY_2H - (this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false) != nullptr);
 
     switch (item->m_subclassID) {
         case 0:
@@ -18996,7 +18996,7 @@ void CGUnit_C::CreateMissile(const WOWGUID* target, PendingSpellCastData* data, 
     }
 
     if (spell.m_attributes & 2) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
         if (item && item->m_classID == 2 && (item->m_subclassID == 2 || item->m_subclassID == 18 || item->m_subclassID == 16)) {
             missile->m_flags |= 4;
@@ -19253,7 +19253,7 @@ void CGUnit_C::CreateMissile(const SpellCastTargetPoint* point, PendingSpellCast
     missile->m_missReason = 0;
 
     if (spell.m_attributes & 2) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
         if (item && item->m_classID == 2 && (item->m_subclassID == 2 || item->m_subclassID == 18 || item->m_subclassID == 16)) {
             missile->m_flags |= 4;
@@ -19442,7 +19442,7 @@ void CGUnit_C::CreateMissile(const TSStackArray<SpellCastTargetPoint>* points, P
     missile->m_missReason = 0;
 
     if (spell.m_attributes & 2) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
         if (item && item->m_classID == 2 && (item->m_subclassID == 2 || item->m_subclassID == 18 || item->m_subclassID == 16)) {
             missile->m_flags |= 4;
@@ -19648,7 +19648,7 @@ int32_t CGUnit_C::IsPlayingUnarmedAnim() {
         }
     }
 
-    return IsUnarmedAnim(sequence) || (IsMeleeAttackAnim(sequence) && !this->GetVirtualItem(0, false));
+    return IsUnarmedAnim(sequence) || (IsMeleeAttackAnim(sequence) && !this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false));
 }
 
 // VERIFY: 570e3c87 manual
@@ -19658,7 +19658,7 @@ void CGUnit_C::AddHandItem(int32_t hand) {
         return;
     }
 
-    const CGUnitVirtualItem* item = this->GetVirtualItem(hand, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand), false);
 
     if (!item) {
         return;
@@ -19666,7 +19666,7 @@ void CGUnit_C::AddHandItem(int32_t hand) {
 
     ItemDisplayInfoRec displayRec;
 
-    if (!this->GetVirtualItemDisplayRec(hand, displayRec)) {
+    if (!this->GetVirtualItemDisplayRec(static_cast<VIRTUAL_MONSTER_SLOT>(hand), displayRec)) {
         return;
     }
 
@@ -19676,7 +19676,7 @@ void CGUnit_C::AddHandItem(int32_t hand) {
     if (this->m_sheatheState == 2) {
         sheathed = hand != 2;
     } else if (hand == 1 && this->IsPlayingUnarmedAnim()) {
-        sheathed = CGUnit_C::ResolveSheathState(this->m_sheatheState, this->GetVirtualItem(0, false), item) == 0;
+        sheathed = CGUnit_C::ResolveSheathState(this->m_sheatheState, this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false), item) == 0;
     } else {
         sheathed = this->m_sheatheState == 0;
     }
@@ -19690,7 +19690,7 @@ void CGUnit_C::AddHandItem(int32_t hand) {
     if (hand == 0) {
         const CGUnitVirtualItem* mainItem;
 
-        if ((this->m_unit->m_unitFieldFlags & 0x200000) && (mainItem = this->GetVirtualItem(0, true)) && mainItem->m_classID == 2) {
+        if ((this->m_unit->m_unitFieldFlags & 0x200000) && (mainItem = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true)) && mainItem->m_classID == 2) {
             return;
         }
 
@@ -19701,9 +19701,9 @@ void CGUnit_C::AddHandItem(int32_t hand) {
         const CGUnitVirtualItem* offItem;
 
         if (this->m_unit->m_unitFieldFlags & 0x200000) {
-            this->GetVirtualItem(0, true);
+            this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true);
 
-            if (!this->IsDisarmed(0) && (offItem = this->GetVirtualItem(1, true)) && offItem->m_classID == 2) {
+            if (!this->IsDisarmed(0) && (offItem = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true)) && offItem->m_classID == 2) {
                 return;
             }
         }
@@ -19714,7 +19714,7 @@ void CGUnit_C::AddHandItem(int32_t hand) {
 
         const CGUnitVirtualItem* mainItem;
 
-        if (!(this->m_obj->m_type & TYPEMASK_PLAYER) && (mainItem = this->GetVirtualItem(0, false)) && mainItem->m_classID == 2) {
+        if (!(this->m_obj->m_type & TYPEMASK_PLAYER) && (mainItem = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false)) && mainItem->m_classID == 2) {
             uint8_t subclass = mainItem->m_subclassID;
 
             if (subclass == 1 || subclass == 5 || subclass == 8 || subclass == 10 || subclass == 12 || subclass == 6 || subclass == 17 || subclass == 20) {
@@ -20668,7 +20668,7 @@ void CGUnit_C::SetWeaponTrail(CM2Model* model, uint32_t hand) {
     }
 
     this->m_weaponTrails[hand] = nullptr;
-    const CGUnitVirtualItem* item = this->GetVirtualItem(hand, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand), false);
 
     if (!item) {
         return;
@@ -21240,7 +21240,7 @@ bool CGUnit_C::IsPlayingWeaponAnim() const {
         return true;
     }
 
-    return IsMeleeAttackAnim(sequence) && !this->GetVirtualItem(0, false);
+    return IsMeleeAttackAnim(sequence) && !this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
 }
 
 // VERIFY: 0401280d manual
@@ -21844,7 +21844,7 @@ UnitBloodRec* CGUnit_C::GetBloodRecord() {
 
 // VERIFY: ce51319d auto
 // OFFSET: 0x00725010
-void CGUnit_C::OnVirtualItemChanged(uint32_t slot, int32_t oldItemId) {
+void CGUnit_C::OnVirtualItemChanged(VIRTUAL_MONSTER_SLOT slot, int32_t oldItemId) {
     ItemRec* oldRec = g_itemDB.GetRecord(oldItemId);
     ItemRec* rec = g_itemDB.GetRecord(this->m_unit->m_unitVirtualItemSlotId[slot]);
     this->m_virtualItemDisplayId[slot] = rec ? rec->m_displayInfoID : 0;
@@ -21872,7 +21872,7 @@ void CGUnit_C::OnVirtualItemChanged(uint32_t slot, int32_t oldItemId) {
     SHEATHE_TYPE sheatheType = static_cast<SHEATHE_TYPE>(oldRec ? oldRec->m_sheatheType : 0);
     CCharacterComponent::RemoveHandItem(this->m_worldModel, s_virtualItemInvSlots[slot], sheatheType, false);
 
-    if (slot == 1) {
+    if (slot == VIRTUAL_MONSTER_SLOT_OFFHAND) {
         CCharacterComponent::RemoveHandItem(this->m_worldModel, s_virtualItemInvSlots[1], sheatheType, true);
     }
 
@@ -23309,7 +23309,7 @@ const SpellVisualRec* CGUnit_C::GetAppropriateSpellVisual(const SpellRec* spell,
     }
 
     if (spell->m_attributes & 0x2) {
-        uint32_t displayId = this->GetVirtualItemDisplayID(2);
+        uint32_t displayId = this->GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_RANGED);
         ItemDisplayInfoRec itemRec;
 
         if (g_itemDisplayInfoDB.GetRecord(displayId, &itemRec) && itemRec.m_spellVisualID) {
@@ -23843,13 +23843,13 @@ void CGUnit_C::OnReceiveMirrorImageDataFromServer(CDataStore* msg) {
 // VERIFY: 3b5e7768 auto
 // OFFSET: 0x00732400
 CM2Model* CGUnit_C::CreateItemModel(uint32_t hand, float* scale) {
-    const CGUnitVirtualItem* item = this->GetVirtualItem(hand, true);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand), true);
 
     if (!item) {
         return nullptr;
     }
 
-    return this->CreateItemModel(this->GetVirtualItemDisplayID(hand), item->m_inventoryType, scale);
+    return this->CreateItemModel(this->GetVirtualItemDisplayID(static_cast<VIRTUAL_MONSTER_SLOT>(hand)), item->m_inventoryType, scale);
 }
 
 // VERIFY: 4a0f01e4 manual
@@ -23896,16 +23896,16 @@ void CGUnit_C::OnFlag2Changed(uint32_t oldFlags) {
     }
 
     if (changed & 0x80) {
-        const CGUnitVirtualItem* offHand = this->GetVirtualItem(1, true);
+        const CGUnitVirtualItem* offHand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true);
 
         if (offHand) {
             bool hide = false;
 
             if ((this->m_unit->m_unitFieldFlags & 0x200000)) {
-                this->GetVirtualItem(0, true);
+                this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true);
 
                 if (!this->IsDisarmed(0)) {
-                    const CGUnitVirtualItem* item = this->GetVirtualItem(1, true);
+                    const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true);
 
                     if (item && item->m_classID == 2) {
                         hide = true;
@@ -23931,7 +23931,7 @@ void CGUnit_C::OnFlag2Changed(uint32_t oldFlags) {
 
     if (changed & 0x400) {
         if ((this->m_unit->m_unitFieldFlags2 & 0x400) && this->m_sheatheState == 2) {
-            const CGUnitVirtualItem* ranged = this->GetVirtualItem(2, true);
+            const CGUnitVirtualItem* ranged = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, true);
 
             if (ranged) {
                 if (ranged->m_inventoryType == 26 || ranged->m_inventoryType == 25) {

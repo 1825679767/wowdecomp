@@ -27,10 +27,10 @@ static uint32_t s_nextVictimImpactTime;
 // VERIFY: 64e4513d auto
 // OFFSET: 0x00754EF0
 const CGUnitVirtualItem* CGUnit_C::GetParryingItem(bool offhand) const {
-    const CGUnitVirtualItem* item = this->GetVirtualItem(0, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
 
     if (offhand || (item && item->m_classID != 2)) {
-        item = this->GetVirtualItem(1, false);
+        item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
         if (item && item->m_classID != 2 && item->m_classID != 4) {
             return nullptr;
@@ -86,7 +86,7 @@ const CGUnitVirtualItem* CGUnit_C::GetAttackingWeapon(COMBATHAND hand, bool requ
         return nullptr;
     }
 
-    const CGUnitVirtualItem* item = this->GetVirtualItem(hand != 0, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand != 0), false);
 
     if (!item || item->m_classID != 2) {
         return nullptr;
@@ -380,7 +380,7 @@ void CGUnit_C::PlayCombatSpellMissEffects(uint32_t reason, const WOWGUID& source
     const CGUnitVirtualItem* weapon = nullptr;
 
     if (attacker && attacker->m_sheatheState) {
-        const CGUnitVirtualItem* item = attacker->GetVirtualItem(0, false);
+        const CGUnitVirtualItem* item = attacker->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
         weapon = item && item->m_classID == 2 ? item : nullptr;
     }
 
@@ -400,8 +400,8 @@ void CGUnit_C::PlayCombatSpellMissEffects(uint32_t reason, const WOWGUID& source
 
         case 5: {
             this->PlayBaseAnimation(ANIM_SHIELD_BLOCK, 0);
-            this->GetVirtualItem(0, false);
-            const CGUnitVirtualItem* shield = this->GetVirtualItem(1, false);
+            this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
+            const CGUnitVirtualItem* shield = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
             if (shield && shield->m_classID != 2 && shield->m_classID != 4) {
                 shield = nullptr;
@@ -454,7 +454,7 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
             CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
 
             if (attacker) {
-                bool oneHand = !CGUnit_C::IsTwoHanded(attacker->GetVirtualItem(0, false));
+                bool oneHand = !CGUnit_C::IsTwoHanded(attacker->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false));
                 int32_t self = activePlayer == info.m_attacker || activePlayer == info.m_target;
                 C3Vector position = attacker->GetPosition();
                 SI2::PlayMissedSound(oneHand, &position, self);
@@ -522,7 +522,7 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
         CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
 
         if (attacker) {
-            bool oneHand = !CGUnit_C::IsTwoHanded(attacker->GetVirtualItem(0, false));
+            bool oneHand = !CGUnit_C::IsTwoHanded(attacker->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false));
             int32_t self = activePlayer == info.m_attacker || activePlayer == info.m_target;
             C3Vector position = attacker->GetPosition();
             SI2::PlayMissedSound(oneHand, &position, self);
@@ -659,7 +659,7 @@ void CGUnit_C::HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Ve
             }
 
             this->PlayRangedItemPull();
-            const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+            const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
             if (!item || item->m_classID != 2 || (item->m_subclassID != 3 && item->m_subclassID != 18)) {
                 if (this->m_ammoModel && !this->m_ammoModel->m_attachParent) {

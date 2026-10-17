@@ -225,7 +225,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     /* 18E9 */ uint8_t unused_18E9 [3];
     /* 18EC */ uint32_t unused_18EC;
     /* 18F0 */ CGBag_C m_bag;
-    /* 1908 */ CGUnitVirtualItem m_virtualItems [3];
+    /* 1908 */ CGUnitVirtualItem m_virtualItems [NUM_VIRTUAL_MONSTER_SLOTS];
     /* 1920 */ UNITSTANDSTATE m_clientStandState;
     /* 1924 */ int32_t m_gemCounts [4];
     /* 1934 */ uint32_t m_combatModeTime;
@@ -242,9 +242,9 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
     void OnSpellEffectClear(CEffect* effect) override;
     void PlayUnitSound(UNITSOUNDTYPE soundType, int32_t force) override;
     void PlayFoleySound() override;
-    const CGUnitVirtualItem* GetVirtualItem(uint32_t slot, bool ignoreDisarm) const override;
-    uint32_t GetVirtualItemDisplayID(uint32_t slot) const override;
-    int32_t GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& rec) const override;
+    const CGUnitVirtualItem* GetVirtualItem(VIRTUAL_MONSTER_SLOT slot, bool ignoreDisarm) const override;
+    uint32_t GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT slot) const override;
+    int32_t GetVirtualItemDisplayRec(VIRTUAL_MONSTER_SLOT slot, ItemDisplayInfoRec& rec) const override;
     int32_t GetSpellRank(const SpellRec* spell) const override;
     void GetDefenseSkillRank(int32_t& rank, int32_t& bonus) const override;
     void GetAttackSkillRank(int32_t hand, int32_t& rank, int32_t& bonus) const override;

@@ -8396,7 +8396,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
             CGItem_C* weapon = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(WOWGUID{ static_cast<CGPlayer_C*>(unit)->m_bag.GetItemGuid(17) }, TYPEMASK_ITEM, __FILE__, __LINE__));
             usable = weapon && weapon->IsUsable();
         } else {
-            usable = unit->GetVirtualItem(2, false) != nullptr;
+            usable = unit->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false) != nullptr;
         }
 
         if (!usable) {

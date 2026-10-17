@@ -269,8 +269,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 098C */ CM2Model* m_mountModel;
     /* 0990 */ float m_mountScale;
     /* 0994 */ uint8_t m_forceWorldModelAlpha;
-    /* 0998 */ uint32_t m_virtualItemDisplayId [3];
-    /* 09A4 */ CGUnitVirtualItem m_virtualItem [3];
+    /* 0998 */ uint32_t m_virtualItemDisplayId [NUM_VIRTUAL_MONSTER_SLOTS];
+    /* 09A4 */ CGUnitVirtualItem m_virtualItem [NUM_VIRTUAL_MONSTER_SLOTS];
     /* 09BC */ uint32_t m_nextBreathCheckTime;
     /* 09C0 */ int32_t m_mountDisplayId;
     /* 09C4 */ const MountTransitionObject* m_mountTransition;
@@ -399,9 +399,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     virtual uint32_t GetImpactType() const;
     virtual const CGUnitVirtualItem* GetDefendingItem() const;
     virtual bool IsDeadOrGhost() const;
-    virtual const CGUnitVirtualItem* GetVirtualItem(uint32_t slot, bool ignoreDisarm) const;
-    virtual int32_t GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& rec) const;
-    virtual uint32_t GetVirtualItemDisplayID(uint32_t slot) const;
+    virtual const CGUnitVirtualItem* GetVirtualItem(VIRTUAL_MONSTER_SLOT slot, bool ignoreDisarm) const;
+    virtual int32_t GetVirtualItemDisplayRec(VIRTUAL_MONSTER_SLOT slot, ItemDisplayInfoRec& rec) const;
+    virtual uint32_t GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT slot) const;
     virtual UNITSTANDSTATE GetClientStandState() const;
     virtual int32_t GetSpellRank(const SpellRec* spell) const;
     virtual void GetDefenseSkillRank(int32_t& rank, int32_t& bonus) const;
@@ -848,7 +848,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     void OnLife(bool a1);
     void OnMountDisplayChanged(int32_t displayId);
     void OnPvPFlagChanged(uint8_t oldFlags);
-    void OnVirtualItemChanged(uint32_t slot, int32_t oldItemId);
+    void OnVirtualItemChanged(VIRTUAL_MONSTER_SLOT slot, int32_t oldItemId);
     void OnVisFlagChanged(uint8_t oldFlags);
     void SetPredictedPower(POWER_TYPE powerType, int32_t value);
     void SetSheatheState(uint32_t showWeapons, int32_t a2, int32_t a3);

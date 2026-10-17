@@ -321,12 +321,12 @@ void CGUnit_C::KillCreatureLoopSound() {
 // VERIFY: f678b1e1 auto
 // OFFSET: 0x00746360
 bool CGUnit_C::GetWeaponSwingType(bool offhand, WEAPONSWING_SOUNDTYPES* swingType) const {
-    if (!this->GetVirtualItemDisplayID(offhand == false)) {
+    if (!this->GetVirtualItemDisplayID(static_cast<VIRTUAL_MONSTER_SLOT>(offhand == false))) {
         *swingType = WEAPONSWING_LIGHT;
         return true;
     }
 
-    const CGUnitVirtualItem* item = this->GetVirtualItem(offhand == false, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(offhand == false), false);
 
     if (!item || item->m_classID != 2) {
         return false;

@@ -2270,8 +2270,8 @@ int32_t CGPlayer_C::SpellUsesWeaponSkill(const SpellRec* spell) {
         return spell->m_id;
     }
 
-    for (uint32_t slot = 0; slot < 3; slot++) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(slot, false);
+    for (uint32_t slot = 0; slot < NUM_VIRTUAL_MONSTER_SLOTS; slot++) {
+        const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(slot), false);
 
         if (item && item->m_classID == spell->m_equippedItemClass && ((1 << item->m_subclassID) & spell->m_equippedItemSubclass) && s_weaponSkills.m_data[item->m_subclassID]) {
             return s_weaponSkills.m_data[item->m_subclassID];
@@ -8212,9 +8212,9 @@ void CGPlayer_C::ToggleSheathe() {
         }
     }
 
-    const CGUnitVirtualItem* mainHand = this->GetVirtualItem(0, false);
-    const CGUnitVirtualItem* offHand = this->GetVirtualItem(1, false);
-    const CGUnitVirtualItem* ranged = this->GetVirtualItem(2, false);
+    const CGUnitVirtualItem* mainHand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
+    const CGUnitVirtualItem* offHand = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
+    const CGUnitVirtualItem* ranged = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
     ChrClassesRec* playerClass = g_chrClassesDB.GetRecord(this->m_unit->m_unitFieldBytes0[1]);
 
     if (!playerClass || (playerClass->m_flags & 0x8)) {
@@ -10248,7 +10248,7 @@ void CGPlayer_C::UpdateObjComponentVisualsSlot(const VisibleItem_C* item, int32_
         return;
     }
 
-    const CGUnitVirtualItem* virtualItem = this->GetVirtualItem(hand, false);
+    const CGUnitVirtualItem* virtualItem = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand), false);
 
     if (!virtualItem) {
         return;
@@ -10425,7 +10425,7 @@ void CGPlayer_C::GetRangedAttackSkillRank(int32_t& rank, int32_t& bonus) {
     bonus = 0;
     rank = 0;
     int32_t spellId = 0;
-    const CGUnitVirtualItem* item = this->GetVirtualItem(2, false);
+    const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
     if (!item || item->m_classID == 2) {
         uint32_t subclass = item ? item->m_subclassID : ClientDBGetUnarmedWeapon();
@@ -10547,7 +10547,7 @@ void CGPlayer_C::UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleIte
         }
     }
 
-    const CGUnitVirtualItem* rangedItem = this->GetVirtualItem(2, false);
+    const CGUnitVirtualItem* rangedItem = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
     bool thrown = rangedItem && (rangedItem->m_inventoryType == 26 || rangedItem->m_inventoryType == 25);
     CM2Model* detached = nullptr;
 
@@ -10836,7 +10836,7 @@ int32_t CGPlayer_C::GetSkillLineForSlot(int32_t hand) {
     int32_t spell = 0;
 
     if (hand < 3) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(hand, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand), false);
 
         if (!item || item->m_classID == 2) {
             uint32_t subclass = item ? item->m_subclassID : ClientDBGetUnarmedWeapon();
@@ -13622,7 +13622,7 @@ void CGPlayer_C::GetAttackSkillRank(int32_t hand, int32_t& rank, int32_t& bonus)
     int32_t skillSpell = 0;
 
     if (hand < 3) {
-        const CGUnitVirtualItem* item = this->GetVirtualItem(hand, false);
+        const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand), false);
         uint32_t subclass;
 
         if (!item) {
@@ -13656,22 +13656,22 @@ void CGPlayer_C::GetAttackSkillRank(int32_t hand, int32_t& rank, int32_t& bonus)
 
 // VERIFY: a1437c5c manual
 // OFFSET: 0x006E04D0
-const CGUnitVirtualItem* CGPlayer_C::GetVirtualItem(uint32_t slot, bool ignoreDisarm) const {
+const CGUnitVirtualItem* CGPlayer_C::GetVirtualItem(VIRTUAL_MONSTER_SLOT slot, bool ignoreDisarm) const {
     VisibleItem_C* item = nullptr;
 
-    if (slot == 0) {
+    if (slot == VIRTUAL_MONSTER_SLOT_MAINHAND) {
         if (!ignoreDisarm && this->IsDisarmed(0)) {
             return nullptr;
         }
 
         item = &this->m_player->m_playerVisibleItems[15];
-    } else if (slot == 1) {
+    } else if (slot == VIRTUAL_MONSTER_SLOT_OFFHAND) {
         if (!ignoreDisarm && this->IsDisarmed(1)) {
             return nullptr;
         }
 
         item = &this->m_player->m_playerVisibleItems[16];
-    } else if (slot == 2) {
+    } else if (slot == VIRTUAL_MONSTER_SLOT_RANGED) {
         if (!ignoreDisarm && (this->m_unit->m_unitFieldFlags2 & 0x400)) {
             return nullptr;
         }
@@ -13695,22 +13695,22 @@ const CGUnitVirtualItem* CGPlayer_C::GetVirtualItem(uint32_t slot, bool ignoreDi
 
 // VERIFY: db19cffe manual
 // OFFSET: 0x006E05D0
-uint32_t CGPlayer_C::GetVirtualItemDisplayID(uint32_t slot) const {
+uint32_t CGPlayer_C::GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT slot) const {
     VisibleItem_C* item;
 
-    if (slot == 0) {
+    if (slot == VIRTUAL_MONSTER_SLOT_MAINHAND) {
         if (this->IsDisarmed(0)) {
             return 0;
         }
 
         item = &this->m_player->m_playerVisibleItems[15];
-    } else if (slot == 1) {
+    } else if (slot == VIRTUAL_MONSTER_SLOT_OFFHAND) {
         if (this->IsDisarmed(1)) {
             return 0;
         }
 
         item = &this->m_player->m_playerVisibleItems[16];
-    } else if (slot == 2) {
+    } else if (slot == VIRTUAL_MONSTER_SLOT_RANGED) {
         item = &this->m_player->m_playerVisibleItems[17];
     } else {
         return 0;
@@ -14775,6 +14775,6 @@ int32_t Packet_SMSG_VOICE_PARENTAL_CONTROLS(void* param, NETMESSAGE msgId, uint3
 
 // VERIFY: a5006ce1 auto
 // OFFSET: 0x006DC7E0
-int32_t CGPlayer_C::GetVirtualItemDisplayRec(uint32_t slot, ItemDisplayInfoRec& rec) const {
+int32_t CGPlayer_C::GetVirtualItemDisplayRec(VIRTUAL_MONSTER_SLOT slot, ItemDisplayInfoRec& rec) const {
     return g_itemDisplayInfoDB.GetRecord(this->GetVirtualItemDisplayID(slot), &rec);
 }

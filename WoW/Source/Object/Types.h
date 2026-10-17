@@ -4,6 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 
+enum VIRTUAL_MONSTER_SLOT : uint32_t {
+    VIRTUAL_MONSTER_SLOT_MAINHAND = 0,
+    VIRTUAL_MONSTER_SLOT_OFFHAND = 1,
+    VIRTUAL_MONSTER_SLOT_RANGED = 2,
+    NUM_VIRTUAL_MONSTER_SLOTS = 3,
+};
+
 enum POWER_TYPE : int32_t {
     POWER_TYPE_HEALTH = -2,
     POWER_TYPE_MANA = 0,
