@@ -605,7 +605,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     uint32_t IsVehicleCurrentlyUnstoppable() const;
     const CGUnitVirtualItem* GetParryingItem(bool offhand) const;
     int32_t GetUnitSize() const;
-    const CGUnitVirtualItem* GetAttackingWeapon(int32_t hand, bool requireLoadedModel) const;
+    const CGUnitVirtualItem* GetAttackingWeapon(COMBATHAND hand, bool requireLoadedModel) const;
     void StopAttack();
     bool IsInVehicle() const;
     float GetTorsoAnimProgress() const;

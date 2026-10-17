@@ -80,7 +80,7 @@ void CGUnit_C::HandleEnvironmentDamage(uint32_t type, int32_t damage, int32_t ab
 
 // VERIFY: 94a622f4 auto
 // OFFSET: 0x00755540
-const CGUnitVirtualItem* CGUnit_C::GetAttackingWeapon(int32_t hand, bool requireLoadedModel) const {
+const CGUnitVirtualItem* CGUnit_C::GetAttackingWeapon(COMBATHAND hand, bool requireLoadedModel) const {
     if (!this->m_sheatheState) {
         return nullptr;
     }
@@ -494,7 +494,7 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
         if (attacker && victim) {
             int32_t self = activePlayer == info.m_attacker || activePlayer == info.m_target;
             C3Vector position = victim->GetPosition();
-            SI2::PlayHitSound(attacker->GetAttackingWeapon((info.m_hitInfo >> 2) & 1, true), victim->GetImpactType(), info.m_hitInfo & 0x200, &position, self);
+            SI2::PlayHitSound(attacker->GetAttackingWeapon(static_cast<COMBATHAND>((info.m_hitInfo >> 2) & 1), true), victim->GetImpactType(), info.m_hitInfo & 0x200, &position, self);
         }
 
         WOWGUID source = info.m_attacker;

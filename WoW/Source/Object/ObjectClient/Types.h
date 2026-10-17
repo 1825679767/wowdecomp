@@ -4,6 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 
+enum COMBATHAND : int32_t {
+    COMBAT_MAINHAND = 0,
+    COMBAT_OFFHAND = 1,
+    // NUMHANDS = 2, // Unused reference member.
+};
+
 enum TALKANIMATION : int32_t {
     TALKANIM_TALK = 0,
     TALKANIM_QUESTION = 1,
