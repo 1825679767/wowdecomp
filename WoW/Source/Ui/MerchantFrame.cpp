@@ -221,7 +221,7 @@ void CGMerchantInfo::EnterWorld() {
     CGMerchantInfo::m_merchant = WOWGUID{ 0 };
     CGMerchantInfo::m_numMerchantItems = 0;
     memset(CGMerchantInfo::m_items, 0, sizeof(CGMerchantInfo::m_items));
-    ClntObjMgrSetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, offsetof(CGPlayerLocalData, m_playerFieldBuybackPrice1), sizeof(CGPlayerLocalData::m_playerFieldBuybackPrice1) + sizeof(CGPlayerLocalData::m_playerFieldBuybackTimestamp1), BuybackUpdateHandler, nullptr, static_cast<HANDLER_PRIORITY>(0), 0);
+    ClntObjMgrSetObjMirrorHandler(ClntObjMgrGetActivePlayer(), ID_PLAYER, offsetof(CGPlayerLocalData, m_playerFieldBuybackPrice1), sizeof(CGPlayerLocalData::m_playerFieldBuybackPrice1) + sizeof(CGPlayerLocalData::m_playerFieldBuybackTimestamp1), BuybackUpdateHandler, nullptr, HANDLER_PRIORITY_NORMAL, 0);
     CGMerchantInfo::SortBuybackItems();
 }
 
