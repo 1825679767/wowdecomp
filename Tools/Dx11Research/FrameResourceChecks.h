@@ -45,7 +45,8 @@ static int FrameResourceChecks(bool warp){
     Check(end.fanBufferCreates==2&&end.fanBufferCreates==warm.fanBufferCreates,"fan buffers reused after warmup");
     Check(end.constantUploads-warm.constantUploads<=210,"unchanged per-draw constants do not upload repeatedly");
     Check(end.textureObjects==warm.textureObjects&&end.poolObjects==warm.poolObjects,"native resource owners stable after warmup");
-    Equal(Center(device),CImVector(191,128,64,255),"indexed fan and base-vertex fan pixels after cached constants",3);
+    // CImVector's constructor is BGRA, while the shader/Equal report is RGBA.
+    Equal(Center(device),CImVector(64,128,191,255),"indexed fan and base-vertex fan pixels after cached constants",3);
     device.m_format.m_fixLag=1;device.ScenePresent();Check(device.FrameResources().pendingFrames==0,"gxFixLag drains every pending frame");
     Check(device.RecoverDevice(),"frame resource recovery");
     Check(device.FrameResources().pendingFrames==0&&device.FrameResources().constantUploads==0,"recovery invalidates resource snapshots and fences");
