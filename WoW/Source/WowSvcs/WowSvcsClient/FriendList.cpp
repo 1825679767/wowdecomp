@@ -37,7 +37,7 @@
 FriendList* FriendList::s_friendList;
 
 // STATIC: 0x00C79F9C
-WhoSortField FriendList::s_whoSort[7];
+WhoSortField FriendList::s_whoSort[NUM_WHO_SORT_TYPES];
 
 // STATIC: 0x00C79FD8
 WhoResult FriendList::s_whoResults[50];
@@ -134,8 +134,8 @@ void FriendList::Initialize() {
     ClientServices::SetMessageHandler(SMSG_FRIEND_STATUS, Packet_SMSG_FRIEND_STATUS, nullptr);
     ConsoleCommandRegister("whois", CCommand_Whois, CATEGORY_DEBUG, "Ask the server to do an account/real name lookup on a character name");
 
-    for (int32_t i = 0; i < 7; i++) {
-        FriendList::s_whoSort[i].m_field = i;
+    for (int32_t i = 0; i < NUM_WHO_SORT_TYPES; i++) {
+        FriendList::s_whoSort[i].m_field = static_cast<WHO_SORT_TYPE>(i);
         FriendList::s_whoSort[i].m_reverse = 0;
     }
 
@@ -478,11 +478,11 @@ int32_t CompareWhoResults(const void* a, const void* b) {
     WhoResult left = *static_cast<const WhoResult*>(a);
     WhoResult right = *static_cast<const WhoResult*>(b);
 
-    for (int32_t i = 0; i < 7; i++) {
+    for (int32_t i = 0; i < NUM_WHO_SORT_TYPES; i++) {
         int32_t result;
 
         switch (FriendList::s_whoSort[i].m_field) {
-            case 0: {
+            case WHO_SORT_ZONE: {
                 AreaTableRec* leftArea = g_areaTableDB.GetRecord(left.m_zone);
                 AreaTableRec* rightArea = g_areaTableDB.GetRecord(right.m_zone);
 
@@ -494,7 +494,7 @@ int32_t CompareWhoResults(const void* a, const void* b) {
                 break;
             }
 
-            case 1:
+            case WHO_SORT_LEVEL:
                 if (left.m_level == right.m_level) {
                     continue;
                 }
@@ -502,7 +502,7 @@ int32_t CompareWhoResults(const void* a, const void* b) {
                 result = 2 * (left.m_level >= right.m_level) - 1;
                 break;
 
-            case 2: {
+            case WHO_SORT_CLASS: {
                 ChrClassesRec* leftClass = g_chrClassesDB.GetRecord(left.m_class);
                 ChrClassesRec* rightClass = g_chrClassesDB.GetRecord(right.m_class);
 
@@ -514,11 +514,11 @@ int32_t CompareWhoResults(const void* a, const void* b) {
                 break;
             }
 
-            case 4:
+            case WHO_SORT_NAME:
                 result = SStrCmpUTF8I(left.m_name, right.m_name, STORM_MAX_STR);
                 break;
 
-            case 5: {
+            case WHO_SORT_RACE: {
                 ChrRacesRec* leftRace = g_chrRacesDB.GetRecord(left.m_race);
                 ChrRacesRec* rightRace = g_chrRacesDB.GetRecord(right.m_race);
 
@@ -530,7 +530,7 @@ int32_t CompareWhoResults(const void* a, const void* b) {
                 break;
             }
 
-            case 6:
+            case WHO_SORT_GUILD:
                 result = SStrSortUTF8I(left.m_guild, right.m_guild, STORM_MAX_STR);
                 break;
 

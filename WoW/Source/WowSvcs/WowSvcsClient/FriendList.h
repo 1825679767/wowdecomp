@@ -72,8 +72,19 @@ struct WhoResult {
     /* 00A0 */ int32_t m_zone;
 };
 
+enum WHO_SORT_TYPE : int32_t {
+    WHO_SORT_ZONE = 0,
+    WHO_SORT_LEVEL = 1,
+    WHO_SORT_CLASS = 2,
+    WHO_SORT_GROUP = 3,
+    WHO_SORT_NAME = 4,
+    WHO_SORT_RACE = 5,
+    WHO_SORT_GUILD = 6,
+    NUM_WHO_SORT_TYPES = 7,
+};
+
 struct WhoSortField {
-    /* 0000 */ int32_t m_field;
+    /* 0000 */ WHO_SORT_TYPE m_field;
     /* 0004 */ int32_t m_reverse;
 };
 
@@ -81,7 +92,7 @@ class FriendList {
     public:
     static void __stdcall AddFriend(const char* name, const char* note);
     static FriendList* s_friendList;
-    static WhoSortField s_whoSort[7];
+    static WhoSortField s_whoSort[NUM_WHO_SORT_TYPES];
     static uint32_t s_numWhoResults;
     static uint32_t s_totalWhoResults;
     static WhoResult s_whoResults[50];
