@@ -1,6 +1,7 @@
 #ifndef WOW_SOURCE_DB_DBCLIENT_DBCLIENT_H
 #define WOW_SOURCE_DB_DBCLIENT_DBCLIENT_H
 
+#include "WoW/Source/DB/Types.h"
 #include "WoW/Source/DB/WowClientDB.h"
 #include "WoW/Source/DB/Rec/AchievementRec.h"
 #include "WoW/Source/DB/Rec/Achievement_CategoryRec.h"
@@ -260,7 +261,7 @@ enum STRINGLOOKUP : uint32_t {
     // NUM_STRINGLOOKUPS = 10,
 };
 
-extern const char* g_localeNames[12];
+extern const char* g_localeNames[NUM_DB_LOCALES];
 extern WowClientDB<AchievementRec> g_achievementDB;
 extern WowClientDB<Achievement_CriteriaRec> g_achievement_CriteriaDB;
 extern WowClientDB<Achievement_CategoryRec> g_achievement_CategoryDB;
@@ -520,7 +521,7 @@ int32_t GetPhysicalDamageClassID();
 uint32_t GetPhysicalDamageClassMask();
 
 int32_t GetMapResetTime(int32_t mapId, uint32_t difficulty);
-int32_t LocaleNameToIndex(const char* locale);
+DB_LOCALE_INDEX LocaleNameToIndex(const char* locale);
 
 void DBCache_ClearTemporaryCaches();
 const char* ClientDBStringLookup(STRINGLOOKUP lookup);

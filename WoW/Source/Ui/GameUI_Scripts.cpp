@@ -2376,7 +2376,7 @@ static int32_t Script_GetTotemInfo(lua_State* L) {
 static int32_t Script_GetExistingLocales(lua_State* L) {
     int32_t count = 0;
 
-    for (int32_t i = 0; i < 12; i++) {
+    for (int32_t i = 0; i < NUM_DB_LOCALES; i++) {
         if (g_hasIsoLocale[i]) {
             lua_pushstring(L, g_localeNames[i]);
             count++;
