@@ -4,6 +4,19 @@
 #include <cstddef>
 #include <cstdint>
 
+enum VICTIMSTATES : uint32_t {
+    VS_NONE = 0,
+    VS_WOUND = 1,
+    VS_DODGE = 2,
+    VS_PARRY = 3,
+    VS_INTERRUPT = 4,
+    VS_BLOCK = 5,
+    VS_EVADE = 6,
+    VS_IMMUNE = 7,
+    VS_DEFLECT = 8,
+    NUM_VICTIMSTATES = 9,
+};
+
 enum MISS_REASON : int32_t {
     MISS_NONE = 0,
     MISS_PHYSICAL = 1,

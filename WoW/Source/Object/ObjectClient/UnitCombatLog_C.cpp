@@ -929,7 +929,7 @@ void QueueCombatLogEntry(CombatLogEntry* entry, uint32_t timeOffset) {
 // VERIFY: ebb52f1a auto
 // OFFSET: 0x00754FD0
 bool ShouldShowFeedback(const ATTACKROUNDINFO& info) {
-    return !info.m_meleeSpellId || info.m_victimState == 1;
+    return !info.m_meleeSpellId || info.m_victimState == VS_WOUND;
 }
 
 // VERIFY: 9b0ab217 manual
@@ -947,9 +947,9 @@ void UnitCombatLog(const ATTACKROUNDINFO& info) {
         return;
     }
 
-    uint32_t victimState = info.m_victimState;
+    VICTIMSTATES victimState = info.m_victimState;
 
-    if ((victimState == 1 || victimState == 5) && info.m_damage) {
+    if ((victimState == VS_WOUND || victimState == VS_BLOCK) && info.m_damage) {
         int32_t damage = info.m_damage;
         int32_t resisted = 0;
         int32_t absorbed = 0;
@@ -1035,27 +1035,27 @@ void UnitCombatLog(const ATTACKROUNDINFO& info) {
         int32_t textType;
 
         switch (victimState) {
-            case 2:
+            case VS_DODGE:
                 missType = 3;
                 textType = 4;
                 break;
-            case 3:
+            case VS_PARRY:
                 missType = 4;
                 textType = 5;
                 break;
-            case 5:
+            case VS_BLOCK:
                 missType = 5;
                 textType = 11;
                 break;
-            case 6:
+            case VS_EVADE:
                 missType = 6;
                 textType = 6;
                 break;
-            case 7:
+            case VS_IMMUNE:
                 missType = 7;
                 textType = 7;
                 break;
-            case 8:
+            case VS_DEFLECT:
                 missType = 9;
                 textType = 8;
                 break;

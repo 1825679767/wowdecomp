@@ -5269,12 +5269,12 @@ void TargetNearestEnemy(int32_t reverse, int32_t type) {
 }
 
 // STATIC: 0x00AC8050
-static const char* s_victimStateTokens[9] = { "MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT" };
+static const char* s_victimStateTokens[NUM_VICTIMSTATES] = { "MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT" };
 
 // VERIFY: e98c251d manual
 // OFFSET: 0x005133B0
 void CGGameUI::ShowCombatFeedbackAttackRoundInfo(const ATTACKROUNDINFO* info) {
-    if (!info || info->m_victimState >= 9) {
+    if (!info || info->m_victimState >= NUM_VICTIMSTATES) {
         SErrDisplayAppFatalMessage("", "", 0);
     }
 

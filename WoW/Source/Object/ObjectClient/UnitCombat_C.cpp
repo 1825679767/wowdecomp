@@ -144,7 +144,7 @@ void CGUnit_C::PlayVictimRound(const ATTACKROUNDINFO& info) {
     if (info.m_hitInfo & 0x2) {
         this->PlayWoundAnimKit(info.m_hitInfo & 0x200);
 
-        if ((info.m_damage || (info.m_hitInfo & 0x1000000)) && (info.m_victimState == 1 || info.m_victimState == 4)) {
+        if ((info.m_damage || (info.m_hitInfo & 0x1000000)) && (info.m_victimState == VS_WOUND || info.m_victimState == VS_INTERRUPT)) {
             WOWGUID attacker = info.m_attacker;
             this->ShowBloodSpurt(attacker, info.m_hitInfo & 0x8000);
         }
@@ -160,19 +160,19 @@ void CGUnit_C::PlayVictimRound(const ATTACKROUNDINFO& info) {
         s_nextVictimImpactTime = static_cast<uint32_t>((static_cast<uint64_t>(CRandom::uint32_(g_rndSeed)) * 2000) >> 32) + now + 3000;
     }
 
-    if (info.m_victimState == 3) {
+    if (info.m_victimState == VS_PARRY) {
         C3Vector position = this->GetPosition();
         this->SetImpactKitEffect(false, &info, &position);
     } else if (info.m_blocked) {
         C3Vector position = this->GetPosition();
         this->SetImpactKitEffect(true, &info, &position);
-    } else if (info.m_victimState == 8) {
+    } else if (info.m_victimState == VS_DEFLECT) {
         C3Vector position = this->GetPosition();
         position.z += 2.0f;
         SI2::PlaySoundKit("(DONOTRENAME)ShieldWoodImpact", &position, nullptr, nullptr);
     }
 
-    if ((info.m_hitInfo & 0xA0) || info.m_victimState == 7) {
+    if ((info.m_hitInfo & 0xA0) || info.m_victimState == VS_IMMUNE) {
         C3Vector position = this->GetPosition();
         position.z += 2.0f;
         SI2::PlaySoundKit("(DONOTRENAME)AbsorbGetHit", &position, nullptr, nullptr);
@@ -335,7 +335,7 @@ void ATTACKROUNDINFO::Unpack(CDataStore& msg) {
 
     uint8_t victimState;
     msg.Get(victimState);
-    this->m_victimState = victimState;
+    this->m_victimState = static_cast<VICTIMSTATES>(victimState);
     msg.Get(this->unk_0058);
     msg.Get(this->m_meleeSpellId);
 
@@ -363,7 +363,7 @@ void ATTACKROUNDINFO::Unpack(CDataStore& msg) {
     }
 
     if (ClntObjMgrObjectPtr(this->m_target, TYPEMASK_UNIT, __FILE__, __LINE__) && !this->m_damage && this->m_blocked) {
-        this->m_victimState = 5;
+        this->m_victimState = VS_BLOCK;
     }
 }
 
@@ -420,34 +420,34 @@ void CGUnit_C::PlayCombatSpellMissEffects(uint32_t reason, const WOWGUID& source
 void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
     WOWGUID activePlayer = ClntObjMgrGetActivePlayer();
 
-    if (info.m_meleeSpellId && info.m_victimState != 1) {
+    if (info.m_meleeSpellId && info.m_victimState != VS_WOUND) {
         return;
     }
 
-    uint32_t victimState = info.m_victimState;
+    VICTIMSTATES victimState = info.m_victimState;
 
-    if (victimState == 8) {
+    if (victimState == VS_DEFLECT) {
         WOWGUID source = info.m_attacker;
         this->AddWorldText(source, MISS_DEFLECTED, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
 
-    if (victimState == 3) {
+    if (victimState == VS_PARRY) {
         WOWGUID source = info.m_attacker;
         this->AddWorldText(source, MISS_PARRIED, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
 
-    if (victimState == 6) {
+    if (victimState == VS_EVADE) {
         WOWGUID source = info.m_attacker;
         this->AddWorldText(source, MISS_EVADED, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
 
-    if (victimState == 2) {
+    if (victimState == VS_DODGE) {
         if (info.m_attacker.m_guid) {
             CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
 
@@ -465,14 +465,14 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
         return;
     }
 
-    if (victimState == 5) {
+    if (victimState == VS_BLOCK) {
         WOWGUID source = info.m_attacker;
         this->AddWorldText(source, MISS_BLOCKED, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
         return;
     }
 
-    if (victimState == 7) {
+    if (victimState == VS_IMMUNE) {
         WOWGUID source = info.m_attacker;
         this->AddWorldText(source, MISS_IMMUNE, nullptr, false);
         CGGameUI::ShowCombatFeedbackAttackRoundInfo(&info);
@@ -595,9 +595,9 @@ void CGUnit_C::HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Ve
 
         case 0x48414324:
             if (attacker) {
-                uint32_t victimState = attacker->m_lastAttackRound.m_victimState;
+                VICTIMSTATES victimState = attacker->m_lastAttackRound.m_victimState;
 
-                if (!victimState || victimState == 2 || victimState == 6) {
+                if (!victimState || victimState == VS_DODGE || victimState == VS_EVADE) {
                     attacker->SetKeyBoneSequenceSpeed(attacker->m_worldModel, 0xFFFFFFFF, 0.5f, 0);
                 }
             } else if (!target) {
@@ -625,9 +625,9 @@ void CGUnit_C::HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Ve
                 return;
             }
 
-            uint32_t victimState = this->m_lastAttackRound.m_victimState;
+            VICTIMSTATES victimState = this->m_lastAttackRound.m_victimState;
 
-            if (!victimState || victimState == 2 || victimState == 6) {
+            if (!victimState || victimState == VS_DODGE || victimState == VS_EVADE) {
                 return;
             }
 
@@ -680,15 +680,15 @@ void CGUnit_C::HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Ve
                 return;
             }
 
-            uint32_t victimState = this->m_lastAttackRound.m_victimState;
+            VICTIMSTATES victimState = this->m_lastAttackRound.m_victimState;
 
-            if (victimState == 3) {
+            if (victimState == VS_PARRY) {
                 if (!target->m_creatureCacheEntry || !(target->m_creatureCacheEntry->m_typeFlags & 0x200000)) {
                     target->PlayParryAnimation();
                 }
 
                 this->m_lastAttackRound.m_hitInfo &= ~2u;
-            } else if (victimState == 2 || victimState == 8) {
+            } else if (victimState == VS_DODGE || victimState == VS_DEFLECT) {
                 if (!target->m_creatureCacheEntry || !(target->m_creatureCacheEntry->m_typeFlags & 0x200000)) {
                     target->PlayBaseAnimation(ANIM_DODGE, 0);
                 }
