@@ -179,9 +179,15 @@ int32_t CGxDeviceD3d11::DeviceCreate(void* window,const CGxFormat& format){
     m->width=format.m_size.x;m->height=format.m_size.y;if(!Initialize(false)){DeviceDestroy();return 0;}return 1;
 }
 int32_t CGxDeviceD3d11::DeviceSetFormat(const CGxFormat& format){
+    if(m->changingFormat||!m->device||format.m_size.x<=0||format.m_size.y<=0||format.m_size.x>16384||format.m_size.y>16384)return 0;
+    // DXGI fullscreen/refresh changes synchronously dispatch size/display
+    // messages too. Keep the guard through ResizeTarget, SetFullscreenState,
+    // buffer recreation and the native restored callbacks, including failures.
+    struct FormatScope {bool& active;explicit FormatScope(bool& value):active(value){active=true;}~FormatScope(){active=false;}} scope(m->changingFormat);
+    Log("DX11 requested format %dx%d refresh=%u window=%u samples=%u",format.m_size.x,format.m_size.y,format.m_refreshRate,format.m_window,format.m_multisampleCount);
+    if(m_log)SLogFlush(m_log);
     m->RestoreGamma();
     CGxDevice::DeviceSetFormat(format);if(!m->device)return 0;
-    m->changingFormat=true;
     if(m->window&&m->ownWindow){
         if(m->swapchain)m->swapchain->SetFullscreenState(FALSE,nullptr);
         const DWORD style=format.m_window?WS_OVERLAPPEDWINDOW:WS_POPUP;
@@ -189,7 +195,6 @@ int32_t CGxDeviceD3d11::DeviceSetFormat(const CGxFormat& format){
         AdjustWindowRectEx(&rect,style,FALSE,0);
         SetWindowPos(m->window,nullptr,0,0,rect.right-rect.left,rect.bottom-rect.top,SWP_NOMOVE|SWP_NOZORDER|SWP_FRAMECHANGED|SWP_NOACTIVATE);
     }
-    m->changingFormat=false;
     if(m->swapchain&&!format.m_window){
         DXGI_MODE_DESC mode{};mode.Width=format.m_size.x;mode.Height=format.m_size.y;
         mode.Format=DXGI_FORMAT_R8G8B8A8_UNORM;mode.RefreshRate.Numerator=format.m_refreshRate;mode.RefreshRate.Denominator=1;

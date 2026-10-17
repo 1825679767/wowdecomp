@@ -1,0 +1,13 @@
+# Retail armor material and graphics refresh transition correction
+
+User reports on the previous784bdaf live build: eyes slightly improved but still off; no retail3D equipment; graphics changes crash, likely changing refresh to50Hz. Testing now targets existing C:/Eunoia Wxl Mpq only; do not install this revision into E-live.
+
+Preserved actual live WXL-native/gx/GlueXML/FrameXML logs and one exact mounted C-test Spiritbringer collection model/SKIN in E:/WXL1.1/build/retail-gear-settings-failure-20261017. The log refuses Spiritbringer head, shoulders, collection and buckle because source21/33/35 lacks a prepared recipe. It provides no new native crash dump or actual50Hz transition trace.
+
+Actual collection from patch-9.MPQ has140bones,12sections/12batches, a custom0x8015 row with material flags17/blend4, replaceable skin type2 and a one-entry transparency lookup. Existing custom preparation unnecessarily required blend7, type0 and two lookup entries, unlike current dirty donor Skin.cpp/CombinerPatch.cpp. It refused the whole model before attachment.
+
+Custom recipe now retains native-supported blend0..7 and exact layer, admits type2 replaceable skin alongside type0 FDID textures, and captures the donor NextLookup shared secondary. Original model/SKIN fingerprints, final topology/batch provenance, native texture handles and strict palette/material/geometry bounds remain. Empty optional weight/transform tables are captured as -1, without dereferencing them; the byte converter remains responsible for explicit shared-secondary publication. No shader equation or fallback approximation is invented.
+
+DX11 display format changes now retain the reentrancy guard through fullscreen exit, ResizeTarget (including refresh change), fullscreen entry, ResizeBuffers and restored callbacks, including all error returns. Previously the guard was dropped before the DXGI mode change, allowing synchronous size/display events to reenter buffer resize. Requested format is flushed to gx.log before transition. This is a concrete lifecycle defect correction, not a claim the reported crash has been reproduced or fixed.
+
+Graphics controls enumerate MSAA formats for the actual active backend, and native SetScreenResolution/SetMultisampleFormat refuse empty/out-of-range UI indices before dereferencing their arrays. FPS limits remain optional and unchanged. No game/account actions, full client/Data copies, archive writes or live-client replacement. Combined build/source binding and installation receipt record exact outputs separately; actual eyes/gear/50Hz/world and uncapped memory acceptance remain open.

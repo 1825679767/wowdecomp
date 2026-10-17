@@ -249,6 +249,12 @@ static void SetupMultisampleFormats() {
         api = GxApi_D3d9Ex;
     }
 
+    // Enumerate the formats of the device actually used by this session.
+    // A -d3d11 launch must not populate this control with D3D9-only MSAA rows.
+    if (g_theGxDevicePtr) {
+        api = g_theGxDevicePtr->m_api;
+    }
+
     int32_t colorBits = 0;
     int32_t depthBits = 0;
 
@@ -478,6 +484,10 @@ static int32_t Script_SetScreenResolution(lua_State* L) {
         index = count < static_cast<uint32_t>(lua_tonumber(L, 1)) - 1 ? s_resolutions.Count() : static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
     }
 
+    if (index >= s_resolutions.Count()) {
+        return 0;
+    }
+
     CVar* gxResolution = CVar::Lookup("gxResolution");
 
     if (gxResolution && gxResolution->m_stringValue.m_str) {
@@ -506,6 +516,10 @@ static int32_t Script_SetMultisampleFormat(lua_State* L) {
     if (lua_isnumber(L, 1)) {
         uint32_t count = s_multisampleFormats.Count();
         index = count < static_cast<uint32_t>(lua_tonumber(L, 1)) - 1 ? s_multisampleFormats.Count() : static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
+    }
+
+    if (index >= s_multisampleFormats.Count()) {
+        return 0;
     }
 
     CVar* colorBits = CVar::Lookup("gxColorBits");

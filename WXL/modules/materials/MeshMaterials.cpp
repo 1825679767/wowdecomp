@@ -138,18 +138,26 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
   BatchSource record;record.custom=AddAlphaFamily(shader);std::memcpy(record.batch.data(),batch,24);
   if(Read<uint16_t>(batch,4)>=sections)return {};
   if(!record.custom){result->batches.push_back(record);continue;}
-  if(Read<uint16_t>(batch,14)!=2||Read<uint16_t>(batch,12))return {};
+  if(Read<uint16_t>(batch,14)!=2)return {};
   const uint32_t material=Read<uint16_t>(batch,10),combo=Read<uint16_t>(batch,16);
   if(material>=materials||combo>combos||combos-combo<2)return {};
   record.flags=Read<uint16_t>(body,materialAt+material*4);record.blend=Read<uint16_t>(body,materialAt+material*4+2);
-  if(record.flags>31||record.blend!=7)return {};
+  // The donor tags this combiner independently of material blend and layer.
+  // Retail armor uses the same equation on additive (4), layered rows too.
+  if(record.flags>31||record.blend>7)return {};
   for(uint32_t i=0;i<2;++i){
-   const auto index=Read<uint16_t>(body,comboAt+2*(combo+i));if(index>=textures||Read<uint32_t>(body,textureAt+index*16)!=0||Read<uint32_t>(body,textureAt+index*16+8)!=0)return {};
-   record.textureIndices[i]=index;record.textureIds[i]=Read<uint32_t>(txid.data(),index*4);if(!record.textureIds[i])return {};
+   const auto index=Read<uint16_t>(body,comboAt+2*(combo+i));if(index>=textures)return {};
+   const auto type=Read<uint32_t>(body,textureAt+index*16);
+   // Collection stages may use the actor-owned replaceable skin slot2.
+   // Native binding resolves its actual CTexture before the draw.
+   if((type!=0&&type!=2)||Read<uint32_t>(body,textureAt+index*16+8)!=0)return {};
+   record.textureIndices[i]=index;record.textureIds[i]=Read<uint32_t>(txid.data(),index*4);if(type==0&&!record.textureIds[i])return {};
    for(uint32_t head:{0x90u,0x98u}){
     const uint32_t count=Read<uint32_t>(body,head),lookup=Read<uint32_t>(body,head+4),first=Read<uint16_t>(batch,head==0x90?20:22);
-    if(first>count||count-first<2||!Range(bodySize,lookup,count,2))return {};
-    (head==0x90?record.weightIndices:record.transformIndices)[i]=Read<uint16_t>(body,lookup+2*(first+i));
+    if(!Range(bodySize,lookup,count,2)||(count&&first>=count))return {};
+    // Match donor NextLookup and M2Bytes' shared-secondary expansion.
+    const auto slot=count?(first+i<count?first+i:first):0u;
+    (head==0x90?record.weightIndices:record.transformIndices)[i]=count?Read<uint16_t>(body,lookup+2*slot):uint16_t(0xffff);
    }
   }
   std::memcpy(record.batch.data(),batch,24);result->batches.push_back(record);
@@ -378,11 +386,17 @@ bool Draw(CM2SceneRender& context,CGxBatch& draw){
  }else if(source->weighted){
   if(section.m_vertexStart!=captured.firstVertex||section.m_vertexCount!=captured.vertexCount||section.m_boneInfluences!=captured.influences||section.m_boneComboIndex!=captured.paletteOffset||section.m_boneCount!=captured.palette.size()||uint32_t(section.m_boneComboIndex)+section.m_boneCount>data.m_boneCombos.m_count)return false;
   for(uint32_t bone=0;bone<section.m_boneCount;++bone)if(data.m_boneCombos[section.m_boneComboIndex+bone]!=captured.palette[bone])return false;
-  if(!context.m_curShared->m_cache||!(context.m_curShared->m_cache->m_flags&8)||g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256||!WeightedDeclaration(*g_theGxDevicePtr)||!g_theGxDevicePtr->m_primVertexBuf||!g_theGxDevicePtr->m_primVertexBuf->m_hasData||g_theGxDevicePtr->m_primVertexBuf!=context.m_curShared->m_vertexBuf)return false; }else if(section.m_boneCount!=1||section.m_boneComboIndex>=data.m_boneCombos.m_count||data.m_boneCombos[section.m_boneComboIndex]!=0)return false; if(b.m_shader!=0x11||b.m_textureCount!=2||b.m_textureCoordComboIndex!=4||b.m_materialLayer)return false;
+  if(!context.m_curShared->m_cache||!(context.m_curShared->m_cache->m_flags&8)||g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256||!WeightedDeclaration(*g_theGxDevicePtr)||!g_theGxDevicePtr->m_primVertexBuf||!g_theGxDevicePtr->m_primVertexBuf->m_hasData||g_theGxDevicePtr->m_primVertexBuf!=context.m_curShared->m_vertexBuf)return false; }else if(section.m_boneCount!=1||section.m_boneComboIndex>=data.m_boneCombos.m_count||data.m_boneCombos[section.m_boneComboIndex]!=0)return false; if(b.m_shader!=0x11||b.m_textureCount!=2||b.m_textureCoordComboIndex!=4||b.m_materialLayer!=Read<uint16_t>(raw,12))return false;
  if(b.m_materialIndex!=Read<uint16_t>(raw,10)||b.m_textureComboIndex!=Read<uint16_t>(raw,16)||b.m_colorIndex!=Read<uint16_t>(raw,8)||b.m_textureWeightComboIndex!=Read<uint16_t>(raw,20)||b.m_textureTransformComboIndex!=Read<uint16_t>(raw,22)||context.m_curMaterial->m_blendMode!=record.blend||context.m_curMaterial->m_flags!=record.flags)return false;
  for(uint32_t i=0;i<2;++i){
   if(b.m_textureComboIndex+i>=data.m_textureCombos.m_count||data.m_textureCombos[b.m_textureComboIndex+i]!=record.textureIndices[i]||!context.m_curModel->m_textures[record.textureIndices[i]])return false;
-  if(b.m_textureWeightComboIndex+i>=data.m_textureWeightCombos.m_count||data.m_textureWeightCombos[b.m_textureWeightComboIndex+i]!=record.weightIndices[i]||b.m_textureTransformComboIndex+i>=data.m_textureTransformCombos.m_count||data.m_textureTransformCombos[b.m_textureTransformComboIndex+i]!=record.transformIndices[i])return false;
+  auto matches=[](const auto& table,uint32_t first,uint32_t stage,uint16_t expected){
+   if(!table.m_count)return expected==0xffff;
+   if(first>=table.m_count)return false;
+   const auto index=first+stage<table.m_count?first+stage:first;
+   return table[index]==expected;
+  };
+  if(!matches(data.m_textureWeightCombos,b.m_textureWeightComboIndex,i,record.weightIndices[i])||!matches(data.m_textureTransformCombos,b.m_textureTransformComboIndex,i,record.transformIndices[i]))return false;
  }
  try{auto* vertex=source->weighted&&!source->cpuSkinning?WeightedProgram(*g_theGxDevicePtr):Program(*g_theGxDevicePtr,GxSh_Vertex,VertexName,kCombinersModAddAlphaVs,sizeof(kCombinersModAddAlphaVs));
   auto* pixel=Program(*g_theGxDevicePtr,GxSh_Pixel,PixelName,kCombinersModAddAlphaPs,sizeof(kCombinersModAddAlphaPs));
