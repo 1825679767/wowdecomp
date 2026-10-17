@@ -23298,7 +23298,7 @@ const SpellVisualRec* CGUnit_C::GetAppropriateSpellVisual(const SpellRec* spell,
     const SpellVisualRec* primary = nullptr;
 
     if (visualId) {
-        if (ViolenceGetLevel() < 2 && lowViolenceVisualId) {
+        if (ViolenceGetLevel() < VIOLENCELEVEL_HIGH && lowViolenceVisualId) {
             id = lowViolenceVisualId;
         }
 

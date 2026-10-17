@@ -2424,7 +2424,7 @@ const char* GetPowerString(POWER_TYPE powerType) {
 const SpellVisualRec* GetSpellVisual(const SpellRec* spell) {
     int32_t visualId = spell->m_spellVisualID[0];
 
-    if (ViolenceGetLevel() < 2 && spell->m_spellVisualID[1]) {
+    if (ViolenceGetLevel() < VIOLENCELEVEL_HIGH && spell->m_spellVisualID[1]) {
         visualId = spell->m_spellVisualID[1];
     }
 
