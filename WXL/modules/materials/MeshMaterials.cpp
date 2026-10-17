@@ -54,6 +54,31 @@ bool RiftPath(const char* name) noexcept {
 bool PrepareNativeCompatibilitySkin(const char* modelPath,const uint8_t* raw,size_t size,const std::vector<uint8_t>& original,std::vector<uint8_t>& prepared){
  prepared.clear();
 
+ // Exact current donor FixTexUnits base-eye correction, before material cache
+ // finalization. The cornea and other races' eye shaders remain authored.
+ const auto femaleOrc=[](const char* path){
+  if(!path)return false;std::string key(path);for(auto& c:key){if(c=='/')c='\\';else if(c>='A'&&c<='Z')c=char(c-'A'+'a');}
+  return key.find("orc\\female")!=std::string::npos;
+ };
+ if(MaterialsEnabled()&&femaleOrc(modelPath)&&raw&&size>=312&&size<=64u*1024*1024&&original.size()>=48&&original.size()<=64u*1024*1024&&!std::memcmp(raw,"MD21",4)&&!std::memcmp(original.data(),"SKIN",4)){
+  const auto bodySize=Read<uint32_t>(raw,4);const auto* body=raw+8;
+  if(bodySize>=304&&bodySize<=size-8&&!std::memcmp(body,"MD20",4)&&Read<uint32_t>(body,4)==274){
+   const auto n=Read<uint32_t>(original.data(),36),at=Read<uint32_t>(original.data(),40),sections=Read<uint32_t>(original.data(),28),sectionAt=Read<uint32_t>(original.data(),32);
+   const auto textures=Read<uint32_t>(body,0x50),textureAt=Read<uint32_t>(body,0x54),combos=Read<uint32_t>(body,0x80),comboAt=Read<uint32_t>(body,0x84);
+   if(n&&n<=16384&&at>=48&&sectionAt>=48&&Range(original.size(),at,n,24)&&Range(original.size(),sectionAt,sections,48)&&Range(bodySize,textureAt,textures,16)&&Range(bodySize,comboAt,combos,2)){
+    std::vector<uint8_t> candidate;
+    for(uint32_t i=0;i<n;++i){const auto* batch=original.data()+at+24*i;const auto section=Read<uint16_t>(batch,4),combo=Read<uint16_t>(batch,16);
+     if(section>=sections||Read<uint16_t>(original.data()+sectionAt+48*section,0)/100!=33||Read<uint16_t>(batch,14)<2||uint32_t(combo)+1>=combos)continue;
+     const auto first=Read<uint16_t>(body,comboAt+2*combo),second=Read<uint16_t>(body,comboAt+2*(combo+1));
+     if(first!=second||first>=textures||Read<uint32_t>(body,textureAt+16*first)!=19)continue;
+     if(candidate.empty())candidate=original;const uint16_t shader=0x10,count=1;
+     std::memcpy(candidate.data()+at+24*i+2,&shader,2);std::memcpy(candidate.data()+at+24*i+14,&count,2);
+    }
+    if(!candidate.empty()){prepared.swap(candidate);return true;}
+   }
+  }
+ }
+
  // Port the exact existing donor RiftMeshPolicy signature, not a global33 map.
  if(!MaterialsEnabled()||!RiftPath(modelPath)||!raw||size<312||size>64u*1024*1024||std::memcmp(raw,"MD21",4)||original.size()<48||original.size()>64u*1024*1024||std::memcmp(original.data(),"SKIN",4))return false;
  const uint32_t bodySize=Read<uint32_t>(raw,4);if(bodySize<304||bodySize>size-8)return false;
@@ -157,7 +182,8 @@ std::shared_ptr<const Source> Prepare(const char* modelPath,const uint8_t* raw,s
     if(!Range(bodySize,lookup,count,2)||(count&&first>=count))return {};
     // Match donor NextLookup and M2Bytes' shared-secondary expansion.
     const auto slot=count?(first+i<count?first+i:first):0u;
-    (head==0x90?record.weightIndices:record.transformIndices)[i]=count?Read<uint16_t>(body,lookup+2*slot):uint16_t(0xffff);
+    const auto emptyTransform=head==0x98&&uint32_t(first)+i<Read<uint32_t>(body,0x60)?uint16_t(first+i):uint16_t(0xffff);
+    (head==0x90?record.weightIndices:record.transformIndices)[i]=count?Read<uint16_t>(body,lookup+2*slot):emptyTransform;
    }
   }
   std::memcpy(record.batch.data(),batch,24);result->batches.push_back(record);
@@ -386,8 +412,8 @@ bool Draw(CM2SceneRender& context,CGxBatch& draw){
  }else if(source->weighted){
   if(section.m_vertexStart!=captured.firstVertex||section.m_vertexCount!=captured.vertexCount||section.m_boneInfluences!=captured.influences||section.m_boneComboIndex!=captured.paletteOffset||section.m_boneCount!=captured.palette.size()||uint32_t(section.m_boneComboIndex)+section.m_boneCount>data.m_boneCombos.m_count)return false;
   for(uint32_t bone=0;bone<section.m_boneCount;++bone)if(data.m_boneCombos[section.m_boneComboIndex+bone]!=captured.palette[bone])return false;
-  if(!context.m_curShared->m_cache||!(context.m_curShared->m_cache->m_flags&8)||g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256||!WeightedDeclaration(*g_theGxDevicePtr)||!g_theGxDevicePtr->m_primVertexBuf||!g_theGxDevicePtr->m_primVertexBuf->m_hasData||g_theGxDevicePtr->m_primVertexBuf!=context.m_curShared->m_vertexBuf)return false; }else if(section.m_boneCount!=1||section.m_boneComboIndex>=data.m_boneCombos.m_count||data.m_boneCombos[section.m_boneComboIndex]!=0)return false; if(b.m_shader!=0x11||b.m_textureCount!=2||b.m_textureCoordComboIndex!=4||b.m_materialLayer!=Read<uint16_t>(raw,12))return false;
- if(b.m_materialIndex!=Read<uint16_t>(raw,10)||b.m_textureComboIndex!=Read<uint16_t>(raw,16)||b.m_colorIndex!=Read<uint16_t>(raw,8)||b.m_textureWeightComboIndex!=Read<uint16_t>(raw,20)||b.m_textureTransformComboIndex!=Read<uint16_t>(raw,22)||context.m_curMaterial->m_blendMode!=record.blend||context.m_curMaterial->m_flags!=record.flags)return false;
+  if(!context.m_curShared->m_cache||!(context.m_curShared->m_cache->m_flags&8)||g_theGxDevicePtr->Caps().m_shaderConstants[GxSh_Vertex]<256||!WeightedDeclaration(*g_theGxDevicePtr)||!g_theGxDevicePtr->m_primVertexBuf||!g_theGxDevicePtr->m_primVertexBuf->m_hasData||g_theGxDevicePtr->m_primVertexBuf!=context.m_curShared->m_vertexBuf)return false; }else if(section.m_boneCount!=1||section.m_boneComboIndex>=data.m_boneCombos.m_count||data.m_boneCombos[section.m_boneComboIndex]!=0)return false; if(b.m_shader!=(record.blend?0x4011:0x4001)||b.m_textureCount!=2||b.m_textureCoordComboIndex!=4||b.m_materialLayer!=Read<uint16_t>(raw,12))return false;
+ if(b.m_materialIndex!=Read<uint16_t>(raw,10)||b.m_textureComboIndex!=Read<uint16_t>(raw,16)||b.m_colorIndex!=Read<uint16_t>(raw,8)||b.m_textureWeightComboIndex!=Read<uint16_t>(raw,20)||b.m_textureTransformComboIndex!=Read<uint16_t>(raw,22)||context.m_curMaterial->m_blendMode!=record.blend||context.m_curMaterial->m_flags!=(record.flags|((record.blend==5||record.blend==6)?1u:0u)))return false;
  for(uint32_t i=0;i<2;++i){
   if(b.m_textureComboIndex+i>=data.m_textureCombos.m_count||data.m_textureCombos[b.m_textureComboIndex+i]!=record.textureIndices[i]||!context.m_curModel->m_textures[record.textureIndices[i]])return false;
   auto matches=[](const auto& table,uint32_t first,uint32_t stage,uint16_t expected){

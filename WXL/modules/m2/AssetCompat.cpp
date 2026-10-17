@@ -69,11 +69,15 @@ bool ReadCompanion(const char* path,std::vector<uint8_t>& output){
   if(!skin.mesh)mesh_materials::PrepareNativeCompatibilitySkin(loading->meshPath.c_str(),loading->meshInput,loading->meshInputSize,skin.original,skin.prepared);
   // Exact renderer-owned prepared skins have priority. Sample the optional
   // approximation policy once per model, never per batch or asynchronous read.
-  if(skin.prepared.empty() && loading->donorFallback){
-   std::string reason;
-   if(!PrepareDonorMaterialSkin(loading->meshInput,loading->meshInputSize,skin.original,skin.prepared,skin.donor,reason)){
+  if(!skin.mesh && loading->donorFallback){
+   std::string reason;std::vector<uint8_t> compatible;
+   // A finite pre-finalization fix (for example Orc eyes) can coexist with
+   // ordinary donor shader approximations elsewhere in the same SKIN.
+   const auto& input=skin.prepared.empty()?skin.original:skin.prepared;
+   if(!PrepareDonorMaterialSkin(loading->meshInput,loading->meshInputSize,input,compatible,skin.donor,reason)){
     WLOG_WARN("native-donor-material: refused model=%s skin=%s reason=%s",loading->meshPath.c_str(),path,reason.c_str());return false;
    }
+   if(!compatible.empty())skin.prepared=std::move(compatible);
   }
   if(!skin.prepared.empty())output=skin.prepared;
  }

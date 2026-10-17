@@ -197,7 +197,14 @@ bool Skin(const std::vector<uint8_t>& b,const f::M2Header& h,std::span<const uin
         // Validate every retained stage. Optional -1 lookups mean
         // no weight/transform; populated lookup tables must reference real data.
         auto lookup=[&](const f::M2Array& array,uint32_t count,uint16_t index,uint32_t stage,bool weight) {
-            if(!array.count)return true;
+            if(!array.count){
+                // Native render/material setup directly indexes these tables.
+                // Preserve absent weights as unity (-1); donor skin finalization
+                // synthesizes identity transform indices when tracks exist.
+                auto& needed=weight?stats.emptyWeightEntries:stats.emptyTransformEntries;
+                needed=(std::max)(needed,uint32_t(index)+1);
+                return true;
+            }
             if(index>=array.count){
                 // x32 NextLookup reuses the primary when its secondary entry is
                 // absent. Serialize that same shared stage explicitly for x64.
@@ -524,6 +531,15 @@ static bool ConvertImpl(const char* path,std::span<const uint8_t> input,Resolve 
         lookup.push_back(lookup[(n-1)*2]);lookup.push_back(lookup[(n-1)*2+1]);
         if(result.size()%2)result.push_back(0);const auto offset=uint32_t(result.size());
         result.insert(result.end(),lookup.begin(),lookup.end());d::Wr32(result.data()+head,n+1);d::Wr32(result.data()+head+4,offset);
+    }
+    for(uint32_t head:{0x90u,0x98u}){
+        const auto needed=head==0x90?stats.emptyWeightEntries:stats.emptyTransformEntries;
+        if(!needed)continue;
+        if(d::Rd32(result.data()+head)||needed>65536||result.size()+2*needed+1>Limit)return fail("optional stage lookup budget");
+        const auto tracks=d::Rd32(result.data()+(head==0x90?0x58:0x60));
+        if(result.size()%2)result.push_back(0);const auto at=uint32_t(result.size());result.resize(result.size()+2*needed);
+        for(uint32_t i=0;i<needed;++i)d::Wr16(result.data()+at+2*i,head==0x98&&i<tracks?uint16_t(i):uint16_t(0xffff));
+        d::Wr32(result.data()+head,needed);d::Wr32(result.data()+head+4,at);
     }
     const uint32_t textureCount=d::Rd32(result.data()+0x50),textureOffset=d::Rd32(result.data()+0x54);
     for(uint32_t i=0;i<textureCount;++i) {

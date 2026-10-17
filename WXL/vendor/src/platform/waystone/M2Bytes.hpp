@@ -9,7 +9,7 @@
 namespace wxl::waystone::m2bytes {
 using Resolve=const char*(__cdecl*)(uint32_t);
 using Read=bool(*)(const char*,std::vector<uint8_t>&);
-struct Stats {uint32_t version{},textures{},particles{},cameras{},skins{},omittedEmitters{},twoStageBatches{},animationFiles{},skeletonFiles{},aliases{},sharedWeightStage{},sharedTransformStage{},collapsedNamedBatches{},envSplitBatches{},stage13Batches{},privateTextureSlots{};std::array<uint64_t,4> skinFingerprints{};std::string reason;};
+struct Stats {uint32_t version{},textures{},particles{},cameras{},skins{},omittedEmitters{},twoStageBatches{},animationFiles{},skeletonFiles{},aliases{},sharedWeightStage{},sharedTransformStage{},emptyWeightEntries{},emptyTransformEntries{},collapsedNamedBatches{},envSplitBatches{},stage13Batches{},privateTextureSlots{};std::array<uint64_t,4> skinFingerprints{};std::string reason;};
 // Immutable, unpublished CPU source/prepared pair. This grants no native owner,
 // registry registration, provider admission or palette/material capability.
 struct PartitionedPair {

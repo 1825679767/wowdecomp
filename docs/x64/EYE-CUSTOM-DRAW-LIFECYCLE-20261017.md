@@ -1,0 +1,13 @@
+# Eye and custom armor draw lifecycle parity
+
+Continue only on existing C:/Eunoia Wxl Mpq. E-live retained784bdaf, FPS optional, no client/Data copy. Previous C-test5be94d2 has no new WXL-native.log yet; no fresh runtime result is inferred.
+
+Exact current dirty donor Skin.cpp::FixTexUnits collapses female Orc group33 batches when their first two source stages reference the same type19 eye texture. Native lacked it. Exact C-test Human/Orc model/SKIN extraction in build/eye-race-source-parity-20261017 confirms both meshes have group3301/shader0x4013/types19,19, but the donor limits its correction to female Orc. Native carries that exact scope; Human's different eye appearance remains unresolved. Raw model/SKIN provenance is retained; no source geometry is discarded. The finite correction composes with the existing donor fallback on other sibling rows rather than bypassing it.
+
+Custom21/33/35 draw had a concrete native lifecycle mismatch: ConvertSkin emits a combiner lookup index; required CM2Shared::SubstituteSimpleShaders decodes it and sets the0x4000 second-UV bit, yielding0x4011 (0x4001 with opaque primary), not0x11. The draw gate now checks that exact native result. It still validates source/material/stages/palette/batch identity. Native additive/unlit flag adjustment for blends5/6 is checked explicitly. No unknown shader admission.
+
+The later optional SubstituteSpecializedShaders pass can fuse layered siblings and rewrite their batch/stage identity. It is skipped only for an actual model-owned custom mesh recipe. The required simple decode still executes. Existing custom draw and stock sibling paths remain; no batch is discarded or hidden to fake success.
+
+Serialized source may omit optional weight/transform lookup tables. Native draw and material optimization index them directly. Conversion now publishes bounded required entries across every validated SKIN: absent weights use-1/unity, absent transform lookup uses identity indices for available tracks and-1 otherwise, matching donor EnsureTextureTransformLookup. Existing shared-secondary expansion remains, populated malformed tables remain refused, all allocations obey64MiB output/16bit lookup constraints. Custom recipe capture uses the same synthesized transform expectation.
+
+Build and source binding are recorded separately from actual gameplay. No tiny native fixtures/game/account tests were run. Remaining acceptance includes all eyes (especially Human), Earthen/Harranir and other race sheets/children, actual retail armor source admission and draw, visual blend/pose correctness, graphics50Hz transition, selection/world/save and long-run uncapped memory. A successful build does not resolve the user's failed visuals.

@@ -1038,6 +1038,10 @@ void CM2Shared::AssignBatchTextureComboIndices() {
 // VERIFY: 5e824557 manual
 // OFFSET: 0x00837680
 void CM2Shared::SubstituteSpecializedShaders() {
+    // Custom material recipes own exact batch/stage identities. The simple
+    // shader decode above is required; the optional layered-pass fusion below
+    // would invalidate those identities after their publication check.
+    if (wxl::native::MeshSourceFor(*this)) return;
     M2SkinProfile* skinData = this->m_skinData;
 
     if (!skinData->m_indices.m_count) {
