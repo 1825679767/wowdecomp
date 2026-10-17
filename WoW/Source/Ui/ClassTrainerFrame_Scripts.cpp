@@ -282,20 +282,20 @@ static int32_t Script_GetTrainerServiceSkillLine(lua_State* L) {
 
 // VERIFY: 800b7538 auto
 // OFFSET: 0x00593DB0
-static int32_t GetServiceTypeFromString(const char* type) {
+static TRAINER_SERVICE GetServiceTypeFromString(const char* type) {
     if (!type) {
-        return 6;
+        return NUM_TRAINER_SERVICE_TYPES;
     }
 
     if (!SStrCmpI(type, "available", STORM_MAX_STR)) {
-        return 0;
+        return TRAINER_SERVICE_AVAILABLE;
     }
 
     if (!SStrCmpI(type, "unavailable", STORM_MAX_STR)) {
-        return 1;
+        return TRAINER_SERVICE_UNAVAILABLE;
     }
 
-    return SStrCmpI(type, "used", STORM_MAX_STR) ? 6 : 2;
+    return SStrCmpI(type, "used", STORM_MAX_STR) ? NUM_TRAINER_SERVICE_TYPES : TRAINER_SERVICE_USED;
 }
 
 // VERIFY: e17cbd49 auto
@@ -306,9 +306,9 @@ static int32_t Script_GetTrainerServiceTypeFilter(lua_State* L) {
         return 0;
     }
 
-    int32_t type = GetServiceTypeFromString(lua_tolstring(L, 1, nullptr));
+    TRAINER_SERVICE type = GetServiceTypeFromString(lua_tolstring(L, 1, nullptr));
 
-    if (type == 6) {
+    if (type == NUM_TRAINER_SERVICE_TYPES) {
         luaL_error(L, "Bad service type in GetTrainerServiceTypeFilter");
         return 0;
     }
@@ -646,7 +646,7 @@ static int32_t Script_GetTrainerServiceStepIncrease(lua_State* L) {
                 }
             }
 
-            if (effect < 3 && service->m_state != 2) {
+            if (effect < 3 && service->m_state != TRAINER_SERVICE_USED) {
                 int32_t previous = 0;
                 SpellRec step;
                 int32_t minPoints;
@@ -723,9 +723,9 @@ static int32_t Script_SetTrainerServiceTypeFilter(lua_State* L) {
         return 0;
     }
 
-    int32_t serviceType = GetServiceTypeFromString(type);
+    TRAINER_SERVICE serviceType = GetServiceTypeFromString(type);
 
-    if (serviceType == 6) {
+    if (serviceType == NUM_TRAINER_SERVICE_TYPES) {
         luaL_error(L, "Bad service type in SetTrainerServiceTypeFilter");
         return 0;
     }

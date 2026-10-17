@@ -16,6 +16,18 @@ enum TRAINER_TYPE : int32_t {
     // NUM_TRAINER_TYPES = 4,
 };
 
+enum TRAINER_SERVICE : int32_t {
+    TRAINER_SERVICE_AVAILABLE = 0,
+    TRAINER_SERVICE_UNAVAILABLE = 1,
+    TRAINER_SERVICE_USED = 2,
+    NUM_TRAINER_SERVICE_TYPES = 6,
+
+    // Unused 0.5.3 names; current meanings of slots 3..5 are unverified.
+    // TRAINER_SERVICE_NOT_SHOWN = 3,
+    // TRAINER_SERVICE_NEVER = 4,
+    // TRAINER_SERVICE_NO_PET = 5,
+};
+
 struct lua_State;
 
 struct TrainerServiceInfo {
@@ -37,7 +49,7 @@ struct TrainerServiceInfo {
 
 struct TrainerSkillLineInfo {
     /* 0000 */ int32_t m_skillLine;
-    /* 0004 */ uint32_t m_stateCounts[6];
+    /* 0004 */ uint32_t m_stateCounts[NUM_TRAINER_SERVICE_TYPES];
     /* 001C */ int32_t m_visible;
     /* 0020 */ int32_t m_collapsed;
     /* 0024 */ int32_t unk_0024;
