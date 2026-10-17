@@ -91,6 +91,9 @@ static const float s_smoothViewDataMax[2] = { 100.0f, 100.0f };
 // STATIC: 0x00AD2178
 static float s_lastLiquidBumpPitch = std::numeric_limits<float>::max();
 
+static const float CAMERASHAKEMINDISTANCE = 9.0f;
+static const float CAMERASHAKEMAXDISTANCE = 80.0f;
+
 // STATIC: 0x00AD2114
 static float s_shakeFalloffStartSqr = 81.0f;
 
@@ -4065,7 +4068,7 @@ void CGCamera::RunShakes(const C3Vector& position, C3Vector& offset) {
         if (time < shake->m_duration) {
             float amplitude = shake->m_amplitude;
 
-            if (ComputeShakeFalloff(position, shake->m_position, amplitude, 9.0f, s_shakeFalloffStartSqr, 80.0f, s_shakeFalloffMaxSqr) && amplitude > amplitudes[shake->m_dir]) {
+            if (ComputeShakeFalloff(position, shake->m_position, amplitude, CAMERASHAKEMINDISTANCE, s_shakeFalloffStartSqr, CAMERASHAKEMAXDISTANCE, s_shakeFalloffMaxSqr) && amplitude > amplitudes[shake->m_dir]) {
                 amplitudes[shake->m_dir] = amplitude;
                 shakes[shake->m_dir] = shake;
                 times[shake->m_dir] = time;
