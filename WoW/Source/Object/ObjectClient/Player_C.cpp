@@ -6487,7 +6487,7 @@ void CGPlayer_C::HandleOnRightClick(CGUnit_C* unit, bool autoInteract) {
         if (reach * reach < distanceSq) {
             WOWGUID guid = unit->m_obj->m_guid;
 
-            if (this->SetTrackingTarget(guid, 5)) {
+            if (this->SetTrackingTarget(guid, TRACKTYPE_INTERACT)) {
                 return;
             }
         }
@@ -8724,7 +8724,7 @@ void CGPlayer_C::LootCorpse(CGCorpse_C* corpse, bool autoInteract) {
         if (dx * dx + (dy * dy + dz * dz) > 25.0f) {
             WOWGUID guid = corpse->m_obj->m_guid;
 
-            if (this->SetTrackingTarget(guid, 6)) {
+            if (this->SetTrackingTarget(guid, TRACKTYPE_LOOT)) {
                 return;
             }
         }
@@ -8758,7 +8758,7 @@ void CGPlayer_C::LootUnit(CGUnit_C* unit, bool autoInteract) {
         if (range * range < dx * dx + (dy * dy + dz * dz)) {
             WOWGUID guid = unit->m_obj->m_guid;
 
-            if (this->SetTrackingTarget(guid, 6)) {
+            if (this->SetTrackingTarget(guid, TRACKTYPE_LOOT)) {
                 return;
             }
         }
@@ -14051,7 +14051,7 @@ void CGPlayer_C::HandleSkinning(CGObject_C* object, bool autoInteract, bool a4) 
     float dz = position.z - target.z;
 
     if (maxRange * maxRange <= dx * dx + dz * dz + dy * dy && autoInteract) {
-        this->SetTrackingTarget(object->m_obj->m_guid, 9);
+        this->SetTrackingTarget(object->m_obj->m_guid, TRACKTYPE_SKIN);
     } else {
         Spell_C::CastSpell(CGSpellBook::GetSkinningSpell(object), nullptr, object->m_obj->m_guid, false);
     }

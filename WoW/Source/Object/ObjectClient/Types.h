@@ -4,6 +4,23 @@
 #include <cstddef>
 #include <cstdint>
 
+enum TRACKTYPE : int32_t {
+    TRACKTYPE_SPELLPRECAST = 0,
+    TRACKTYPE_SPELLCHANNEL = 1,
+    TRACKTYPE_FACE = 2,
+    TRACKTYPE_FOLLOW = 3,
+    TRACKTYPE_MOVE = 4,
+    TRACKTYPE_INTERACT = 5,
+    TRACKTYPE_LOOT = 6,
+    TRACKTYPE_USE_OBJECT = 7,
+    TRACKTYPE_MOVE_DIRECTION = 8,
+    TRACKTYPE_SKIN = 9,
+    TRACKTYPE_ATTACK = 10,
+    TRACKTYPE_RANGED_ATTACK = 11,
+    TRACKTYPE_NONE = 13,
+    // Value 12 has no verified role; NONE is not an action-table count.
+};
+
 enum UNIT_SEX : uint32_t {
     UNITSEX_MALE = 0,
     UNITSEX_FEMALE = 1,

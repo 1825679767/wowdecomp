@@ -903,7 +903,7 @@ void SpellVisualsHandleCastStart(CGUnit_C* unit, PendingSpellCastData* data, con
 
         if (unit->IsActivePlayer() && (spell->m_attributes & 0x400000) && (data->m_targetFlags & 0x2) && data->m_objectTarget.m_guid) {
             if (!(spell->m_facingCasterFlags & 0x1) || unit->IsInFrontOfTargetWithGuid(data->m_objectTarget)) {
-                unit->SetTrackingTarget(data->m_objectTarget, 0);
+                unit->SetTrackingTarget(data->m_objectTarget, TRACKTYPE_SPELLPRECAST);
             }
         }
 
@@ -1087,7 +1087,7 @@ void PendingSpellCast::OnSpellStartPacket(CDataStore* msg) {
         }
 
         if (spell.m_attributes & 0x400000) {
-            unit->SetTrackingTarget(target, 0);
+            unit->SetTrackingTarget(target, TRACKTYPE_SPELLPRECAST);
         }
     } else if ((this->m_data.m_targetFlags & 0x2) && this->m_data.m_objectTarget.m_guid && this->m_data.m_objectTarget == ClntObjMgrGetActivePlayer()) {
         CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();

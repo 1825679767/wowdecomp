@@ -3323,7 +3323,7 @@ void CGCamera::SmoothFreeLook(CGInputControl* input, int32_t idle) {
     }
 
     if (this->m_state & 0x100) {
-        if (CGUnit_C::GetTrackingType() == 3 && !(this->m_flags & 0x1)) {
+        if (CGUnit_C::GetTrackingType() == TRACKTYPE_FOLLOW && !(this->m_flags & 0x1)) {
             reasons |= 0x8;
         } else {
             reasons |= 0x4;

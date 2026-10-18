@@ -1551,7 +1551,7 @@ void CGUnit_C::PreAnimate(CGWorldFrame* frame) {
             if (!this->m_mountModel && (this->m_animationState & 0x80)) {
                 float twist = remaining;
 
-                if (this->m_obj->m_guid != CGUnit_C::s_activeMover || CGUnit_C::s_trackingType == 13) {
+                if (this->m_obj->m_guid != CGUnit_C::s_activeMover || CGUnit_C::s_trackingType == TRACKTYPE_NONE) {
                     twist = twist * 0.5f;
                 }
 
@@ -2232,7 +2232,7 @@ void CGUnit_C::ScaleChangeFinished() {
 // VERIFY: 98d1f3d2 manual
 // OFFSET: 0x007275C0
 void CGUnit_C::RenderAutoTrackCursor() {
-    if (this->m_obj->m_guid != CGUnit_C::s_activeMover || CGUnit_C::s_trackingType == 13 || (CGUnit_C::s_trackingType != 4 && CGUnit_C::s_trackingType != 10)) {
+    if (this->m_obj->m_guid != CGUnit_C::s_activeMover || CGUnit_C::s_trackingType == TRACKTYPE_NONE || (CGUnit_C::s_trackingType != TRACKTYPE_MOVE && CGUnit_C::s_trackingType != TRACKTYPE_ATTACK)) {
         return;
     }
 
@@ -5305,7 +5305,7 @@ void CGUnit_C::Initialize() {
         }
     }
 
-    CGUnit_C::s_trackingType = 13;
+    CGUnit_C::s_trackingType = TRACKTYPE_NONE;
     CGUnit_C::s_trackingStuckCount = 0;
     s_pendingAttackTarget = WOWGUID();
     s_pendingLootTarget = WOWGUID();
@@ -7290,13 +7290,13 @@ bool CGUnit_C::IsCancelShapeshiftAtFlightMaster() const {
 // VERIFY: 1c8b9c45 auto
 // OFFSET: 0x00721F90
 int32_t CGUnit_C::IsAutoTracking() const {
-    return this->m_obj->m_guid == s_activeMover && s_trackingType != 13;
+    return this->m_obj->m_guid == s_activeMover && s_trackingType != TRACKTYPE_NONE;
 }
 
 // VERIFY: d88b4789 auto
 // OFFSET: 0x00721FC0
 bool CGUnit_C::IsActiveMoverTracking(uint32_t typeMask) const {
-    if (s_trackingType == 13) {
+    if (s_trackingType == TRACKTYPE_NONE) {
         return false;
     }
 
@@ -7312,16 +7312,16 @@ void CGUnit_C::TrackingMakeRelativeTo(const C44Matrix* transform, float facing) 
 
     uint32_t type = s_trackingType;
 
-    if (type == 13) {
+    if (type == TRACKTYPE_NONE) {
         return;
     }
 
-    if (type == 4) {
+    if (type == TRACKTYPE_MOVE) {
         s_trackingPosition *= *transform;
         type = s_trackingType;
     }
 
-    if (type == 2 || type == 8) {
+    if (type == TRACKTYPE_FACE || type == TRACKTYPE_MOVE_DIRECTION) {
         s_trackingDirection = CMath::normalizeangle0to2pi_(s_trackingDirection + facing);
     }
 }
@@ -10283,11 +10283,11 @@ void CGUnit_C::OnDeath() {
 // VERIFY: 2de1faa3 auto
 // OFFSET: 0x007272C0
 void CGUnit_C::ClearTrackingTarget(bool a2, bool a3) {
-    if (this->m_obj->m_guid != CGUnit_C::s_activeMover || CGUnit_C::s_trackingType == 13) {
+    if (this->m_obj->m_guid != CGUnit_C::s_activeMover || CGUnit_C::s_trackingType == TRACKTYPE_NONE) {
         return;
     }
 
-    if (CGUnit_C::s_trackingType == 3) {
+    if (CGUnit_C::s_trackingType == TRACKTYPE_FOLLOW) {
         FrameScript_SignalEvent(SCRIPT_EVENT_AUTOFOLLOW_END, nullptr);
     }
 
@@ -10317,7 +10317,7 @@ void CGUnit_C::ClearTrackingTarget(bool a2, bool a3) {
     CGUnit_C::s_unused_CA11D0 = 0.0f;
     CGUnit_C::s_trackingFlags = 0;
     CGUnit_C::s_trackingStuckCount = 0;
-    CGUnit_C::s_trackingType = 13;
+    CGUnit_C::s_trackingType = TRACKTYPE_NONE;
 }
 
 // VERIFY: c1cb1df0 auto
@@ -10353,7 +10353,7 @@ CGUnit_C::~CGUnit_C() {
     }
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGUnit_C::s_trackingType = 13;
+        CGUnit_C::s_trackingType = TRACKTYPE_NONE;
         CGUnit_C::s_trackingStuckCount = 0;
         CGUnit_C::s_activeMover = WOWGUID();
     }
@@ -10504,7 +10504,7 @@ void CGUnit_C::Disable() {
     this->m_movementData.Disable();
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        if (CGUnit_C::s_trackingType != 13) {
+        if (CGUnit_C::s_trackingType != TRACKTYPE_NONE) {
             this->ClearTrackingTarget(false, true);
         }
 
@@ -10687,7 +10687,7 @@ void WeaponTrailsInitialize() {
 // VERIFY: bdb50cd0 manual
 // OFFSET: 0x0072EA50
 void CGUnit_C::OnSetRawFacingLocal(uint32_t eventTime, float facing) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10701,7 +10701,7 @@ void CGUnit_C::OnSetRawFacingLocal(uint32_t eventTime, float facing) {
 // VERIFY: 0e4f2f38 manual
 // OFFSET: 0x0072EAD0
 void CGUnit_C::OnSetPitchLocal(uint32_t eventTime, float pitch) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10745,7 +10745,7 @@ int32_t CGUnit_C::ClampRawAngleToLegalFacingRange(float& angle) const {
 // VERIFY: eb34d923 manual
 // OFFSET: 0x0072D3F0
 void CGUnit_C::OnTurnToAngleLocal(uint32_t eventTime, float facing) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10759,7 +10759,7 @@ void CGUnit_C::OnTurnToAngleLocal(uint32_t eventTime, float facing) {
 // VERIFY: 5a1f7b23 manual
 // OFFSET: 0x0072D470
 void CGUnit_C::OnPitchToAngleLocal(uint32_t eventTime, float pitch) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10811,7 +10811,7 @@ void CGUnit_C::OnTurnStopLocal(uint32_t eventTime) {
 // VERIFY: c9647570 manual
 // OFFSET: 0x0072E5D0
 void CGUnit_C::OnMoveStartLocal(uint32_t eventTime, int32_t forward) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10829,7 +10829,7 @@ void CGUnit_C::OnMoveStartLocal(uint32_t eventTime, int32_t forward) {
 // VERIFY: 97b45c2f manual
 // OFFSET: 0x0072E680
 void CGUnit_C::OnStrafeStartLocal(uint32_t eventTime, int32_t left) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10847,7 +10847,7 @@ void CGUnit_C::OnStrafeStartLocal(uint32_t eventTime, int32_t left) {
 // VERIFY: 779d8288 manual
 // OFFSET: 0x0072E730
 void CGUnit_C::OnAscendDescendStartLocal(uint32_t eventTime, int32_t ascend) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10871,7 +10871,7 @@ void CGUnit_C::OnTurnStartLocal(uint32_t eventTime, int32_t left) {
         Spell_C_CancelChannelSpell(this->m_unit->m_unitChannelSpell);
     }
 
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10889,7 +10889,7 @@ void CGUnit_C::OnTurnStartLocal(uint32_t eventTime, int32_t left) {
 // VERIFY: 4d6a8b9a manual
 // OFFSET: 0x0072E900
 void CGUnit_C::OnPitchStartLocal(uint32_t eventTime, int32_t up) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -10907,7 +10907,7 @@ void CGUnit_C::OnPitchStartLocal(uint32_t eventTime, int32_t up) {
 // VERIFY: 978d0d24 manual
 // OFFSET: 0x0072E9B0
 void CGUnit_C::OnPitchStopLocal(uint32_t eventTime) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -13244,7 +13244,7 @@ void CGUnit_C::SetActiveMover(uint64_t guid) {
     CGUnit_C* oldMover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
 
     if (oldMover) {
-        if (oldMover->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13) {
+        if (oldMover->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE) {
             oldMover->ClearTrackingTarget(false, true);
         }
 
@@ -13294,7 +13294,7 @@ void CGUnit_C::SetActiveMover(uint64_t guid) {
 // VERIFY: e6e292bd manual
 // OFFSET: 0x0072AEC0
 void CGUnit_C::OnMovementInitiated(bool clearTracking, bool keepLoot) {
-    if (clearTracking && this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13 && !(CGUnit_C::s_trackingFlags & 0x1)) {
+    if (clearTracking && this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE && !(CGUnit_C::s_trackingFlags & 0x1)) {
         this->ClearTrackingTarget(false, true);
     }
 
@@ -14077,7 +14077,7 @@ int32_t CGUnit_C::ShowRangedWeapon(bool sheathed, bool* rightHand) {
     }
 
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && track) {
-        this->SetTrackingTarget(CGGameUI::m_lockedTarget, 0);
+        this->SetTrackingTarget(CGGameUI::m_lockedTarget, TRACKTYPE_SPELLPRECAST);
     }
 
     if (sheathed) {
@@ -18237,7 +18237,7 @@ void CGUnit_C::ClearCastingSpell(int32_t spellId, bool clearChannel, bool a4) {
                 float facing = CalculateFacingTo(&position, &targetPosition);
                 C3Vector none = C3Vector();
                 WOWGUID guid = WOWGUID();
-                static_cast<CGPlayer_C*>(this)->ClickToMove(2, &guid, &none, facing);
+                static_cast<CGPlayer_C*>(this)->ClickToMove(TRACKTYPE_FACE, &guid, &none, facing);
             }
         }
 
@@ -18409,7 +18409,7 @@ void CGUnit_C::OnChannelObjectChanged(WOWGUID oldObject, int32_t oldSpell) {
 
     if (g_spellDB.GetRecord(this->m_unit->m_unitChannelSpell, &spell) && (spell.m_attributesEx & 0x4000) && this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         WOWGUID target = this->m_unit->m_unitFieldChannelObject;
-        this->SetTrackingTarget(target, 1);
+        this->SetTrackingTarget(target, TRACKTYPE_SPELLCHANNEL);
     }
 }
 
@@ -18428,7 +18428,7 @@ void CGUnit_C::UpdateChannelEffects() {
 
         if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
             WOWGUID target = this->m_unit->m_unitFieldChannelObject;
-            this->SetTrackingTarget(target, 1);
+            this->SetTrackingTarget(target, TRACKTYPE_SPELLCHANNEL);
         }
     }
 
@@ -22445,15 +22445,15 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
     float maxRange;
 
     switch (action) {
-        case 3:
+        case TRACKTYPE_FOLLOW:
             *distance = s_trackingFollowDistanceSq;
             return true;
 
-        case 4:
+        case TRACKTYPE_MOVE:
             *distance = s_trackingTerrainDistanceSq;
             return true;
 
-        case 5: {
+        case TRACKTYPE_INTERACT: {
             CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
             if (unit) {
@@ -22466,19 +22466,19 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
             return true;
         }
 
-        case 6:
-        case 10: {
+        case TRACKTYPE_LOOT:
+        case TRACKTYPE_ATTACK: {
             CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
             float range = unit ? this->CGUnit::GetMeleeRange(unit) - 1.3333334f : 5.0f;
             *distance = range * range;
             return true;
         }
 
-        case 7:
+        case TRACKTYPE_USE_OBJECT:
             *distance = s_trackingObjectRange * s_trackingObjectRange;
             return true;
 
-        case 9: {
+        case TRACKTYPE_SKIN: {
             CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__));
 
             if (!unit) {
@@ -22495,7 +22495,7 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
             break;
         }
 
-        case 11: {
+        case TRACKTYPE_RANGED_ATTACK: {
             CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
 
             if (!unit) {
@@ -22518,8 +22518,8 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
 // VERIFY: 1484b729 manual
 // OFFSET: 0x00727400
 bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* position, float facing) {
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != 13) {
-        if (CGUnit_C::s_trackingType == 3) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE) {
+        if (CGUnit_C::s_trackingType == TRACKTYPE_FOLLOW) {
             FrameScript_SignalEvent(SCRIPT_EVENT_AUTOFOLLOW_END, nullptr);
         }
 
@@ -22528,7 +22528,7 @@ bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* 
         CGUnit_C::s_trackingGUID = WOWGUID();
         CGUnit_C::s_trackingFlags = 0;
         CGUnit_C::s_trackingStuckCount = 0;
-        CGUnit_C::s_trackingType = 13;
+        CGUnit_C::s_trackingType = TRACKTYPE_NONE;
     }
 
     if (!this->CanMoveTo(type, *position) || !this->GetInteractDistanceOfAction(type, *guid, &s_trackingInteractDistanceSq)) {
@@ -22578,32 +22578,32 @@ bool CGUnit_C::IsValidFollowTarget(CGUnit_C* unit) {
 // OFFSET: 0x0072B3A0
 void CGUnit_C::HandleTrackingMoveThreshold() {
     switch (CGUnit_C::s_trackingType) {
-        case 4:
+        case TRACKTYPE_MOVE:
             this->ClearTrackingTarget(true, true);
             break;
 
-        case 5:
+        case TRACKTYPE_INTERACT:
             s_pendingInteractTarget = CGUnit_C::s_trackingGUID;
             this->ClearTrackingTarget(true, true);
             break;
 
-        case 6:
+        case TRACKTYPE_LOOT:
             s_pendingLootTarget = CGUnit_C::s_trackingGUID;
             this->ClearTrackingTarget(true, true);
             break;
 
-        case 7:
+        case TRACKTYPE_USE_OBJECT:
             s_pendingUseObject = CGUnit_C::s_trackingGUID;
             this->ClearTrackingTarget(true, true);
             break;
 
-        case 9:
+        case TRACKTYPE_SKIN:
             s_pendingSkinTarget = CGUnit_C::s_trackingGUID;
             this->ClearTrackingTarget(true, true);
             break;
 
-        case 10:
-        case 11:
+        case TRACKTYPE_ATTACK:
+        case TRACKTYPE_RANGED_ATTACK:
             s_pendingAttackTarget = CGUnit_C::s_trackingGUID;
             this->ClearTrackingTarget(true, true);
             break;
@@ -22630,16 +22630,16 @@ bool CGUnit_C::SetTrackingTarget(const WOWGUID& target, int32_t type) {
     CGUnit_C* unit = static_cast<CGUnit_C*>(object);
 
     switch (type) {
-        case 0:
-        case 1:
-        case 5:
+        case TRACKTYPE_SPELLPRECAST:
+        case TRACKTYPE_SPELLCHANNEL:
+        case TRACKTYPE_INTERACT:
             if (!(object->m_obj->m_type & TYPEMASK_UNIT)) {
                 return false;
             }
 
             break;
 
-        case 3:
+        case TRACKTYPE_FOLLOW:
             if (!this->IsValidFollowTarget(unit)) {
                 CGGameUI::DisplayError(ERR_INVALID_FOLLOW_TARGET);
                 return false;
@@ -22662,8 +22662,8 @@ bool CGUnit_C::SetTrackingTarget(const WOWGUID& target, int32_t type) {
 
             break;
 
-        case 6:
-        case 9:
+        case TRACKTYPE_LOOT:
+        case TRACKTYPE_SKIN:
             if (!(object->m_obj->m_type & TYPEMASK_CORPSE) && (!(object->m_obj->m_type & TYPEMASK_UNIT) || unit->m_unit->m_unitFieldHealth > 0)) {
                 return false;
             }
@@ -22684,7 +22684,7 @@ bool CGUnit_C::SetTrackingTarget(const WOWGUID& target, int32_t type) {
         return false;
     }
 
-    if (type == 3) {
+    if (type == TRACKTYPE_FOLLOW) {
         FrameScript_SignalEvent(SCRIPT_EVENT_AUTOFOLLOW_BEGIN, "%s", unit->GetUnitName(nullptr, 1));
     }
 
@@ -22700,7 +22700,7 @@ bool CGPlayer_C::CTMFace(float facing) {
 
     C3Vector position = C3Vector();
     WOWGUID guid = WOWGUID();
-    return this->ClickToMove(2, &guid, &position, facing);
+    return this->ClickToMove(TRACKTYPE_FACE, &guid, &position, facing);
 }
 
 // VERIFY: a8c5df60 auto
@@ -22711,7 +22711,7 @@ bool CGPlayer_C::CTMClickTerrain(const C3Vector& position) {
     }
 
     WOWGUID guid = WOWGUID();
-    return this->ClickToMove(4, &guid, &position, 0.0f);
+    return this->ClickToMove(TRACKTYPE_MOVE, &guid, &position, 0.0f);
 }
 
 // VERIFY: 04389893 manual
@@ -22729,7 +22729,7 @@ bool CGPlayer_C::CTMInteractGO(const WOWGUID& guid, float range) {
 
     C3Vector position = object->GetPosition();
 
-    if (!this->ClickToMove(7, &guid, &position, 0.0f)) {
+    if (!this->ClickToMove(TRACKTYPE_USE_OBJECT, &guid, &position, 0.0f)) {
         return false;
     }
 
@@ -22804,7 +22804,7 @@ bool CGPlayer_C::CTMAttackUnit(CGUnit_C* unit) {
     }
 
     WOWGUID guid = unit->m_obj->m_guid;
-    return this->ClickToMove((modalSpell != 0) + 10, &guid, &target, 0.0f);
+    return this->ClickToMove((modalSpell != 0) + TRACKTYPE_ATTACK, &guid, &target, 0.0f);
 }
 
 // VERIFY: c211e617 manual
@@ -22816,7 +22816,7 @@ void CGUnit_C::SetTrackingDirection(const C3Vector& direction) {
 
     C3Vector none = C3Vector();
 
-    if (!this->CanMoveTo(8, none)) {
+    if (!this->CanMoveTo(TRACKTYPE_MOVE_DIRECTION, none)) {
         return;
     }
 
@@ -22851,7 +22851,7 @@ void CGUnit_C::SetTrackingDirection(const C3Vector& direction) {
     float facing = CalculateFacingTo(&position, &target);
     C3Vector zero = C3Vector();
     WOWGUID guid = WOWGUID();
-    static_cast<CGPlayer_C*>(this)->ClickToMove(8, &guid, &zero, facing);
+    static_cast<CGPlayer_C*>(this)->ClickToMove(TRACKTYPE_MOVE_DIRECTION, &guid, &zero, facing);
 }
 
 // VERIFY: f1632e4a auto
@@ -22947,13 +22947,13 @@ void CGUnit_C::HandleTracking(float drunkness, float turnOffset) {
     bool stuck = false;
 
     switch (CGUnit_C::s_trackingType) {
-        case 2:
-        case 8:
+        case TRACKTYPE_FACE:
+        case TRACKTYPE_MOVE_DIRECTION:
             useTarget = false;
             break;
 
-        case 4:
-        case 10:
+        case TRACKTYPE_MOVE:
+        case TRACKTYPE_ATTACK:
             target = this->m_movementData.GetPosition(CGUnit_C::s_trackingPosition);
             break;
 
@@ -22968,7 +22968,7 @@ void CGUnit_C::HandleTracking(float drunkness, float turnOffset) {
             if (object->m_obj->m_type & TYPEMASK_UNIT) {
                 CGUnit_C* unit = static_cast<CGUnit_C*>(object);
 
-                if ((unit->m_unit->m_unitFieldFlags & 0x100000) || (unit->m_unit->m_unitFieldHealth <= 0 && CGUnit_C::s_trackingType != 9 && CGUnit_C::s_trackingType != 6)) {
+                if ((unit->m_unit->m_unitFieldFlags & 0x100000) || (unit->m_unit->m_unitFieldHealth <= 0 && CGUnit_C::s_trackingType != TRACKTYPE_SKIN && CGUnit_C::s_trackingType != TRACKTYPE_LOOT)) {
                     this->ClearTrackingTarget(false, true);
                     return;
                 }
@@ -22999,10 +22999,10 @@ void CGUnit_C::HandleTracking(float drunkness, float turnOffset) {
 
     if (s_clickToMoveActions[CGUnit_C::s_trackingType].m_enabled && (CGUnit_C::s_trackingFlags & 0x2)) {
         switch (CGUnit_C::s_trackingType) {
-            case 2:
-            case 3:
-            case 5:
-            case 8:
+            case TRACKTYPE_FACE:
+            case TRACKTYPE_FOLLOW:
+            case TRACKTYPE_INTERACT:
+            case TRACKTYPE_MOVE_DIRECTION:
                 break;
 
             default: {
@@ -23045,13 +23045,13 @@ void CGUnit_C::HandleTracking(float drunkness, float turnOffset) {
     if (!turning) {
         CGInputControl::GetActive()->ToggleControlBit(INPUT_TRACKING_TURN, 0, time, 0);
 
-        if (CGUnit_C::s_trackingType == 2) {
+        if (CGUnit_C::s_trackingType == TRACKTYPE_FACE) {
             this->ClearTrackingTarget(false, true);
             return;
         }
 
         CGUnit_C::s_trackingFlags |= 0x2;
-    } else if (moving && CGUnit_C::s_trackingType == 3 && CRandom::ufloat_(g_rndSeed) * drunkness < 0.07f) {
+    } else if (moving && CGUnit_C::s_trackingType == TRACKTYPE_FOLLOW && CRandom::ufloat_(g_rndSeed) * drunkness < 0.07f) {
         CGUnit_C::s_trackingFlags &= ~0x2;
     }
 
@@ -23108,7 +23108,7 @@ void CGUnit_C::HandleTracking(float drunkness, float turnOffset) {
     if (!s_clickToMoveActions[CGUnit_C::s_trackingType].m_ignoreInteractRange) {
         float range = s_trackingInteractDistance;
 
-        if (CGUnit_C::s_trackingType == 4) {
+        if (CGUnit_C::s_trackingType == TRACKTYPE_MOVE) {
             range = (this->m_movement->GetBaseSpeed(0) * 0.14285715f < 1.0f ? 1.0f : this->m_movement->GetBaseSpeed(0) * 0.14285715f) * range;
         }
 
@@ -23169,7 +23169,7 @@ void CGUnit_C::HandleTracking(float drunkness, float turnOffset) {
 
     scale *= 4.5f;
 
-    if (CGUnit_C::s_trackingType != 3 || scale * scale <= distSq3) {
+    if (CGUnit_C::s_trackingType != TRACKTYPE_FOLLOW || scale * scale <= distSq3) {
         this->TrackingStartMove(time);
     }
 }

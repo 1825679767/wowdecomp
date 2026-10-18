@@ -5498,7 +5498,7 @@ static int32_t Script_FollowUnit(lua_State* L) {
 
         if (mover) {
             WOWGUID target = unit->m_obj->m_guid;
-            mover->SetTrackingTarget(target, 3);
+            mover->SetTrackingTarget(target, TRACKTYPE_FOLLOW);
         }
 
         return 0;
