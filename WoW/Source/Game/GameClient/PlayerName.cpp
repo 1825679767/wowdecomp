@@ -496,7 +496,7 @@ void PLAYERNAMEDESC::RenderIfVisible(CM2Model* model, const CM2Lighting* lightin
 // OFFSET: 0x007E50A0
 void PLAYERNAMEDESC::DeleteWorldText(uint32_t type) {
     for (int32_t i = 3; i >= 0; i--) {
-        if (this->m_worldText[i] && (type == 11 || WorldTextGetType(this->m_worldText[i]) == type)) {
+        if (this->m_worldText[i] && (type == WT_ALL || WorldTextGetType(this->m_worldText[i]) == type)) {
             WorldTextDelete(this->m_worldText[i]);
             this->m_worldText[i] = nullptr;
         }

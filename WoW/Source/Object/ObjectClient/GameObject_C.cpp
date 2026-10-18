@@ -28,6 +28,7 @@
 #include "WoW/Source/DB/Rec/SpellEffectCameraShakesRec.h"
 #include "WoW/Source/DB/Rec/SpellVisualEffectNameRec.h"
 #include "WoW/Source/Game/GameClient/PlayerName.h"
+#include "WoW/Source/Game/GameClient/WorldText.h"
 #include "WoW/Source/LoadingScreen.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include "WoW/Source/Object/GameObjectDef.h"
@@ -2909,7 +2910,7 @@ void CGGameObject_C::AddWorldDamageText(int32_t amount) {
     if (amount && g_combatDamageCVar->m_intValue && this->m_gameObject->m_typeID == 33) {
         char text[32];
         SStrPrintf(text, sizeof(text), "%d", amount);
-        PlayerNameCreateText(this->m_nameDesc, 8, text, reinterpret_cast<const CImVector*>(&s_buildingDamageColor), nullptr);
+        PlayerNameCreateText(this->m_nameDesc, WT_BUILDING_DAMAGE, text, reinterpret_cast<const CImVector*>(&s_buildingDamageColor), nullptr);
     }
 }
 
@@ -2919,7 +2920,7 @@ void CGGameObject_C::AddWorldHealingText(int32_t amount, const SpellRec* spell) 
     if (amount && g_combatHealingCVar->m_intValue && this->m_gameObject->m_typeID == 33) {
         char text[32];
         SStrPrintf(text, sizeof(text), "+%d", amount);
-        PlayerNameCreateText(this->m_nameDesc, 9, text, nullptr, nullptr);
+        PlayerNameCreateText(this->m_nameDesc, WT_BUILDING_HEAL, text, nullptr, nullptr);
     }
 }
 

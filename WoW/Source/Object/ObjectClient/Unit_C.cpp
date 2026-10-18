@@ -40,6 +40,7 @@
 #include "WoW/Source/DB/Rec/VehicleSeatRec.h"
 #include "WoW/Source/Game/GameClient/CDrawBowString.h"
 #include "WoW/Source/Game/GameClient/PlayerName.h"
+#include "WoW/Source/Game/GameClient/WorldText.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include "WoW/Source/Magic/MagicClient/SpellVisuals.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
@@ -350,23 +351,23 @@ namespace {
 
 struct WORLDTEXTINFO {
     const char* m_token;
-    uint32_t m_style;
+    WORLDTEXT_STYLE m_style;
 };
 
 // Original 3.3.5 tables: tokens at 0x00ADBFDC; styles at 0x00A34C20.
 static const WORLDTEXTINFO s_combatTextInfo[MISS_NUMMISSTYPES] = {
-    { "COMBAT_TEXT_NONE", 11 },
-    { "COMBAT_TEXT_MISS", 3 },
-    { "COMBAT_TEXT_RESIST", 3 },
-    { "COMBAT_TEXT_DODGE", 3 },
-    { "COMBAT_TEXT_PARRY", 3 },
-    { "COMBAT_TEXT_BLOCK", 3 },
-    { "COMBAT_TEXT_EVADE", 3 },
-    { "COMBAT_TEXT_IMMUNE", 3 },
-    { "COMBAT_TEXT_IMMUNE", 3 },
-    { "COMBAT_TEXT_DEFLECT", 3 },
-    { "COMBAT_TEXT_ABSORB", 1 },
-    { "COMBAT_TEXT_REFLECT", 3 },
+    { "COMBAT_TEXT_NONE", NUM_WORLDTEXTTYPES },
+    { "COMBAT_TEXT_MISS", WT_MISS },
+    { "COMBAT_TEXT_RESIST", WT_MISS },
+    { "COMBAT_TEXT_DODGE", WT_MISS },
+    { "COMBAT_TEXT_PARRY", WT_MISS },
+    { "COMBAT_TEXT_BLOCK", WT_MISS },
+    { "COMBAT_TEXT_EVADE", WT_MISS },
+    { "COMBAT_TEXT_IMMUNE", WT_MISS },
+    { "COMBAT_TEXT_IMMUNE", WT_MISS },
+    { "COMBAT_TEXT_DEFLECT", WT_MISS },
+    { "COMBAT_TEXT_ABSORB", WT_ABSORB },
+    { "COMBAT_TEXT_REFLECT", WT_MISS },
 };
 
 }
@@ -15112,7 +15113,7 @@ void CGUnit_C::AddWorldDamageText(const WOWGUID& source, int32_t amount, const S
         color = reinterpret_cast<const CImVector*>(&s_petSpellDamageColor);
     }
 
-    PlayerNameCreateText(this->m_nameDesc, crit ? 2 : 0, text, color, nullptr);
+    PlayerNameCreateText(this->m_nameDesc, crit ? WT_CRIT : WT_DAMAGE, text, color, nullptr);
 }
 
 // VERIFY: 25d16696 auto
@@ -17468,7 +17469,7 @@ void CGUnit_C::AddWorldXPGainText(int32_t amount) {
     char label[64];
     SStrCopy(label, FrameScript_GetText("XP", -1, GENDER_NOT_APPLICABLE), sizeof(label));
     SStrPrintf(text, sizeof(text), "%s: %d", label, amount);
-    PlayerNameCreateText(this->m_nameDesc, 4, text, nullptr, nullptr);
+    PlayerNameCreateText(this->m_nameDesc, WT_XPGAIN, text, nullptr, nullptr);
 }
 
 // VERIFY: b3ec4bfc manual
@@ -17582,8 +17583,8 @@ void CGUnit_C::AddWorldThreatUpdateText(int32_t oldStatus, int32_t newStatus) {
     const char* text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
 
     if (*text) {
-        PlayerNameDeleteText(this->m_nameDesc, 10);
-        PlayerNameCreateText(this->m_nameDesc, 10, text, nullptr, nullptr);
+        PlayerNameDeleteText(this->m_nameDesc, WT_THREAT);
+        PlayerNameCreateText(this->m_nameDesc, WT_THREAT, text, nullptr, nullptr);
     }
 }
 
@@ -20456,7 +20457,7 @@ void CGUnit_C::AddWorldHonorGainText(int32_t honor, int32_t pvpRank, const char*
     }
 
     SStrPrintf(text, sizeof(text), "%s: %s", label, victimName);
-    PlayerNameCreateText(this->m_nameDesc, 5, text, nullptr, &pvpRank);
+    PlayerNameCreateText(this->m_nameDesc, WT_HONORGAIN, text, nullptr, &pvpRank);
 }
 
 // VERIFY: 5809ed27 auto
@@ -20472,7 +20473,7 @@ void CGUnit_C::AddWorldHealingText(const WOWGUID& source, int32_t amount, const 
     SStrPrintf(text, sizeof(text), "+%d", amount);
 
     if (isPlayer) {
-        PlayerNameCreateText(this->m_nameDesc, crit + 6, text, nullptr, nullptr);
+        PlayerNameCreateText(this->m_nameDesc, crit ? WT_CRIT_HEAL : WT_HEAL, text, nullptr, nullptr);
     }
 }
 

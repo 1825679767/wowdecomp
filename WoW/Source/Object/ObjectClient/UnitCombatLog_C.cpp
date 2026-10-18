@@ -33,6 +33,7 @@
 #include "WoW/Source/DB/Rec/SpellDurationRec.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include "WoW/Source/Game/GameClient/PlayerName.h"
+#include "WoW/Source/Game/GameClient/WorldText.h"
 #include "WoW/Source/Game/ValidateName.h"
 #include "Engine/Source/Base/ConvertUTF.h"
 #include "WoW/Source/Object/CreatureStats.h"
@@ -2181,7 +2182,7 @@ void DisplayMechanicEffect(const WOWGUID* unitGuid, const WOWGUID* sourceGuid, c
     }
 
     if (unit) {
-        PlayerNameCreateText(unit->m_nameDesc, 0, text, reinterpret_cast<const CImVector*>(&s_mechanicTextColor), nullptr);
+        PlayerNameCreateText(unit->m_nameDesc, WT_DAMAGE, text, reinterpret_cast<const CImVector*>(&s_mechanicTextColor), nullptr);
     }
 }
 
