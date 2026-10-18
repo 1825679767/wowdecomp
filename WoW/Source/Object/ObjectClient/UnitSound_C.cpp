@@ -435,7 +435,7 @@ void CGUnit_C::PlayAISound(int32_t soundKitId) {
 void CGUnit_C::PlayEmoteStateSound(const C3Vector* position) {
     EmotesRec* emote = g_emotesDB.GetRecord(this->m_unit->m_unitNpcEmotestate);
 
-    if (emote && emote->m_emoteSpecProc == 2) {
+    if (emote && emote->m_emoteSpecProc == EMOTESPECPROC_EMOTESTATEHANDLER) {
         SI2::PlaySoundKit(emote->m_eventSoundID, position, nullptr, nullptr, 0, nullptr, 1, 0);
     }
 }

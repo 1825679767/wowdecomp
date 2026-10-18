@@ -9080,7 +9080,7 @@ void CGUnit_C::SetEmoteQueue(const QUESTGIVEREMOTENODE* nodes, uint32_t count) {
         if (nodes[i].m_emote) {
             EmotesRec* emote = g_emotesDB.GetRecord(nodes[i].m_emote);
 
-            if (emote && !emote->m_emoteSpecProc) {
+            if (emote && emote->m_emoteSpecProc == EMOTESPECPROC_NONE) {
                 this->m_emoteQueue[queued].m_delay = nodes[i].m_delay;
                 this->m_emoteQueue[queued].m_emote = nodes[i].m_emote;
                 queued++;

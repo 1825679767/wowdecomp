@@ -13221,7 +13221,7 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec* emote, WOWGUID target) {
         return;
     }
 
-    if (this->GetClientStandState() == UNIT_SLEEPING && rec->m_emoteSpecProc != 1) {
+    if (this->GetClientStandState() == UNIT_SLEEPING && rec->m_emoteSpecProc != EMOTESPECPROC_STANDSTATEHANDLER) {
         return;
     }
 
@@ -13231,7 +13231,7 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec* emote, WOWGUID target) {
 
     this->SetSheatheState(0, 1, 0);
 
-    if (rec->m_emoteSpecProc == 1 && ((1 << rec->m_emoteSpecProcParam) & s_textEmoteStandStates)) {
+    if (rec->m_emoteSpecProc == EMOTESPECPROC_STANDSTATEHANDLER && ((1 << rec->m_emoteSpecProcParam) & s_textEmoteStandStates)) {
         this->ChangeStandState(static_cast<UNITSTANDSTATE>(rec->m_emoteSpecProcParam));
     } else if (rec->m_animID && this->CanPlayEmoteAnim()) {
         this->PlayBaseAnimation(rec->m_animID, 0);
