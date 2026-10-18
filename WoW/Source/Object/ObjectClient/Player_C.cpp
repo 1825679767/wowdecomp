@@ -8222,11 +8222,11 @@ void CGPlayer_C::ToggleSheathe() {
     }
 
     switch (this->m_sheatheState) {
-        case 0:
+        case WEAPONMODE_SHEATHEDMODE:
             if (mainHand || offHand) {
-                this->SetSheatheState(1, 0, 0);
+                this->SetSheatheState(WEAPONMODE_NORMALMODE, 0, 0);
             } else if (ranged) {
-                this->SetSheatheState(2, 0, 0);
+                this->SetSheatheState(WEAPONMODE_RANGEDMODE, 0, 0);
             }
 
             if (this->CGUnit_C::IsInMelee()) {
@@ -8235,17 +8235,17 @@ void CGPlayer_C::ToggleSheathe() {
 
             break;
 
-        case 1:
+        case WEAPONMODE_NORMALMODE:
             if (ranged) {
-                this->SetSheatheState(2, 0, 0);
+                this->SetSheatheState(WEAPONMODE_RANGEDMODE, 0, 0);
             } else {
-                this->SetSheatheState(0, 0, 0);
+                this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 0, 0);
             }
 
             break;
 
-        case 2:
-            this->SetSheatheState(0, 0, 0);
+        case WEAPONMODE_RANGEDMODE:
+            this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 0, 0);
             break;
     }
 }
@@ -8319,7 +8319,7 @@ void CGPlayer_C::MeleeModeEnter(const WOWGUID& target) {
         this->m_combat.SetAttackSent(unit->m_obj->m_guid);
     }
 
-    this->SetSheatheState(1, 1, 0);
+    this->SetSheatheState(WEAPONMODE_NORMALMODE, 1, 0);
     Spell_C_SetAutoRangedCombatSpell(0);
     this->SpellInterrupted(this->m_castCount, this->m_castSpellId);
     Spell_C_CancelAutoRepeat(true);
@@ -10371,14 +10371,14 @@ int32_t CGPlayer_C::RefreshVisibleItems() {
         if (abs(item->m_itemId) && item->m_itemId <= 0) {
             switch (slot) {
                 case 15:
-                    if (this->m_sheatheState <= 1) {
+                    if (this->m_sheatheState <= WEAPONMODE_NORMALMODE) {
                         CCharacterComponent::RemoveHandItem(this->m_worldModel, static_cast<INVENTORY_SLOTS>(15), static_cast<SHEATHE_TYPE>(0), false);
                     }
 
                     break;
 
                 case 16:
-                    if (this->m_sheatheState <= 1) {
+                    if (this->m_sheatheState <= WEAPONMODE_NORMALMODE) {
                         CCharacterComponent::RemoveHandItem(this->m_worldModel, static_cast<INVENTORY_SLOTS>(16), static_cast<SHEATHE_TYPE>(0), false);
                         CCharacterComponent::RemoveHandItem(this->m_worldModel, static_cast<INVENTORY_SLOTS>(16), static_cast<SHEATHE_TYPE>(0), true);
                     }
@@ -10386,11 +10386,11 @@ int32_t CGPlayer_C::RefreshVisibleItems() {
                     break;
 
                 case 17:
-                    if (this->m_sheatheState == 2 || !this->m_sheatheState) {
+                    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE || !this->m_sheatheState) {
                         CCharacterComponent::RemoveHandItem(this->m_worldModel, static_cast<INVENTORY_SLOTS>(17), static_cast<SHEATHE_TYPE>(0), false);
                     }
 
-                    if (this->m_sheatheState == 2) {
+                    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
                         CCharacterComponent::RemoveHandItem(this->m_worldModel, static_cast<INVENTORY_SLOTS>(16), static_cast<SHEATHE_TYPE>(0), false);
                         CCharacterComponent::RemoveHandItem(this->m_worldModel, static_cast<INVENTORY_SLOTS>(15), static_cast<SHEATHE_TYPE>(0), false);
                     }
@@ -10555,7 +10555,7 @@ void CGPlayer_C::UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleIte
         case 15:
             this->ClearWeaponTrail(0);
 
-            if (!thrown || this->m_sheatheState != 2) {
+            if (!thrown || this->m_sheatheState != WEAPONMODE_RANGEDMODE) {
                 CCharacterComponent::RemoveHandItem(this->m_worldModel, static_cast<INVENTORY_SLOTS>(15), static_cast<SHEATHE_TYPE>(old->GetSheatheType()), false);
                 break;
             }
@@ -10581,7 +10581,7 @@ void CGPlayer_C::UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleIte
         case 16:
             this->ClearWeaponTrail(1);
 
-            if (thrown || this->m_sheatheState != 2) {
+            if (thrown || this->m_sheatheState != WEAPONMODE_RANGEDMODE) {
                 CCharacterComponent::RemoveHandItem(this->m_worldModel, static_cast<INVENTORY_SLOTS>(16), static_cast<SHEATHE_TYPE>(old->GetSheatheType()), old->GetInventoryType() == 14);
                 break;
             }
@@ -10605,7 +10605,7 @@ void CGPlayer_C::UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleIte
             break;
 
         case 17:
-            if (this->m_sheatheState == 2) {
+            if (this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
                 uint32_t inventoryType = old->GetInventoryType();
                 this->m_worldModel->DetachAllChildrenById(inventoryType == 26 || inventoryType == 25 ? 1 : 2);
             }
@@ -10618,7 +10618,7 @@ void CGPlayer_C::UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleIte
                 goto applyEffects;
             }
 
-            if (this->m_sheatheState != 2) {
+            if (this->m_sheatheState != WEAPONMODE_RANGEDMODE) {
                 if (this->m_rangedWeaponModel->m_attachParent) {
                     this->m_rangedWeaponModel->DetachFromParent();
                 }
@@ -10646,8 +10646,8 @@ void CGPlayer_C::UpdateInventoryComponent(INVENTORY_SLOTS slot, const VisibleIte
 applyEffects:
     this->ApplyComponentItemsFromEffects();
 
-    if (this->m_sheatheState == 2 && slot == 17) {
-        this->SetSheatheState(2, 0, 0);
+    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE && slot == 17) {
+        this->SetSheatheState(WEAPONMODE_RANGEDMODE, 0, 0);
         this->UpdateBaseAnimation(0, -1);
     }
 
@@ -13229,7 +13229,7 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec* emote, WOWGUID target) {
         target = WOWGUID();
     }
 
-    this->SetSheatheState(0, 1, 0);
+    this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
 
     if (rec->m_emoteSpecProc == EMOTESPECPROC_STANDSTATEHANDLER && ((1 << rec->m_emoteSpecProcParam) & s_textEmoteStandStates)) {
         this->ChangeStandState(static_cast<UNITSTANDSTATE>(rec->m_emoteSpecProcParam));

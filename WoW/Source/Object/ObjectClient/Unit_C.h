@@ -347,8 +347,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0B48 */ uint32_t m_ammoDisplayId;
     /* 0B4C */ CCharacterComponent* m_characterComponent;
     /* 0B50 */ WTOBJECT* m_weaponTrails [2];
-    /* 0B58 */ uint32_t m_previousSheatheState;
-    /* 0B5C */ uint32_t m_sheatheState;
+    /* 0B58 */ WEAPONMODE m_previousSheatheState;
+    /* 0B5C */ WEAPONMODE m_sheatheState;
     /* 0B60 */ TSGrowableArray<WOWGUID> m_chainSpellTargets;
     /* 0B70 */ C3Vector m_chainSpellLocation;
     /* 0B7C */ int32_t m_mountAnimBehaviorId;

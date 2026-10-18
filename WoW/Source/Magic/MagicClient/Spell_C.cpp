@@ -871,7 +871,7 @@ void SpellVisualsHandleCastStart(CGUnit_C* unit, PendingSpellCastData* data, con
     }
 
     if (spell->m_attributes & 0x2) {
-        unit->SetSheatheState(2, 1, 0);
+        unit->SetSheatheState(WEAPONMODE_RANGEDMODE, 1, 0);
     }
 
     if (spell->m_attributesExB & 0x20) {
@@ -887,7 +887,7 @@ void SpellVisualsHandleCastStart(CGUnit_C* unit, PendingSpellCastData* data, con
 
     if (visual) {
         if (visual->m_hasMissile && visual->m_missileModel && (visual->m_missileModel == -1 || visual->m_missileModel == -2)) {
-            unit->SetSheatheState(1, 1, 0);
+            unit->SetSheatheState(WEAPONMODE_NORMALMODE, 1, 0);
         }
 
         SpellVisualKitRec* kit = g_spellVisualKitDB.GetRecord(visual->m_precastKit);

@@ -4,6 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 
+enum WEAPONMODE : uint32_t {
+    WEAPONMODE_SHEATHEDMODE = 0,
+    WEAPONMODE_NORMALMODE = 1,
+    WEAPONMODE_RANGEDMODE = 2,
+    // WEAPONMODE_NUMMODES = 3,
+};
+
 enum UNITSTANDSTATE : uint32_t {
     UNIT_STANDING = 0,
     UNIT_SITTING = 1,

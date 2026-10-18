@@ -2851,7 +2851,7 @@ void CGUnit_C::UpdateClientStandState(UNITSTANDSTATE standState) {
     }
 
     if (this->m_sheatheState && this->GetClientStandState() && this->GetClientStandState() != UNIT_SITTINGCHAIR) {
-        this->SetSheatheState(0, 1, 0);
+        this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
     }
 
     if (this->GetClientStandState() != this->m_animStandState) {
@@ -4036,7 +4036,7 @@ const VehicleSeatRec* CGUnit_C::GetPassengerSeatRec() const {
 // VERIFY: 49948b61 auto
 // OFFSET: 0x00715BA0
 void CGUnit_C::UpdateWeaponTrails(const uint32_t* a2, uint32_t a3) {
-    if (this->m_sheatheState != 1) {
+    if (this->m_sheatheState != WEAPONMODE_NORMALMODE) {
         return;
     }
 
@@ -4283,7 +4283,7 @@ void CGUnit_C::UpdateHandItemAnimEffects(bool force) {
     AnimationDataRec* rec = g_animationDataDB.GetRecord(sequence);
 
     if (rec && (rec->m_weaponflags & 0x4) && !force) {
-        this->SetSheatheState(0, 1, 0);
+        this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
 
         if (this->m_clientFlags & 0x10000) {
             this->m_clientFlags &= ~0x10000;
@@ -4293,16 +4293,16 @@ void CGUnit_C::UpdateHandItemAnimEffects(bool force) {
         return;
     }
 
-    if (this->m_sheatheState == 2) {
+    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
         if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer()) {
-            this->SetSheatheState(2, 1, 0);
+            this->SetSheatheState(WEAPONMODE_RANGEDMODE, 1, 0);
         }
 
         if (sequence != 105 && sequence != 106 && sequence != 112 && !IsRangedWeaponAnim(sequence) && rec) {
             if (rec->m_weaponflags & 0x10) {
-                this->SetSheatheState(0, 1, 0);
+                this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
             } else if (rec->m_weaponflags & 0x20) {
-                this->SetSheatheState(1, 1, 0);
+                this->SetSheatheState(WEAPONMODE_NORMALMODE, 1, 0);
             }
         }
 
@@ -4313,7 +4313,7 @@ void CGUnit_C::UpdateHandItemAnimEffects(bool force) {
         SpellRec spellRec;
 
         if (g_spellDB.GetRecord(this->m_castSpellId, &spellRec) && !(spellRec.m_attributes & 0x40000)) {
-            this->SetSheatheState(0, 1, 0);
+            this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
         }
 
         if (this->m_clientFlags & 0x10000) {
@@ -4325,7 +4325,7 @@ void CGUnit_C::UpdateHandItemAnimEffects(bool force) {
     }
 
     if (this->m_combat.m_attacking.m_guid && IsMeleeAttackAnim(sequence)) {
-        this->SetSheatheState(1, 1, 0);
+        this->SetSheatheState(WEAPONMODE_NORMALMODE, 1, 0);
 
         if (this->m_clientFlags & 0x10000) {
             this->m_clientFlags &= ~0x10000;
@@ -4339,18 +4339,18 @@ void CGUnit_C::UpdateHandItemAnimEffects(bool force) {
         int32_t weaponFlags = rec->m_weaponflags;
 
         if ((weaponFlags & 0x10) && !force) {
-            this->SetSheatheState(0, 1, 0);
+            this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
             return;
         }
 
         if (weaponFlags & 0x20) {
-            this->SetSheatheState(1, 1, 0);
+            this->SetSheatheState(WEAPONMODE_NORMALMODE, 1, 0);
             return;
         }
     }
 
     if (this->m_combat.m_attacking.m_guid) {
-        this->SetSheatheState(1, 1, 0);
+        this->SetSheatheState(WEAPONMODE_NORMALMODE, 1, 0);
         return;
     }
 
@@ -4541,7 +4541,7 @@ void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
         updateBase = 0;
         torsoSlot = newSlot;
     } else if (split) {
-        if ((IsEmoteAnim(anim) && anim != 69) || (!casting && !IsMeleeOrReadyAnim(previousAnim) && !IsSpellCastOrPrecastAnim(previousAnim) && this->m_sheatheState != 2)) {
+        if ((IsEmoteAnim(anim) && anim != 69) || (!casting && !IsMeleeOrReadyAnim(previousAnim) && !IsSpellCastOrPrecastAnim(previousAnim) && this->m_sheatheState != WEAPONMODE_RANGEDMODE)) {
             keepTorso = 0;
             updateTorso = 1;
             torsoSlot = newSlot;
@@ -5813,7 +5813,7 @@ uint32_t CGUnit_C::GetCombatReadyAnim() const {
 // VERIFY: cfd62b02 auto
 // OFFSET: 0x00714F90
 int32_t CGUnit_C::ChooseRangedLoadAnim(uint32_t flags, uint32_t* anim) const {
-    if (this->m_sheatheState != 2 || !(this->m_animationState & 0x200)) {
+    if (this->m_sheatheState != WEAPONMODE_RANGEDMODE || !(this->m_animationState & 0x200)) {
         return (flags & 0xFFFFFF00) == 0;
     }
 
@@ -8848,13 +8848,13 @@ bool CGUnit_C::HasAuraEffect(int32_t auraType) const {
 // VERIFY: ef1871f1 auto
 // OFFSET: 0x00715D00
 int32_t __stdcall CGUnit_C::ResolveSheathState(int32_t hand, const CGUnitVirtualItem* mainHand, const CGUnitVirtualItem* offHand) {
-    if (hand == 1) {
+    if (hand == WEAPONMODE_NORMALMODE) {
         if (!mainHand && (!offHand || offHand->m_inventoryType == 23)) {
-            return 0;
+            return WEAPONMODE_SHEATHEDMODE;
         }
-    } else if (hand == 0) {
+    } else if (hand == WEAPONMODE_SHEATHEDMODE) {
         if ((offHand && offHand->m_inventoryType == 14) || (mainHand && mainHand->m_classID == 2) || (offHand && offHand->m_classID == 2)) {
-            return 1;
+            return WEAPONMODE_NORMALMODE;
         }
     }
 
@@ -9594,8 +9594,8 @@ CGUnit_C::CGUnit_C(uint32_t time, const CClientObjCreate& create)
       m_ammoModel(nullptr),
       m_ammoDisplayId(0),
       m_characterComponent(nullptr),
-      m_previousSheatheState(this->m_unit->m_unitFieldBytes2[0]),
-      m_sheatheState(this->m_unit->m_unitFieldBytes2[0]),
+      m_previousSheatheState(static_cast<WEAPONMODE>(this->m_unit->m_unitFieldBytes2[0])),
+      m_sheatheState(static_cast<WEAPONMODE>(this->m_unit->m_unitFieldBytes2[0])),
       m_chainSpellLocation(0.0f, 0.0f, 0.0f),
       m_mountAnimBehaviorId(91),
       m_animTier(0),
@@ -12125,7 +12125,7 @@ char* CGUnit_C::GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitl
 void CGUnit_C::ShowHandItemSpellEffects(int32_t show, int32_t force) {
     SpellRec spell;
     uint32_t flags = this->m_clientFlags;
-    int32_t visible = ((flags >> 16) & 0x1) & (this->m_sheatheState == 0) & (this->m_castSpellId == 0) & show;
+    int32_t visible = ((flags >> 16) & 0x1) & (this->m_sheatheState == WEAPONMODE_SHEATHEDMODE) & (this->m_castSpellId == 0) & show;
 
     if (!force && (visible == static_cast<int32_t>((flags >> 14) & 0x1) || !(flags & 0x2000))) {
         return;
@@ -13480,7 +13480,7 @@ void CGUnit_C::SpellInterrupted(uint8_t castCount, int32_t spellId) {
 
     this->m_animationState &= ~0x400;
 
-    if (this->m_sheatheState == 2) {
+    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
         this->CancelRangedMode();
     }
 
@@ -13702,7 +13702,7 @@ void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t no
         showWeapons = CGUnit_C::ResolveSheathState(showWeapons, this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false), this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false));
     }
 
-    if (showWeapons == 2 && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (showWeapons == WEAPONMODE_RANGEDMODE && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
         ChrClassesRec* classRec = g_chrClassesDB.GetRecord(this->m_unit->m_unitFieldBytes0[1]);
 
         if (!classRec || (classRec->m_flags & 0x8)) {
@@ -13727,14 +13727,14 @@ void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t no
         this->UnsetKeyBoneSequence(this->m_worldModel, 2, 1, 1, 0);
     }
 
-    uint32_t oldState = this->m_sheatheState;
-    this->m_sheatheState = showWeapons;
+    WEAPONMODE oldState = this->m_sheatheState;
+    this->m_sheatheState = static_cast<WEAPONMODE>(showWeapons);
     this->m_previousSheatheState = oldState;
 
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer() && !noSend) {
         CDataStore msg;
         msg.Put(static_cast<uint32_t>(CMSG_SET_SHEATHED));
-        msg.Put(this->m_sheatheState);
+        msg.Put(static_cast<uint32_t>(this->m_sheatheState));
         msg.Finalize();
         ClientServices::Send2(&msg);
     }
@@ -14193,11 +14193,11 @@ int32_t CGUnit_C::SheatheHandItem(uint32_t hand, int32_t sheathe) {
 // OFFSET: 0x00731F40
 void CGUnit_C::SetSheatheStateInstant() {
     switch (this->m_sheatheState) {
-        case 0: {
-            if (this->m_previousSheatheState == 1) {
+        case WEAPONMODE_SHEATHEDMODE: {
+            if (this->m_previousSheatheState == WEAPONMODE_NORMALMODE) {
                 this->SheatheHandItem(0, 1);
                 this->SheatheHandItem(1, 1);
-            } else if (this->m_previousSheatheState == 2) {
+            } else if (this->m_previousSheatheState == WEAPONMODE_RANGEDMODE) {
                 this->m_worldModel->DetachAllChildrenById(35);
 
                 if (this->m_characterComponent && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
@@ -14228,8 +14228,8 @@ void CGUnit_C::SetSheatheStateInstant() {
             return;
         }
 
-        case 1: {
-            if (this->m_previousSheatheState == 2) {
+        case WEAPONMODE_NORMALMODE: {
+            if (this->m_previousSheatheState == WEAPONMODE_RANGEDMODE) {
                 this->ShowRangedWeapon(true, nullptr);
             }
 
@@ -14244,8 +14244,8 @@ void CGUnit_C::SetSheatheStateInstant() {
             return;
         }
 
-        case 2: {
-            if (this->m_previousSheatheState == 1) {
+        case WEAPONMODE_RANGEDMODE: {
+            if (this->m_previousSheatheState == WEAPONMODE_NORMALMODE) {
                 this->SheatheHandItem(0, 1);
                 this->SheatheHandItem(1, 1);
             }
@@ -14279,7 +14279,7 @@ int32_t CGUnit_C::UnsheatheRightWeapon() {
         return 0;
     }
 
-    if (this->m_sheatheState == 1) {
+    if (this->m_sheatheState == WEAPONMODE_NORMALMODE) {
         const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
 
         if (!item) {
@@ -14290,7 +14290,7 @@ int32_t CGUnit_C::UnsheatheRightWeapon() {
         return 1;
     }
 
-    if (this->m_sheatheState == 2) {
+    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
         const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
         if (item && (item->m_inventoryType == INVTYPE_RANGEDRIGHT || item->m_inventoryType == INVTYPE_THROWN)) {
@@ -14312,7 +14312,7 @@ int32_t CGUnit_C::UnsheatheLeftWeapon() {
         return 0;
     }
 
-    if (this->m_sheatheState == 1) {
+    if (this->m_sheatheState == WEAPONMODE_NORMALMODE) {
         const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
         if (!item) {
@@ -14323,7 +14323,7 @@ int32_t CGUnit_C::UnsheatheLeftWeapon() {
         return 1;
     }
 
-    if (this->m_sheatheState == 2) {
+    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
         const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
         if (item && item->m_inventoryType != INVTYPE_RANGEDRIGHT && item->m_inventoryType != INVTYPE_THROWN) {
@@ -14340,11 +14340,11 @@ int32_t CGUnit_C::UnsheatheLeftWeapon() {
 // OFFSET: 0x00736B60
 void CGUnit_C::SetSheatheStateAnimate() {
     switch (this->m_previousSheatheState) {
-        case 0: {
+        case WEAPONMODE_SHEATHEDMODE: {
             break;
         }
 
-        case 1: {
+        case WEAPONMODE_NORMALMODE: {
             const CGUnitVirtualItem* right = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
             const CGUnitVirtualItem* left = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
@@ -14365,7 +14365,7 @@ void CGUnit_C::SetSheatheStateAnimate() {
             return;
         }
 
-        case 2: {
+        case WEAPONMODE_RANGEDMODE: {
             this->m_worldModel->DetachAllChildrenById(35);
 
             if (this->m_characterComponent && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
@@ -14400,7 +14400,7 @@ void CGUnit_C::SetSheatheStateAnimate() {
         }
     }
 
-    if (this->m_sheatheState == 1) {
+    if (this->m_sheatheState == WEAPONMODE_NORMALMODE) {
         const CGUnitVirtualItem* right = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false);
         const CGUnitVirtualItem* left = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false);
 
@@ -14413,7 +14413,7 @@ void CGUnit_C::SetSheatheStateAnimate() {
             this->SetKeyBoneSequence(this->m_worldModel, 2, ((1 << left->m_sheatheType) & 0x88) ? 90 : 89, 0xFFFFFFFF, 0, 1.0f, 1, 1, 0);
             this->m_animationState |= 0x200000;
         }
-    } else if (this->m_sheatheState == 2) {
+    } else if (this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
         const CGUnitVirtualItem* item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
 
         if (item) {
@@ -14945,7 +14945,7 @@ void CGUnit_C::OnKeyBoneAnimEnd(CM2Model* model, uint32_t boneId, uint32_t seque
 void CGUnit_C::ExchangeSheathedWeapon(const C3Vector* position, uint32_t hand, uint32_t flag) {
     const CGUnitVirtualItem* item = this->GetVirtualItem(static_cast<VIRTUAL_MONSTER_SLOT>(hand), false);
     const CGUnitVirtualItem* ranged = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, false);
-    uint32_t state;
+    WEAPONMODE state;
     bool sheathe;
 
     if ((flag & this->m_animationState) && (state = this->m_sheatheState) != 0) {
@@ -14955,7 +14955,7 @@ void CGUnit_C::ExchangeSheathedWeapon(const C3Vector* position, uint32_t hand, u
         sheathe = true;
     }
 
-    if (state != 2) {
+    if (state != WEAPONMODE_RANGEDMODE) {
         this->SheatheHandItem(hand, sheathe);
         SI2::PlaySheatheSound(item, sheathe, position, this->m_obj->m_guid == CGUnit_C::s_activeMover);
     } else if (!ranged || (ranged->m_inventoryType == INVTYPE_RANGED ? hand != 0 : (static_cast<uint8_t>(ranged->m_inventoryType - INVTYPE_THROWN) > 1 || hand != 1))) {
@@ -14963,7 +14963,7 @@ void CGUnit_C::ExchangeSheathedWeapon(const C3Vector* position, uint32_t hand, u
         SI2::PlaySheatheSound(ranged, sheathe, position, this->m_obj->m_guid == CGUnit_C::s_activeMover);
     }
 
-    if (this->m_previousSheatheState == 2) {
+    if (this->m_previousSheatheState == WEAPONMODE_RANGEDMODE) {
         this->AddHandItem(0);
     }
 
@@ -16950,7 +16950,7 @@ void CGUnit_C::PlaySpellVisualKit_HandleWeapons(const SpellRec* spell, const Spe
 
     if (effectName && !(this->GetModelData()->m_flags & 0x10)) {
         if (!spell || !(spell->m_attributes & 0x40000)) {
-            this->SetSheatheState(0, 1, 0);
+            this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
         }
 
         this->PlayEffectName(2, 0, spellId, kit, effectName, &flags, callback, position, guid, a5, nullptr);
@@ -16961,7 +16961,7 @@ void CGUnit_C::PlaySpellVisualKit_HandleWeapons(const SpellRec* spell, const Spe
 
     if (effectName && !(this->GetModelData()->m_flags & 0x10)) {
         if (!spell || !(spell->m_attributes & 0x40000)) {
-            this->SetSheatheState(0, 1, 0);
+            this->SetSheatheState(WEAPONMODE_SHEATHEDMODE, 1, 0);
         }
 
         this->PlayEffectName(1, 0, spellId, kit, effectName, &flags, callback, position, guid, a5, nullptr);
@@ -16988,7 +16988,7 @@ void CGUnit_C::PlaySpellVisualKit_PlayAnims(const SpellRec* spell, const SpellVi
     this->m_animationState &= ~0x4000;
 
     if (spell && (spell->m_attributes & 0x2) && (type == 4 || type == 0)) {
-        this->SetSheatheState(2, 1, 0);
+        this->SetSheatheState(WEAPONMODE_RANGEDMODE, 1, 0);
     }
 
     if (a5) {
@@ -18392,10 +18392,10 @@ void CGUnit_C::OnChannelObjectChanged(WOWGUID oldObject, int32_t oldSpell) {
     CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldChannelObject, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
 
     if (gameObject && this->m_unit->m_unitChannelSpell && gameObject->m_gameObject->m_typeID == 17) {
-        if (this->m_sheatheState == 1) {
+        if (this->m_sheatheState == WEAPONMODE_NORMALMODE) {
             this->CreateFishingLineEffect();
         } else {
-            this->SetSheatheState(1, 1, 0);
+            this->SetSheatheState(WEAPONMODE_NORMALMODE, 1, 0);
         }
 
         return;
@@ -18555,7 +18555,7 @@ void CGUnit_C::OnFlagChanged(uint32_t oldFlags) {
         if (mainHand && mainHand->m_classID == 2) {
             const CGUnitVirtualItem* item;
 
-            if ((this->m_unit->m_unitFieldFlags & 0x200000) && (item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true)) && item->m_classID == 2 && this->m_sheatheState <= 1) {
+            if ((this->m_unit->m_unitFieldFlags & 0x200000) && (item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true)) && item->m_classID == 2 && this->m_sheatheState <= WEAPONMODE_NORMALMODE) {
                 CCharacterComponent::RemoveHandItem(this->m_worldModel, INVSLOT_MAINHAND, static_cast<SHEATHE_TYPE>(this->m_sheatheState ? 0 : mainHand->m_sheatheType), false);
             } else {
                 if (this->unk_0988) {
@@ -18571,7 +18571,7 @@ void CGUnit_C::OnFlagChanged(uint32_t oldFlags) {
         if (offHand && offHand->m_classID == 2) {
             const CGUnitVirtualItem* item;
 
-            if ((((this->m_unit->m_unitFieldFlags & 0x200000) && (this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true), !this->IsDisarmed(0)) && (item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true)) && item->m_classID == 2) || static_cast<int8_t>(this->m_unit->m_unitFieldFlags2) < 0) && this->m_sheatheState == 1) {
+            if ((((this->m_unit->m_unitFieldFlags & 0x200000) && (this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true), !this->IsDisarmed(0)) && (item = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true)) && item->m_classID == 2) || static_cast<int8_t>(this->m_unit->m_unitFieldFlags2) < 0) && this->m_sheatheState == WEAPONMODE_NORMALMODE) {
                 CCharacterComponent::RemoveHandItem(this->m_worldModel, INVSLOT_OFFHAND, SHEATHE_NONE, false);
             } else {
                 this->AddHandItem(1);
@@ -19673,12 +19673,12 @@ void CGUnit_C::AddHandItem(int32_t hand) {
     SHEATHE_TYPE sheatheType = static_cast<SHEATHE_TYPE>(item->m_sheatheType);
     bool sheathed;
 
-    if (this->m_sheatheState == 2) {
+    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
         sheathed = hand != 2;
     } else if (hand == 1 && this->IsPlayingUnarmedAnim()) {
-        sheathed = CGUnit_C::ResolveSheathState(this->m_sheatheState, this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false), item) == 0;
+        sheathed = CGUnit_C::ResolveSheathState(this->m_sheatheState, this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false), item) == WEAPONMODE_SHEATHEDMODE;
     } else {
-        sheathed = this->m_sheatheState == 0;
+        sheathed = this->m_sheatheState == WEAPONMODE_SHEATHEDMODE;
     }
 
     bool shield = item->m_inventoryType == 14;
@@ -19726,7 +19726,7 @@ void CGUnit_C::AddHandItem(int32_t hand) {
         invSlot = static_cast<INVENTORY_SLOTS>(16);
         mainHand = false;
     } else {
-        if (this->m_sheatheState != 2) {
+        if (this->m_sheatheState != WEAPONMODE_RANGEDMODE) {
             CCharacterComponent::RemoveHandItem(this->m_worldModel, static_cast<INVENTORY_SLOTS>(17), static_cast<SHEATHE_TYPE>(0), false);
             return;
         }
@@ -19740,7 +19740,7 @@ void CGUnit_C::AddHandItem(int32_t hand) {
 
     CM2Model* detached = nullptr;
 
-    if (this->m_sheatheState == 2) {
+    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
         for (CM2Model* attached = this->m_worldModel->m_attachList; attached; attached = attached->m_attachNext) {
             if (attached->m_attachmentId == attachId) {
                 attached->m_refCount++;
@@ -21880,7 +21880,7 @@ void CGUnit_C::OnVirtualItemChanged(VIRTUAL_MONSTER_SLOT slot, int32_t oldItemId
     ItemDisplayInfoRec displayRec;
 
     if (current && this->GetVirtualItemDisplayRec(slot, displayRec)) {
-        GEOCOMPONENTLINKS link = CCharacterComponent::AddHandItem(this->m_worldModel, &displayRec, s_virtualItemInvSlots[slot], static_cast<SHEATHE_TYPE>(current->m_sheatheType), this->m_sheatheState == 0, current->m_inventoryType == 14, false, 0);
+        GEOCOMPONENTLINKS link = CCharacterComponent::AddHandItem(this->m_worldModel, &displayRec, s_virtualItemInvSlots[slot], static_cast<SHEATHE_TYPE>(current->m_sheatheType), this->m_sheatheState == WEAPONMODE_SHEATHEDMODE, current->m_inventoryType == 14, false, 0);
 
         if (this->m_characterComponent) {
             this->m_characterComponent->SetItemSlotUsingAttachSlot(static_cast<ITEM_SLOT>(-1), link);
@@ -22371,7 +22371,7 @@ int32_t CGUnit_C::CanPlayEmoteAnim() {
         return 0;
     }
 
-    if (this->m_sheatheState == 2 && (this->m_animationState & 0x200)) {
+    if (this->m_sheatheState == WEAPONMODE_RANGEDMODE && (this->m_animationState & 0x200)) {
         return 0;
     }
 
@@ -23917,7 +23917,7 @@ void CGUnit_C::OnFlag2Changed(uint32_t oldFlags) {
                 hide = true;
             }
 
-            if (hide && this->m_sheatheState <= 1) {
+            if (hide && this->m_sheatheState <= WEAPONMODE_NORMALMODE) {
                 CCharacterComponent::RemoveHandItem(this->m_worldModel, INVSLOT_OFFHAND, static_cast<SHEATHE_TYPE>(this->m_sheatheState ? 0 : offHand->m_sheatheType), offHand->m_inventoryType == 14);
             } else {
                 this->AddHandItem(1);
@@ -23930,7 +23930,7 @@ void CGUnit_C::OnFlag2Changed(uint32_t oldFlags) {
     }
 
     if (changed & 0x400) {
-        if ((this->m_unit->m_unitFieldFlags2 & 0x400) && this->m_sheatheState == 2) {
+        if ((this->m_unit->m_unitFieldFlags2 & 0x400) && this->m_sheatheState == WEAPONMODE_RANGEDMODE) {
             const CGUnitVirtualItem* ranged = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_RANGED, true);
 
             if (ranged) {

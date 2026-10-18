@@ -804,8 +804,8 @@ int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
             CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
 
             if (attacker) {
-                if (attacker->m_sheatheState != 1) {
-                    attacker->SetSheatheState(1, 1, 0);
+                if (attacker->m_sheatheState != WEAPONMODE_NORMALMODE) {
+                    attacker->SetSheatheState(WEAPONMODE_NORMALMODE, 1, 0);
                 }
 
                 attacker->m_combat.m_attackSent = 0;
