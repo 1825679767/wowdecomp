@@ -138,8 +138,8 @@ std::vector<uint32_t> Signature(const CCharacterComponent& component) {
             }
         }
     }
-    values.push_back(uint32_t(component.m_wxlItemGeneration));
-    values.push_back(uint32_t(component.m_wxlItemGeneration>>32));
+    // Resolved display rows are immutable for the session. Publications for
+    // other actors must not invalidate this component's completed body atlas.
     values.push_back(RetailChoiceRevision(component));
     return values;
 }
@@ -486,6 +486,8 @@ void Bind(CCharacterComponent& component, AppearanceAssets& state) {
         if(child.ready&&child.child)for (const auto& [type,sheet] : state.sheets) child.child->model->ReplaceTexture(type,sheet->texture);
     component.m_dirtySections = 0;
     component.m_flags &= ~1u;
+    // x32 a049ef31: equipment visibility must run AFTER customization.
+    wxl::native::equipment_attachments::Apply(component);
 }
 
 void Restore(CCharacterComponent& component) {
@@ -522,14 +524,32 @@ bool ApplyAppearance(CCharacterComponent& component) noexcept {
             if(current->ready){
                 const bool changed=PumpWhole(*current);
                 PumpChildren(component,*current);
-                if(changed||component.m_dirtySections||(component.m_flags&5))Bind(component,*current);
+                // Classic completion can replace type 1 and consume dirty bits
+                // before reaching this pass. Equal recipe IDs do not prove that
+                // the model still uses our atlas (x32 deferred-sheet ownership).
+                bool rebound=false;
+                const auto& textures=model->m_shared->m_data->m_textures;
+                for(uint32_t i=0;i<textures.m_count;++i){
+                    const auto sheet=current->sheets.find(textures[i].m_type);
+                    if(sheet!=current->sheets.end()&&model->m_textures[i]!=sheet->second->texture){rebound=true;break;}
+                }
+                if(changed||rebound||component.m_dirtySections||(component.m_flags&5))Bind(component,*current);
                 return true;
             }
             if(current->buildAttempts>=3||(current->retryAt&&int32_t(OsGetAsyncTimeMs()-current->retryAt)<0))return false;
         }
+        // As in x32 64e3eb5c: a deferred partial job becomes a full retail
+        // atlas here. Refresh every clothing region before taking the final
+        // signature, even when native dirty bits cover only the changed region.
+        const auto dirty = component.m_dirtySections;
+        component.m_dirtySections |= 0xffu;
+        const bool clothingReady = component.ItemsLoaded(0);
+        component.m_dirtySections = dirty;
+        if (!clothingReady) return false;
+        const auto preparedSignature = Signature(component);
         auto next = std::make_unique<AppearanceAssets>();
         next->model = model;
-        next->signature = signature;
+        next->signature = preparedSignature;
         next->buildAttempts=current&&current->model==model&&current->signature==signature?current->buildAttempts:0;
         if (!Build(component,*next)) {
             ++next->buildAttempts;next->retryAt=OsGetAsyncTimeMs()+1000;

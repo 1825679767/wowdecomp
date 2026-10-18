@@ -151,7 +151,7 @@ bool HelmetRuleMatches(const ItemGraphHelmetRule& rule,uint32_t race){
 }
 void ApplyHelmet(CCharacterComponent& c,EquipmentAttachmentState& owner){
  const auto display=c.m_itemDisplayID[ITEMSLOT_HEAD];const auto generation=ItemGraphGeneration();
- if(owner.helmetDisplay!=display||owner.helmetGeneration!=generation){
+ if(owner.helmetDisplay!=display||(!owner.helmetMetadataReady&&owner.helmetGeneration!=generation)){
   equipment_attachments::BeginGeometry(c);owner.helmetDisplay=display;owner.helmetGeneration=generation;owner.helmetMetadataReady=false;owner.helmet={};
  }
  if(!display||!HelmetActor(c,owner)) {equipment_attachments::BeginGeometry(c);return;}
@@ -217,6 +217,17 @@ bool BuildSlot(CCharacterComponent& c,EquipmentAttachmentState& owner,uint32_t s
 }
 }
 namespace equipment_attachments {
+std::string RetailHelmetPath(const CCharacterComponent& c,const char* requested) noexcept{try{
+ if(!Enabled()||!c.m_data.m_model||!c.m_data.m_model->m_shared)return {};
+ EquipmentAttachmentState actor;actor.model=c.m_data.m_model;actor.race=RetailRecipeRace(c);
+ if(!HelmetActor(c,actor))return {};
+ auto path=Key(requested?requested:"");const std::string prefix="item\\objectcomponents\\head\\";
+ if(!path.starts_with(prefix))return {};
+ auto name=path.substr(prefix.size());
+ if(name.empty()||name.find('\\')!=std::string::npos||name.find("..")!=std::string::npos||!name.ends_with(".m2"))return {};
+ auto alias=prefix+"wxl_retail\\"+name;
+ return alias.size()<260&&SFile::FileExists(alias.c_str())?alias:std::string{};
+ }catch(...){return {};}}
 void Register(){procedural_enchants::Register();RegisterTimedItemVisuals();enabled=CVar::Register("wxlEquipmentAttachments","WXL native retail armor models and native item visual validation",0,WXL_ENABLE_EQUIPMENT_ATTACHMENTS?"1":"0",nullptr,0,false,nullptr,false);}
 bool Enabled() noexcept{return WXL_ENABLE_EQUIPMENT_ATTACHMENTS&&NativeEnabled()&&AssetsEnabled()&&Db2Enabled()&&BlpEnabled()&&enabled&&enabled->m_intValue;}
 bool SuppressNativeArmor(const CCharacterComponent& c,uint32_t slot) noexcept{
@@ -297,7 +308,12 @@ void Apply(CCharacterComponent& c) noexcept{try{
  // A newly published item graph can resolve a former miss. Rebuild only this
  // owner's children and never retain rows from a retired metadata generation.
  const auto generation=ItemGraphGeneration();
- for(auto& slot:state->slots)if(slot.generation!=generation){const auto display=slot.display;slot=Slot{};slot.display=display;slot.generation=generation;}
+ for(auto& slot:state->slots)if(slot.generation!=generation){
+  // The demand index copies resolved rows unchanged into later snapshots.
+  // Retain loaded children; wake only unresolved/failed resource work.
+  slot.generation=generation;
+  if(!slot.ready){slot.retryAt=0;slot.attempts=0;slot.exhausted=false;}
+ }
  for(auto& slot:state->slots)if(slot.ready)for(const auto& child:slot.children){
   if(child->skinned?child->model->m_skinningSource!=model:child->model->m_attachParent!=model){slot.children.clear();slot.ready=false;slot.retryAt=0;slot.attempts=0;slot.exhausted=false;break;}}
  ApplyHelmet(c,*state);

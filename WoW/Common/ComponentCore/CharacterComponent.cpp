@@ -3871,7 +3871,12 @@ int32_t CCharacterComponent::GetHelmModelFilePath(ItemDisplayInfoRec& rec, const
         return 0;
     }
 
-    return this->ComposeHelmModelFilePath(raceRec, &rec, s_pathEnd, 260);
+    if (!this->ComposeHelmModelFilePath(raceRec, &rec, s_pathEnd, 260)) return 0;
+    // Accepted x32 a049ef31: prefer the original Retail helmet pack only
+    // for supported modern actors and an actually mounted exact member.
+    const auto retail = wxl::native::equipment_attachments::RetailHelmetPath(*this,s_path);
+    if (!retail.empty()) SStrCopy(s_path,retail.c_str(),260);
+    return 1;
 }
 
 // VERIFY: 05b10ee3 auto

@@ -186,7 +186,12 @@ void PumpItemGraph() noexcept {
   if(replay.cursor>=replay.guids.size() && replay.observed!=current){replay.guids.clear();replay.cursor=0;replay.observed=current;ClntObjMgrEnumVisibleObjects(&Collect,&replay);}
   for(unsigned budget=0;budget<8&&replay.cursor<replay.guids.size();++budget){auto guid=replay.guids[replay.cursor++];
    auto* player=static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid,TYPEMASK_PLAYER,__FILE__,__LINE__));if(!player)continue;
-   for(int slot=0;slot<19;++slot){auto* visible=player->GetVisibleItem(slot);if(!visible||!VisibleItemKey(visible->m_itemId))continue;player->EquipVisibleItem(visible,slot);if(slot==15||slot==16)player->UpdateObjComponentVisualsSlot(visible,slot);}
+   for(int slot=0;slot<19;++slot){auto* visible=player->GetVisibleItem(slot);if(!visible||!VisibleItemKey(visible->m_itemId))continue;if(slot<15&&player->m_characterComponent){
+    const auto componentSlot=CCharacterComponent::GetItemSlotForInvSlot(static_cast<INVENTORY_SLOTS>(slot));
+    const auto id=visible->GetDisplayID();
+    if(componentSlot!=NUM_ITEM_SLOTS&&id>0&&player->m_characterComponent->m_itemDisplayID[componentSlot]==uint32_t(id))continue;
+   }
+   player->EquipVisibleItem(visible,slot);if(slot==15||slot==16)player->UpdateObjComponentVisualsSlot(visible,slot);}
   }
  }catch(...){/* Rendering keeps native DBC/stat-cache presentation on allocation failure. */}
 }

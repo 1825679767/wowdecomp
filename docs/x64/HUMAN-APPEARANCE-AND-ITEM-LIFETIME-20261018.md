@@ -1,0 +1,12 @@
+# Human appearance and item lifetime, October 18 2026
+
+Human confirms earlier wrong-client test. Exact new C receipt: source 992bffba2686fc8726ca456be6a0cd4a7970dd8f, executable SHA256 4f4d1f56644102c43e99e5e77d32a984adb0a2feb4b4f4bc61f6dc900b7135cc, PID 36352, C data/cwd, 08:27:57Z to 08:34:36Z, exit 0. Screenshots and full receipt/log retained outside source in build/human-appearance-review-20261018. User reports slow race loading, low FPS, Human male baked body and female helmet visibility regressions. These are open visual/performance gates.
+
+Source corrections:
+- x32 64e3eb5c240591da3842be1e544a05c83ab9e7f4 prepares all clothing regions when a deferred partial update expands to a full atlas. Native composition now does the same before building, preserving asynchronous cache readiness.
+- Native classic completion may replace the model's body texture and clear dirty bits before ApplyAppearance. The identical-recipe fast path now checks actual replaceable texture ownership, republishing the existing atlas when displaced instead of leaving a classic body bound. No new recipe generation is needed.
+- x32 a049ef31c3c768f3caa8a40f0a0805a1749c3e33 routes supported actors to existing original Retail helmet meshes and applies hide rules after customization. Native routing now checks the exact mounted wxl_retail member; missing members and private/legacy actors preserve their normal path. Native model correctness uses the same route. Equipment visibility is re-applied at the final customization publication boundary.
+- The session's demand worker clones resolved records and requests only unresolved IDs. Remove unrelated publication counters from completed body atlas identity; retain completed attachment children when later snapshots publish other displays. Failed/incomplete work still wakes on publication, with existing retry bounds. Genuine item/actor/choice changes keep normal invalidation.
+- World metadata replay skips armor already applied to that exact component display slot. Missing item-to-display mappings still replay and weapon visual paths retain their own behavior.
+
+No FPS default/cap change. No new client, data copy, archive writes, live E install, account actions or gameplay acceptance. Source/build verification alone cannot measure an FPS gain or accept the two screenshot fixes. The earlier 992bffb runtime and C launcher rollback remain retained. This patch is a pending diagnostic candidate.

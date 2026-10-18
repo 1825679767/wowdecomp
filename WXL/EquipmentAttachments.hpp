@@ -17,6 +17,7 @@ void ReleaseSceneItemVisuals(CM2Scene&) noexcept;
 void Register();
 bool Enabled() noexcept;
 void Apply(CCharacterComponent&) noexcept;
+std::string RetailHelmetPath(const CCharacterComponent&,const char* requested) noexcept;
 bool Pending(const CCharacterComponent&) noexcept;
 // Restore only this owner's hidden sections before native/recipe geometry writes.
 void BeginGeometry(CCharacterComponent&) noexcept;
