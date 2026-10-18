@@ -20,6 +20,10 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "WoW/Source/Game/GameClient/WTOBJECT.h"
 
+enum UNIT_FACING_CONSTANTS : uint32_t {
+    NUM_SAVED_FACING_DELTAS = 4,
+};
+
 class CGPlayer_C;
 class CGWorldFrame;
 class CGPartyPetState;
@@ -317,7 +321,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     /* 0A98 */ float m_facingVelocity;
     /* 0A9C */ float m_facingBlend;
     /* 0AA0 */ CSmoothAngle m_smoothTarget;
-    /* 0AA8 */ float m_turnDelta [4];
+    /* 0AA8 */ float m_turnDelta [NUM_SAVED_FACING_DELTAS];
     /* 0AB8 */ float m_scriptedFacing;
     /* 0ABC */ uint32_t m_lastTurnTimeMs;
     /* 0AC0 */ uint32_t m_lootableTime;
