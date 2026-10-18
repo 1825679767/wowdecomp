@@ -2202,7 +2202,7 @@ void CMapRenderChunk::RenderMultiPassAdditive(CMapRenderChunk* renderChunk) {
         g_theGxDevicePtr->Draw(&renderChunk->m_batch, 1);
 
         if (i == 0 && specular) {
-            GxRsSet(GxRs_TexGen0, GxTexGen_EyeLinear);
+            GxRsSet(GxRs_TexGen0, GxTexGen_World);
             GxRsSet(GxRs_TextureShader0, 1);
         }
 
@@ -2273,7 +2273,7 @@ void CMapRenderChunk::RenderMultiPassAlpha(CMapRenderChunk* renderChunk) {
         g_theGxDevicePtr->Draw(&renderChunk->m_batch, 1);
 
         if (i == 0 && specular) {
-            GxRsSet(GxRs_TexGen0, GxTexGen_EyeLinear);
+            GxRsSet(GxRs_TexGen0, GxTexGen_World);
             GxRsSet(GxRs_TextureShader0, 1);
         }
 
@@ -2367,7 +2367,7 @@ void CMapRenderChunk::RenderMultiPassPixelShaderBigAlpha(CMapRenderChunk* render
         g_theGxDevicePtr->Draw(&renderChunk->m_batch, 1);
 
         if (i == 0 && specular) {
-            GxRsSet(GxRs_TexGen0, GxTexGen_EyeLinear);
+            GxRsSet(GxRs_TexGen0, GxTexGen_World);
             GxRsSet(GxRs_TextureShader0, 1);
         }
 
@@ -2445,7 +2445,7 @@ void CMapRenderChunk::RenderMultiPassPixelShader(CMapRenderChunk* renderChunk) {
         g_theGxDevicePtr->Draw(&renderChunk->m_batch, 1);
 
         if (i == 0 && specular) {
-            GxRsSet(GxRs_TexGen0, GxTexGen_EyeLinear);
+            GxRsSet(GxRs_TexGen0, GxTexGen_World);
             GxRsSet(GxRs_TextureShader0, 1);
         }
 

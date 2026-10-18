@@ -3728,7 +3728,7 @@ void CWorldScene::RenderChunks() {
 
         for (int32_t i = 0; i < 5; i++) {
             GxRsSet(static_cast<EGxRenderState>(GxRs_TextureCoord0 + i), i);
-            GxRsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + i), GxTexGen_EyeLinear);
+            GxRsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + i), GxTexGen_World);
             GxRsSet(static_cast<EGxRenderState>(GxRs_TextureShader0 + i), 1);
         }
     }

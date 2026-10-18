@@ -138,8 +138,8 @@ enum EGxTexCubeFace : uint32_t {
 enum EGxTexGen {
     GxTexGen_Disabled = 0,
     GxTexGen_ObjectLinear = 1,
-    GxTexGen_EyeLinear = 2,
-    GxTexGen_Unk3 = 3,
+    GxTexGen_World = 2,
+    GxTexGen_View = 3,
     GxTexGen_ReflectionMap = 4,
     GxTexGen_Normal = 5,
     GxTexGen_SphereMap = 6,

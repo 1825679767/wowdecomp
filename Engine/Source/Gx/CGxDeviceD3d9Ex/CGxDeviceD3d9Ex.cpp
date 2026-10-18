@@ -1318,8 +1318,8 @@ void CGxDeviceD3d9Ex::ISetTexCoordIndex(uint32_t tmu, int32_t texGen, uint32_t c
             break;
 
         case GxTexGen_ObjectLinear:
-        case GxTexGen_EyeLinear:
-        case GxTexGen_Unk3:
+        case GxTexGen_World:
+        case GxTexGen_View:
             this->DsSet(state, tmu | D3DTSS_TCI_CAMERASPACEPOSITION);
             break;
 
@@ -1592,7 +1592,7 @@ void CGxDeviceD3d9Ex::ISetTexGen(uint32_t tmu, int32_t texGen) {
 
     C44Matrix matrix;
 
-    if (texGen == GxTexGen_ObjectLinear || texGen == GxTexGen_EyeLinear) {
+    if (texGen == GxTexGen_ObjectLinear || texGen == GxTexGen_World) {
         CGxMatrixStack& view = this->m_xforms[GxXform_View];
         matrix = view.m_mtx[view.m_level];
         matrix = matrix.AffineInverse();

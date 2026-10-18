@@ -572,8 +572,8 @@ void CM2SceneRender::DrawBatchProj() {
 
     effect->SetCurrent();
     this->SetupBillboardView(*reinterpret_cast<const C3Vector*>(&this->m_scene->m_viewInv.d0));
-    CShaderEffect::SetTexMtx_TexGen(GxTexGen_EyeLinear, texMatrix, 0);
-    CShaderEffect::SetTexMtx_TexGen(GxTexGen_EyeLinear, depthMatrix, 1);
+    CShaderEffect::SetTexMtx_TexGen(GxTexGen_World, texMatrix, 0);
+    CShaderEffect::SetTexMtx_TexGen(GxTexGen_World, depthMatrix, 1);
     this->m_scene->m_projectTextureCallback(box, imColor, this->m_curLocalLighting, this->m_scene->m_projectTextureParam, (this->m_curModel->m_fFlags >> 2) & 1);
     g_theGxDevicePtr->XformSetView(s_identity);
 

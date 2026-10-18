@@ -3507,8 +3507,8 @@ void CGxDeviceOpenGl::ISetTexGen(uint32_t tmu, int32_t texGen) {
             this->DsSet(static_cast<EDeviceState>(Ds_TexGenQ0 + tmu), 0, 0);
             break;
 
-        case GxTexGen_EyeLinear:
-        case GxTexGen_Unk3:
+        case GxTexGen_World:
+        case GxTexGen_View:
             this->DsSet(static_cast<EDeviceState>(Ds_TexGenS0 + tmu), GL_EYE_LINEAR, 0);
             this->DsSet(static_cast<EDeviceState>(Ds_TexGenT0 + tmu), GL_EYE_LINEAR, 0);
             this->DsSet(static_cast<EDeviceState>(Ds_TexGenR0 + tmu), GL_EYE_LINEAR, 0);
@@ -3540,7 +3540,7 @@ void CGxDeviceOpenGl::ISetTexGen(uint32_t tmu, int32_t texGen) {
             break;
     }
 
-    if (texGen == GxTexGen_EyeLinear) {
+    if (texGen == GxTexGen_World) {
         CGxMatrixStack& stack = this->m_texGen[tmu];
         stack.m_dirty = 1;
         stack.m_flags[stack.m_level] &= ~CGxMatrixStack::F_Identity;
