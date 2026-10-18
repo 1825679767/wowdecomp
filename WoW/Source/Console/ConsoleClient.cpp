@@ -117,8 +117,15 @@ HTEXTFONT s_textFont;
 // STATIC: 0x00CA1990
 static int32_t s_consoleResizeState;
 
+enum HIGHLIGHTSTATE : int32_t {
+    HS_NONE = 0,
+    HS_HIGHLIGHTING = 1,
+    HS_ENDHIGHLIGHT = 2,
+    NUM_HIGHLIGHTSTATES = 3,
+};
+
 // STATIC: 0x00CA1994
-static int32_t s_highlightState;
+static HIGHLIGHTSTATE s_highlightState;
 
 // STATIC: 0x00CA1998
 static float s_highlightHStart;
@@ -196,7 +203,7 @@ static void ReserveInputSpace(CONSOLELINE* line, uint32_t chars) {
 // VERIFY: 8e2941b8 auto
 // OFFSET: 0x00763830
 static void ResetHighlight() {
-    s_highlightState = 0;
+    s_highlightState = HS_NONE;
     s_hRect.right = 0.0f;
     s_hRect.left = 0.0f;
     s_hRect.top = 0.0f;
@@ -237,7 +244,7 @@ static void UpdateHighlight() {
 // OFFSET: 0x007639A0
 static int32_t OnMouseUp(const void* data, void* param) {
     if (!EventIsKeyDown(s_consoleHotKey) && s_active) {
-        s_highlightState = 2;
+        s_highlightState = HS_ENDHIGHLIGHT;
         s_consoleResizeState = 0;
     }
 
@@ -265,7 +272,7 @@ static int32_t OnMouseMove(const void* data, void* param) {
 
     s_highlightHEnd = mouse->m_x;
 
-    if (s_highlightState == 1) {
+    if (s_highlightState == HS_HIGHLIGHTING) {
         UpdateHighlight();
     }
 
@@ -720,7 +727,7 @@ static int32_t OnMouseDown(const void* data, void* param) {
     }
 
     SStrCopy(s_copyText, reinterpret_cast<const char*>(line->m_buffer), sizeof(s_copyText));
-    s_highlightState = 1;
+    s_highlightState = HS_HIGHLIGHTING;
 
     int32_t lineIndex = static_cast<int32_t>((s_consoleHeight - y) / s_fontHeight - 1.0f);
     s_hRect.top = 1.0f - (s_consoleHeight - s_fontHeight * 0.75f - s_fontHeight - lineIndex * s_fontHeight);
