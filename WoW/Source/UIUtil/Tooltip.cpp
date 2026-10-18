@@ -4135,13 +4135,13 @@ static void AddItemNameLines(CGTooltip* tooltip, const ItemStats_C* stats, int32
     CVar* colorblindMode = CVar::Lookup("colorblindMode");
 
     if (colorblindMode && colorblindMode->m_intValue) {
-        if (stats->m_flags[0] & ITEM_FLAG_HEROIC) {
+        if (stats->m_flags[0] & ITEM_FLAG_HEROIC_TOOLTIP) {
             tooltip->AddLine(FrameScript_GetText("ITEM_HEROIC_EPIC", -1, GENDER_NOT_APPLICABLE), nullptr, textColor, textColor, 0);
         } else {
             SStrPrintf(format, sizeof(format), "ITEM_QUALITY%d_DESC", destroyGem ? 0 : stats->m_quality);
             tooltip->AddLine(FrameScript_GetText(format, -1, GENDER_NOT_APPLICABLE), nullptr, textColor, textColor, 0);
         }
-    } else if (stats->m_flags[0] & ITEM_FLAG_HEROIC) {
+    } else if (stats->m_flags[0] & ITEM_FLAG_HEROIC_TOOLTIP) {
         tooltip->AddLine(FrameScript_GetText("ITEM_HEROIC", -1, GENDER_NOT_APPLICABLE), nullptr, greenColor, greenColor, 0);
     }
 }
@@ -6291,7 +6291,7 @@ static int32_t AddItemTradeLines(CGTooltip* tooltip, const ItemStats_C* stats, C
             tooltip->AddLine(text, nullptr, refundColor, refundColor, 1);
             refundable = 1;
         }
-    } else if ((stats->m_flags[0] & ITEM_FLAG_REFUNDABLE) && !(item->m_itemFlags & 4)) {
+    } else if ((stats->m_flags[0] & ITEM_FLAG_ITEM_PURCHASE_RECORD) && !(item->m_itemFlags & 4)) {
         item->RequestItemPurchaseData();
         refundable = 1;
     }

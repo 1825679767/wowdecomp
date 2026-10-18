@@ -1774,7 +1774,7 @@ void CGItem_C::PostInitWithStats() {
         CGQuestLog::UpdateQuestItem(this->m_obj->m_entryID);
         CGContainerInfo::UpdateItem(this->m_obj->m_guid);
 
-        if ((stats->m_flags[0] & ITEM_FLAG_REFUNDABLE) && !this->m_itemPurchaseData && !(this->m_itemFlags & 4)) {
+        if ((stats->m_flags[0] & ITEM_FLAG_ITEM_PURCHASE_RECORD) && !this->m_itemPurchaseData && !(this->m_itemFlags & 4)) {
             this->RequestItemPurchaseData();
         }
 

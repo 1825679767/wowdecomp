@@ -5,13 +5,39 @@
 #include <cstdint>
 
 enum ITEM_STATIC_FLAGS : uint32_t {
-    // First ItemStats_C flag word; the second word is a separate domain.
-    ITEM_FLAG_CONJURED = 2,
-    ITEM_FLAG_HAS_LOOT = 4,
-    ITEM_FLAG_HEROIC = 8,
-    ITEM_FLAG_IS_WRAPPER = 512,
-    ITEM_FLAG_REFUNDABLE = 4096,
-    ITEM_FLAG_PETITION = 8192,
+    // Masks for ItemStats_C::m_flags[0]; m_flags[1] is a separate domain.
+    ITEM_FLAG_NO_PICKUP                               = 0x00000001u,
+    ITEM_FLAG_CONJURED                                = 0x00000002u,
+    ITEM_FLAG_HAS_LOOT                                = 0x00000004u,
+    ITEM_FLAG_HEROIC_TOOLTIP                          = 0x00000008u,
+    ITEM_FLAG_DEPRECATED                              = 0x00000010u,
+    ITEM_FLAG_NO_USER_DESTROY                         = 0x00000020u,
+    ITEM_FLAG_PLAYERCAST                              = 0x00000040u,
+    ITEM_FLAG_NO_EQUIP_COOLDOWN                       = 0x00000080u,
+    ITEM_FLAG_MULTI_LOOT_QUEST                        = 0x00000100u,
+    ITEM_FLAG_IS_WRAPPER                              = 0x00000200u,
+    ITEM_FLAG_USES_RESOURCES                          = 0x00000400u,
+    ITEM_FLAG_MULTI_DROP                              = 0x00000800u,
+    ITEM_FLAG_ITEM_PURCHASE_RECORD                    = 0x00001000u,
+    ITEM_FLAG_PETITION                                = 0x00002000u,
+    ITEM_FLAG_HAS_TEXT                                = 0x00004000u,
+    ITEM_FLAG_NO_DISENCHANT                           = 0x00008000u,
+    ITEM_FLAG_REAL_DURATION                           = 0x00010000u,
+    ITEM_FLAG_NO_CREATOR                              = 0x00020000u,
+    ITEM_FLAG_IS_PROSPECTABLE                         = 0x00040000u,
+    ITEM_FLAG_UNIQUE_EQUIPPABLE                       = 0x00080000u,
+    ITEM_FLAG_IGNORE_FOR_AURAS                        = 0x00100000u,
+    ITEM_FLAG_IGNORE_DEFAULT_ARENA_RESTRICTIONS       = 0x00200000u,
+    ITEM_FLAG_NO_DURABILITY_LOSS                      = 0x00400000u,
+    ITEM_FLAG_USE_WHEN_SHAPESHIFTED                   = 0x00800000u,
+    ITEM_FLAG_HAS_QUEST_GLOW                          = 0x01000000u,
+    ITEM_FLAG_HIDE_UNUSABLE_RECIPE                    = 0x02000000u,
+    ITEM_FLAG_NOT_USEABLE_IN_ARENA                    = 0x04000000u,
+    ITEM_FLAG_IS_BOUND_TO_ACCOUNT                     = 0x08000000u,
+    ITEM_FLAG_NO_REAGENT_COST                         = 0x10000000u,
+    ITEM_FLAG_IS_MILLABLE                             = 0x20000000u,
+    ITEM_FLAG_REPORT_TO_GUILD_CHAT                    = 0x40000000u,
+    ITEM_FLAG_NO_PROGRESSIVE_LOOT                     = 0x80000000u,
 };
 
 enum ITEM_DYNAMIC_FLAGS : uint32_t {
