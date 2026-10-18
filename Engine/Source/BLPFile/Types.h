@@ -8,6 +8,12 @@ enum BLP_FILE_MAGIC : uint32_t {
     BLP_MAGIC_BLP2 = 0x32504C42,
 };
 
+enum BLP_HEADER_CONSTANTS : uint32_t {
+    // Physical header storage, independent of the computed mip count.
+    BLP_MIP_SLOTS = 16,
+    BLP_PALETTE_ENTRIES = 256,
+};
+
 enum COLOR_FILE_FORMAT : uint8_t {
     COLOR_JPEG = 0, // Legacy encoding; JPEG decoding is disabled in this client.
     COLOR_PAL = 1,
@@ -50,10 +56,10 @@ struct BLPHeader {
     /* 000B */ uint8_t m_hasMips;
     /* 000C */ uint32_t m_width;
     /* 0010 */ uint32_t m_height;
-    /* 0014 */ uint32_t m_mipOffsets[16];
-    /* 0054 */ uint32_t m_mipSizes[16];
+    /* 0014 */ uint32_t m_mipOffsets[BLP_MIP_SLOTS];
+    /* 0054 */ uint32_t m_mipSizes[BLP_MIP_SLOTS];
     /* 0094 */ union {
-        BlpPalPixel m_palette[256];
+        BlpPalPixel m_palette[BLP_PALETTE_ENTRIES];
         BLPJPEGHeader m_jpeg;
     } m_extended;
 };
