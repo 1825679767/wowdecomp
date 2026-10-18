@@ -4,6 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 
+enum PARRYMATERIALS : int32_t {
+    PARRYMATERIAL_WOOD = 0,
+    PARRYMATERIAL_METAL = 1,
+    NUM_PARRYMATERIALS = 2,
+};
+
 enum AMBIENCE : int32_t {
     AMB_DAY = 0,
     AMB_NIGHT = 1,
