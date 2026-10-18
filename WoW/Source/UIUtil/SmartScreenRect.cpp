@@ -11,6 +11,16 @@
 #include "Engine/Source/Tempest/CRect.h"
 #include <cmath>
 
+enum SCREENRECT_CLAMP_FLAGS : uint32_t {
+    SRECTCLAMP_NONE = 0,
+    SRECTCLAMP_LEFT = 1,
+    SRECTCLAMP_RIGHT = 2,
+    SRECTCLAMP_TOP = 4,
+    SRECTCLAMP_BOTTOM = 8,
+    SRECTCLAMP_HORIZONTAL = 3,
+    SRECTCLAMP_VERTICAL = 12,
+};
+
 struct BFSNODE : public TSLinkedNode<BFSNODE> {
     /* 0008 */ CRect m_rect;
     /* 0018 */ int32_t m_direction;
@@ -74,24 +84,24 @@ static uint32_t SmartScreenRectClampToScreen(CRect* out, CRect rect, int32_t tes
     static float s_screenWidth = screenWidth;
     static float s_bottom = top - 0.01875f;
 
-    uint32_t flags = 0;
+    uint32_t flags = SRECTCLAMP_NONE;
     float width = rect.maxX - rect.minX;
     float height = rect.minY - rect.maxY;
 
     if (rect.minX < 0.0f) {
-        flags = 0x1;
+        flags = SRECTCLAMP_LEFT;
     }
 
     if (screenWidth < rect.maxX) {
-        flags |= 0x2;
+        flags |= SRECTCLAMP_RIGHT;
     }
 
     if (rect.maxY < 0.01875f) {
-        flags |= 0x8;
+        flags |= SRECTCLAMP_BOTTOM;
     }
 
     if (rect.minY > top) {
-        flags |= 0x4;
+        flags |= SRECTCLAMP_TOP;
     }
 
     if (testOnly) {
@@ -103,21 +113,21 @@ static uint32_t SmartScreenRectClampToScreen(CRect* out, CRect rect, int32_t tes
         return 0;
     }
 
-    if (flags & 0xC) {
-        if (flags & 0x4) {
+    if (flags & SRECTCLAMP_VERTICAL) {
+        if (flags & SRECTCLAMP_TOP) {
             rect.minY = top;
             rect.maxY = top - height;
-        } else if (flags & 0x8) {
+        } else if (flags & SRECTCLAMP_BOTTOM) {
             rect.maxY = 0.01875f;
             rect.minY = height + 0.01875f;
         }
     }
 
-    if (flags & 0x3) {
-        if (flags & 0x1) {
+    if (flags & SRECTCLAMP_HORIZONTAL) {
+        if (flags & SRECTCLAMP_LEFT) {
             rect.minX = 0.0f;
             rect.maxX = width;
-        } else if (flags & 0x2) {
+        } else if (flags & SRECTCLAMP_RIGHT) {
             rect.maxX = screenWidth;
             rect.minX = screenWidth - width;
         }
@@ -306,12 +316,12 @@ static CRect SmartScreenRectFindFreeRect(SCREENRECTGRIDS grid, const CRect& rect
     uint32_t flags = SmartScreenRectClampToScreen(&result, rect, 0);
     int32_t start;
 
-    if (flags & 0x1) {
-        start = (flags & 0x4) ? 8 : ((flags & 0x8) | 0x10) >> 2;
-    } else if (flags & 0x4) {
-        start = (flags & 0x2) ? 7 : 2;
-    } else if (flags & 0x2) {
-        start = (flags & 0x8) ? 5 : 3;
+    if (flags & SRECTCLAMP_LEFT) {
+        start = (flags & SRECTCLAMP_TOP) ? 8 : ((flags & SRECTCLAMP_BOTTOM) | 0x10) >> 2;
+    } else if (flags & SRECTCLAMP_TOP) {
+        start = (flags & SRECTCLAMP_RIGHT) ? 7 : 2;
+    } else if (flags & SRECTCLAMP_RIGHT) {
+        start = (flags & SRECTCLAMP_BOTTOM) ? 5 : 3;
     } else {
         start = (flags >> 3) & 1;
     }
