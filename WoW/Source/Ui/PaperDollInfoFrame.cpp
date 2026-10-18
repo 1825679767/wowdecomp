@@ -804,11 +804,11 @@ int32_t CGCharacterInfo::CalculateInventoryAlertStatus(CGPlayer_C* player, uint3
         return 2;
     }
 
-    if ((item->m_item->m_itemFieldFlags & 0x8) || !item->m_item->m_itemFieldMaxdurability) {
+    if ((item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) || !item->m_item->m_itemFieldMaxdurability) {
         return 0;
     }
 
-    if (!(item->m_item->m_itemFieldFlags & 0x8) && item->m_item->m_itemFieldDurability) {
+    if (!(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldDurability) {
         if (item->GetDurability() > 5) {
             return 0;
         }

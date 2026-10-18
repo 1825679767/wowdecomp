@@ -92,7 +92,7 @@ void CGItemText::DisplayText(const WOWGUID& guid, int32_t translate) {
     QuestParserParseText(page->m_text, buffer, sizeof(buffer), player, nullptr, 0);
 
     if (object->m_obj->m_type & TYPEMASK_ITEM) {
-        if (static_cast<CGItem_C*>(object)->m_item->m_itemFieldFlags & 2) {
+        if (static_cast<CGItem_C*>(object)->m_item->m_itemFieldFlags & ITEM_DFLAG_TRANSLATED) {
             SStrCopy(CGItemText::m_text, buffer, sizeof(CGItemText::m_text));
         } else {
             WOWGUID none = WOWGUID();
@@ -181,7 +181,7 @@ void CGItemText::SetItem(const WOWGUID& guid, int32_t a2) {
     CGGameUI::SetInteractTarget(guid);
     FrameScript_SignalEvent(SCRIPT_EVENT_ITEM_TEXT_BEGIN, nullptr);
 
-    if (!(object->m_obj->m_type & TYPEMASK_ITEM) || CGItemText::m_hasItemText || (static_cast<CGItem_C*>(object)->m_item->m_itemFieldFlags & 2)) {
+    if (!(object->m_obj->m_type & TYPEMASK_ITEM) || CGItemText::m_hasItemText || (static_cast<CGItem_C*>(object)->m_item->m_itemFieldFlags & ITEM_DFLAG_TRANSLATED)) {
         CGItemText::DisplayText(guid, 1);
         return;
     }

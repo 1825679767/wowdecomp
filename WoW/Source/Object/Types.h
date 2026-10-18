@@ -4,6 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 
+enum ITEM_DYNAMIC_FLAGS : uint32_t {
+    ITEM_DFLAG_BOUND = 1,
+    ITEM_DFLAG_TRANSLATED = 2,
+    ITEM_DFLAG_UNLOCKED = 4,
+    ITEM_DFLAG_WRAPPED = 8,
+};
+
 enum DYNAMIC_OBJECT_TYPE : uint8_t {
     // DYNAMIC_OBJECT_PORTAL = 0,
     DYNAMIC_OBJECT_AREA_SPELL = 1,

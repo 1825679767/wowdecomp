@@ -4393,7 +4393,7 @@ static const LockRec* AddItemBindLines(CGTooltip* tooltip, const ItemStats_C* st
         }
     }
 
-    if (item && (item->m_item->m_itemFieldFlags & 4)) {
+    if (item && (item->m_item->m_itemFieldFlags & ITEM_DFLAG_UNLOCKED)) {
         return nullptr;
     }
 
@@ -5215,21 +5215,21 @@ static int32_t AddItemDurabilityLines(CGTooltip* tooltip, const ItemStats_C* sta
             link.m_maxDurability = stats->m_maxDurability;
         }
 
-        if ((item && !(item->m_item->m_itemFieldFlags & 8) && item->m_item->m_itemFieldMaxdurability) || (useLinkInfo && link.m_maxDurability)) {
+        if ((item && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) || (useLinkInfo && link.m_maxDurability)) {
             SStrCopy(format, FrameScript_GetText("DURABILITY_TEMPLATE", -1, GENDER_NOT_APPLICABLE), sizeof(format));
             uint32_t durability;
             uint32_t maxDurability;
 
-            if (item && !(item->m_item->m_itemFieldFlags & 8) && item->m_item->m_itemFieldMaxdurability) {
-                durability = (item->m_item->m_itemFieldFlags & 8) ? 0 : item->m_item->m_itemFieldDurability;
+            if (item && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
+                durability = (item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) ? 0 : item->m_item->m_itemFieldDurability;
             } else if (tooltip->m_itemUseLinkInfo && link.m_maxDurability) {
                 durability = link.m_durability;
             } else {
                 durability = stats->m_maxDurability;
             }
 
-            if (item && !(item->m_item->m_itemFieldFlags & 8) && item->m_item->m_itemFieldMaxdurability) {
-                maxDurability = (item->m_item->m_itemFieldFlags & 8) ? 0 : item->m_item->m_itemFieldMaxdurability;
+            if (item && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
+                maxDurability = (item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) ? 0 : item->m_item->m_itemFieldMaxdurability;
             } else if (!tooltip->m_itemUseLinkInfo || (maxDurability = link.m_maxDurability) == 0) {
                 maxDurability = stats->m_maxDurability;
             }
@@ -6221,7 +6221,7 @@ static void AddItemCreatorLines(CGTooltip* tooltip, const ItemStats_C* stats, CG
 
     uint32_t flags = stats->m_flags[0];
 
-    if (!tooltip->m_itemUseLinkInfo && (((flags & 4) && (!stats->m_lockId || (item->m_item->m_itemFieldFlags & 4))) || ((flags & 0x200) && (item->m_item->m_itemFieldFlags & 8)))) {
+    if (!tooltip->m_itemUseLinkInfo && (((flags & 4) && (!stats->m_lockId || (item->m_item->m_itemFieldFlags & ITEM_DFLAG_UNLOCKED))) || ((flags & 0x200) && (item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED)))) {
         tooltip->AddLine(FrameScript_GetText("ITEM_OPENABLE", -1, GENDER_NOT_APPLICABLE), nullptr, greenColor, greenColor, 0);
     } else if (item->GetPageTextID(nullptr) || (item->m_item->m_itemFieldFlags & 0x200)) {
         tooltip->AddLine(FrameScript_GetText("ITEM_READABLE", -1, GENDER_NOT_APPLICABLE), nullptr, greenColor, greenColor, 0);
@@ -6433,7 +6433,7 @@ int32_t CGTooltip::SetItem(int32_t itemId, const WOWGUID* requester, const WOWGU
 
     CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(*itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
     int32_t needsUpdate = 0;
-    int32_t wrapped = (item && (item->m_item->m_itemFieldFlags & 8)) || (this->m_itemUseLinkInfo && this->m_itemLinkInfo.m_wrapped);
+    int32_t wrapped = (item && (item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED)) || (this->m_itemUseLinkInfo && this->m_itemLinkInfo.m_wrapped);
     int32_t randomPropertiesId = 0;
     int32_t useSpell = 0;
     int32_t useCharges = 0;

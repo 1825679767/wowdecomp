@@ -668,7 +668,7 @@ static int32_t FindItemLinkCallback(const CGItem_C* item, void* param) {
         return 0;
     }
 
-    if (object->m_item->m_itemFieldFlags & 0x8) {
+    if (object->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) {
         if (link->m_enchants[0]) {
             return 0;
         }
@@ -800,7 +800,7 @@ CGItem_C* CGBag_C::FindItem(int32_t (*callback)(const CGItem_C* item, void* para
             WOWGUID guid = index < numSlots ? this->m_slots[index] : WOWGUID();
             CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
 
-            if (item && !(item->m_modelFlags & 0x10000) && ((flags & 0x80) || (((item->m_item->m_itemFieldFlags & 0x8) || !item->m_item->m_itemFieldMaxdurability || item->m_item->m_itemFieldDurability) && !(item->m_item->m_itemFieldFlags & 0x10))) && (!(flags & 0x20) || (item->GetBag() && !(flags & 0x10)) || (item->GetEnchantmentSpell(0) && item->GetCurrentSpellCharges()))) {
+            if (item && !(item->m_modelFlags & 0x10000) && ((flags & 0x80) || (((item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) || !item->m_item->m_itemFieldMaxdurability || item->m_item->m_itemFieldDurability) && !(item->m_item->m_itemFieldFlags & 0x10))) && (!(flags & 0x20) || (item->GetBag() && !(flags & 0x10)) || (item->GetEnchantmentSpell(0) && item->GetCurrentSpellCharges()))) {
                 if (callback(item, param)) {
                     container = this->m_guid;
                     slot = index;
