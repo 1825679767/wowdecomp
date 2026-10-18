@@ -116,7 +116,7 @@ struct UIErrorInfo {
     /* 0000 */ const char* m_token;
     /* 0004 */ ERROR_TEXT_PLACEMENT m_type;
     /* 0008 */ const char* m_sound;
-    /* 000C */ int32_t m_vocalError;
+    /* 000C */ VOCALUISOUNDS m_vocalError;
     /* 0010 */ int32_t m_chatType;
 };
 
