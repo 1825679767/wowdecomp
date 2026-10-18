@@ -15,6 +15,13 @@ enum M2TEXTURETYPE : uint32_t {
     M2TEX_ITEM_ICON = 14,
 };
 
+enum M2TRACKTYPE : uint16_t {
+    M2TRACK_NONE = 0,
+    M2TRACK_LINEAR = 1,
+    M2TRACK_BEZIER = 2,
+    M2TRACK_HERMITE = 3,
+};
+
 enum M2PASS {
     M2PASS_0 = 0,
     M2PASS_1 = 1,

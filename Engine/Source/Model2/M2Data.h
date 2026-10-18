@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "Engine/Source/Model2/Types.h"
 #include "Engine/Source/Tempest/C2Vector.h"
 #include "Engine/Source/Tempest/C3Vector.h"
 #include "Engine/Source/Tempest/C4Quaternion.h"
@@ -52,7 +53,7 @@ class M2CompQuat {
 
 class M2TrackBase {
     public:
-    /* 0000 */ uint16_t m_trackType;
+    /* 0000 */ M2TRACKTYPE m_trackType;
     /* 0002 */ uint16_t m_loopIndex;
     /* 0004 */ M2Array<M2Array<uint32_t> > m_sequenceTimes;
 };
