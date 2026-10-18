@@ -7389,41 +7389,41 @@ int32_t CM2Model::InitializeLoaded() {
 
             CParticleMat material;
             material.m_flags = 7;
-            material.m_blendMode = 0;
+            material.m_blendMode = GxBlend_Opaque;
 
             switch (particleData->m_blendMode) {
-                case 0:
-                    material.m_blendMode = 0;
+                case M2PARTICLEBLEND_OPAQUE:
+                    material.m_blendMode = GxBlend_Opaque;
                     material.m_flags |= 4;
                     break;
 
-                case 1:
-                    material.m_blendMode = 1;
+                case M2PARTICLEBLEND_ALPHA_KEY:
+                    material.m_blendMode = GxBlend_AlphaKey;
                     material.m_flags |= 4;
                     break;
 
-                case 2:
-                    material.m_blendMode = 2;
+                case M2PARTICLEBLEND_ALPHA:
+                    material.m_blendMode = GxBlend_Alpha;
                     material.m_flags &= ~4u;
                     break;
 
-                case 3:
-                    material.m_blendMode = 10;
+                case M2PARTICLEBLEND_NO_ALPHA_ADD:
+                    material.m_blendMode = GxBlend_NoAlphaAdd;
                     material.m_flags &= ~4u;
                     break;
 
-                case 4:
-                    material.m_blendMode = 3;
+                case M2PARTICLEBLEND_ADD:
+                    material.m_blendMode = GxBlend_Add;
                     material.m_flags &= ~4u;
                     break;
 
-                case 5:
-                    material.m_blendMode = 4;
+                case M2PARTICLEBLEND_MOD:
+                    material.m_blendMode = GxBlend_Mod;
                     material.m_flags &= ~4u;
                     break;
 
-                case 6:
-                    material.m_blendMode = 5;
+                case M2PARTICLEBLEND_MOD2X:
+                    material.m_blendMode = GxBlend_Mod2x;
                     material.m_flags &= ~4u;
                     break;
             }

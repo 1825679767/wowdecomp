@@ -235,7 +235,7 @@ class M2Particle {
     /* 0016 */ uint16_t m_textureIndex;
     /* 0018 */ M2Array<char> m_geometryMdl;
     /* 0020 */ M2Array<char> m_recursionMdl;
-    /* 0028 */ uint8_t m_blendMode;
+    /* 0028 */ M2PARTICLEBLENDMODE m_blendMode;
     /* 0029 */ uint8_t m_emitterType;
     /* 002A */ uint16_t m_colorIndex;
     /* 002C */ uint16_t unused_002C;
