@@ -1076,7 +1076,7 @@ void CGActionBar::PutActionInSlot(int32_t slot) {
     }
 
     int32_t cursorSpell = CGGameUI::GetCursorSpell();
-    int32_t itemId = CGGameUI::m_cursorItemType == 7 ? CGGameUI::GetCursorVirtualItem() : 0;
+    int32_t itemId = CGGameUI::m_cursorItemType == UICURSOR_ACTIONBAR ? CGGameUI::GetCursorVirtualItem() : 0;
     CGItem_C* item = nullptr;
     int32_t cursorMacro = CGGameUI::m_cursorMacro;
 
@@ -1305,7 +1305,7 @@ void CGActionBar::UseAction(int32_t slot, const WOWGUID& target, const char* but
         return;
     }
 
-    if (!CGUIBindings::s_bindings->m_keyStateOverride && (slot < 120 || slot >= 132) && (CGGameUI::GetCursorSpell() || CGGameUI::GetCursorItem() || CGGameUI::m_cursorMacro || CGGameUI::GetCursorVirtualItemOfType(7) || CGGameUI::m_cursorEquipmentSet >= 0)) {
+    if (!CGUIBindings::s_bindings->m_keyStateOverride && (slot < 120 || slot >= 132) && (CGGameUI::GetCursorSpell() || CGGameUI::GetCursorItem() || CGGameUI::m_cursorMacro || CGGameUI::GetCursorVirtualItemOfType(UICURSOR_ACTIONBAR) || CGGameUI::m_cursorEquipmentSet >= 0)) {
         CGActionBar::PutActionInSlot(slot);
         return;
     }
@@ -1995,7 +1995,7 @@ void CGActionBar::PickupAction(uint32_t slot) {
         return;
     }
 
-    if (CGGameUI::GetCursorSpell() || CGGameUI::GetCursorItem() || CGGameUI::m_cursorMacro || CGGameUI::GetCursorVirtualItemOfType(7) || CGGameUI::m_cursorEquipmentSet >= 0) {
+    if (CGGameUI::GetCursorSpell() || CGGameUI::GetCursorItem() || CGGameUI::m_cursorMacro || CGGameUI::GetCursorVirtualItemOfType(UICURSOR_ACTIONBAR) || CGGameUI::m_cursorEquipmentSet >= 0) {
         CGActionBar::PutActionInSlot(slot);
         return;
     }
