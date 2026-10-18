@@ -4,6 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 
+enum COLOR_FILE_FORMAT : uint8_t {
+    COLOR_JPEG = 0, // Legacy encoding; JPEG decoding is disabled in this client.
+    COLOR_PAL = 1,
+    COLOR_DXT = 2,
+    COLOR_RAW = 3,
+};
+
 struct C4Pixel {
     /* 0000 */ uint8_t m_b;
     /* 0001 */ uint8_t m_g;

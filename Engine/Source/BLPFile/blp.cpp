@@ -716,7 +716,7 @@ int32_t CBLPFile::Lock(PIXEL_FORMAT format, uint32_t mipLevel, uint8_t*& data, u
     }
 
     switch (this->m_header.m_colorEncoding) {
-        case 1: {
+        case COLOR_PAL: {
             uint32_t size;
             if (!this->GetFormatSize(format, mipLevel, &size, &stride)) {
                 return 0;
@@ -729,7 +729,7 @@ int32_t CBLPFile::Lock(PIXEL_FORMAT format, uint32_t mipLevel, uint8_t*& data, u
             return result;
         }
 
-        case 2: {
+        case COLOR_DXT: {
             switch (format) {
                 case PIXEL_DXT1:
                 case PIXEL_DXT3:
@@ -769,7 +769,7 @@ int32_t CBLPFile::Lock(PIXEL_FORMAT format, uint32_t mipLevel, uint8_t*& data, u
             }
         }
 
-        case 3:
+        case COLOR_RAW:
             data = image;
             return 1;
 
@@ -839,11 +839,11 @@ int32_t CBLPFile::Lock2(const char* fileName, PIXEL_FORMAT format, uint32_t mipL
     }
 
     switch (this->m_header.m_colorEncoding) {
-        case 0:
+        case COLOR_JPEG:
             DebugLog("%s: JPEG decompresion not enabled", fileName);
             return 0;
 
-        case 1: {
+        case COLOR_PAL: {
             uint32_t size;
             int32_t result = this->GetFormatSize(format, mipLevel, &size, &stride);
 
@@ -855,7 +855,7 @@ int32_t CBLPFile::Lock2(const char* fileName, PIXEL_FORMAT format, uint32_t mipL
             return result;
         }
 
-        case 2: {
+        case COLOR_DXT: {
             switch (format) {
                 case PIXEL_DXT1:
                 case PIXEL_DXT3:
@@ -886,7 +886,7 @@ int32_t CBLPFile::Lock2(const char* fileName, PIXEL_FORMAT format, uint32_t mipL
             }
         }
 
-        case 3:
+        case COLOR_RAW:
             memcpy(data, image, imageSize);
             return 1;
 
@@ -937,9 +937,9 @@ int32_t CBLPFile::LockChain2(const char* fileName, PIXEL_FORMAT format, MipBits*
     } else {
         bool setImages = true;
 
-        if (this->m_header.m_colorEncoding == 2) {
+        if (this->m_header.m_colorEncoding == COLOR_DXT) {
             setImages = format == PIXEL_ARGB4444 || format == PIXEL_RGB565 || format == PIXEL_ARGB1555 || format == PIXEL_ARGB8888 || !inPlace;
-        } else if (this->m_header.m_colorEncoding == 3) {
+        } else if (this->m_header.m_colorEncoding == COLOR_RAW) {
             setImages = !inPlace;
         }
 

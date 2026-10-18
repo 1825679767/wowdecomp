@@ -107,7 +107,7 @@ void* TextureCacheGetMip(HTEXTURECACHE handle, uint32_t mipLevel) {
 BlpPalPixel* TextureCacheGetPal(HTEXTURECACHE handle) {
     CACHEENTRY* entry = handle;
 
-    if (!entry || entry->m_loadFailed || !entry->m_data || entry->m_data->m_colorEncoding != 1) {
+    if (!entry || entry->m_loadFailed || !entry->m_data || entry->m_data->m_colorEncoding != COLOR_PAL) {
         return nullptr;
     }
 
