@@ -74,6 +74,16 @@ enum CGCameraShakeType : int32_t {
     CAMSHAKE_DECAYED_SINE = 1,
 };
 
+enum CGCameraMotion : uint32_t {
+    CAMERA_MOVE_IN = 0,
+    CAMERA_MOVE_OUT = 1,
+    CAMERA_MOVE_RIGHT = 2,
+    CAMERA_MOVE_LEFT = 3,
+    CAMERA_MOVE_UP = 4,
+    CAMERA_MOVE_DOWN = 5,
+    NUM_CAMERA_MOTIONS = 6,
+};
+
 enum CGCameraDir : int32_t {
     CAMERA_FORWARD = 0,
     CAMERA_RIGHT = 1,

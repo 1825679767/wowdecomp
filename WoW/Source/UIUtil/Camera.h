@@ -137,10 +137,10 @@ class CGCamera : public CSimpleCamera {
     /* 0158 */ float m_mountHeight;
     /* 015C */ uint32_t m_heightChangedTimeMs;
     /* 0160 */ uint32_t m_motionFlags;
-    /* 0164 */ uint32_t m_motionStartTime [6];
-    /* 017C */ uint32_t m_motionStopTime [6];
-    /* 0194 */ uint32_t m_motionEndTime [6];
-    /* 01AC */ float m_motionSpeed [6];
+    /* 0164 */ uint32_t m_motionStartTime [NUM_CAMERA_MOTIONS];
+    /* 017C */ uint32_t m_motionStopTime [NUM_CAMERA_MOTIONS];
+    /* 0194 */ uint32_t m_motionEndTime [NUM_CAMERA_MOTIONS];
+    /* 01AC */ float m_motionSpeed [NUM_CAMERA_MOTIONS];
     /* 01C4 */ C3Vector m_targetPosition;
     /* 01D0 */ float unused_01D0;
     /* 01D4 */ float m_targetFacing;
@@ -255,7 +255,7 @@ class CGCamera : public CSimpleCamera {
     int32_t SmoothSetFlyingMountHeight(float height, float delay, float scale, uint32_t time);
     int32_t SmoothSetHeight(float height, float delay, float scale, uint32_t time);
     float SmoothTargetFacing(float facing, int32_t moved);
-    void StartMotion(uint32_t motion, uint32_t time, uint32_t duration, float speed);
+    void StartMotion(CGCameraMotion motion, uint32_t time, uint32_t duration, float speed);
     int32_t StartSmoothDistance(float distance, float rate, uint32_t startTime);
     int32_t StartSmoothFlyingMountHeight(float height, float rate, uint32_t startTime);
     int32_t StartSmoothFoV(float offset, float rate, uint32_t startTime);

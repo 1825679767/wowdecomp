@@ -313,24 +313,24 @@ CGCamera::CGCamera() : CSimpleCamera(World::s_nearClip, World::s_farClip, 1.5707
 
     memset(this->m_views, 0, sizeof(this->m_views));
 
-    this->m_motionStartTime[0] = 0;
-    this->m_motionStartTime[1] = 0;
-    this->m_motionStartTime[2] = 0;
-    this->m_motionStartTime[3] = 0;
-    this->m_motionStartTime[4] = 0;
-    this->m_motionStartTime[5] = 0;
-    this->m_motionStopTime[0] = 0;
-    this->m_motionStopTime[1] = 0;
-    this->m_motionStopTime[2] = 0;
-    this->m_motionStopTime[3] = 0;
-    this->m_motionStopTime[4] = 0;
-    this->m_motionStopTime[5] = 0;
-    this->m_motionEndTime[0] = 0;
-    this->m_motionEndTime[1] = 0;
-    this->m_motionEndTime[2] = 0;
-    this->m_motionEndTime[3] = 0;
-    this->m_motionEndTime[4] = 0;
-    this->m_motionEndTime[5] = 0;
+    this->m_motionStartTime[CAMERA_MOVE_IN] = 0;
+    this->m_motionStartTime[CAMERA_MOVE_OUT] = 0;
+    this->m_motionStartTime[CAMERA_MOVE_RIGHT] = 0;
+    this->m_motionStartTime[CAMERA_MOVE_LEFT] = 0;
+    this->m_motionStartTime[CAMERA_MOVE_UP] = 0;
+    this->m_motionStartTime[CAMERA_MOVE_DOWN] = 0;
+    this->m_motionStopTime[CAMERA_MOVE_IN] = 0;
+    this->m_motionStopTime[CAMERA_MOVE_OUT] = 0;
+    this->m_motionStopTime[CAMERA_MOVE_RIGHT] = 0;
+    this->m_motionStopTime[CAMERA_MOVE_LEFT] = 0;
+    this->m_motionStopTime[CAMERA_MOVE_UP] = 0;
+    this->m_motionStopTime[CAMERA_MOVE_DOWN] = 0;
+    this->m_motionEndTime[CAMERA_MOVE_IN] = 0;
+    this->m_motionEndTime[CAMERA_MOVE_OUT] = 0;
+    this->m_motionEndTime[CAMERA_MOVE_RIGHT] = 0;
+    this->m_motionEndTime[CAMERA_MOVE_LEFT] = 0;
+    this->m_motionEndTime[CAMERA_MOVE_UP] = 0;
+    this->m_motionEndTime[CAMERA_MOVE_DOWN] = 0;
 
     this->InitializeView();
     this->SetTarget(nullptr, 0);
@@ -2066,7 +2066,7 @@ int32_t CGCamera::SmoothSetDistance(float distance, float delay, float scale, ui
 
 // VERIFY: 6daea45a auto
 // OFFSET: 0x005FE580
-void CGCamera::StartMotion(uint32_t motion, uint32_t time, uint32_t duration, float speed) {
+void CGCamera::StartMotion(CGCameraMotion motion, uint32_t time, uint32_t duration, float speed) {
     if (this->m_flags & 0x40) {
         return;
     }
@@ -2251,14 +2251,14 @@ void CGCamera::ZoomIn(float distance, uint32_t time, float duration) {
     }
 
     if (this->m_motionFlags & 0x4) {
-        this->m_motionStopTime[1] = time;
+        this->m_motionStopTime[CAMERA_MOVE_OUT] = time;
         this->m_motionFlags |= 0x8;
     }
 
-    if (this->m_motionEndTime[0] && (this->m_motionFlags & 0x1)) {
-        this->m_motionEndTime[0] += motionTime;
+    if (this->m_motionEndTime[CAMERA_MOVE_IN] && (this->m_motionFlags & 0x1)) {
+        this->m_motionEndTime[CAMERA_MOVE_IN] += motionTime;
     } else {
-        this->StartMotion(0, time, motionTime, speed);
+        this->StartMotion(CAMERA_MOVE_IN, time, motionTime, speed);
     }
 }
 
@@ -2280,14 +2280,14 @@ void CGCamera::ZoomOut(float distance, uint32_t time, float duration) {
     }
 
     if (this->m_motionFlags & 0x1) {
-        this->m_motionStopTime[0] = time;
+        this->m_motionStopTime[CAMERA_MOVE_IN] = time;
         this->m_motionFlags |= 0x2;
     }
 
-    if (this->m_motionEndTime[1] && (this->m_motionFlags & 0x4)) {
-        this->m_motionEndTime[1] += motionTime;
+    if (this->m_motionEndTime[CAMERA_MOVE_OUT] && (this->m_motionFlags & 0x4)) {
+        this->m_motionEndTime[CAMERA_MOVE_OUT] += motionTime;
     } else {
-        this->StartMotion(1, time, motionTime, speed);
+        this->StartMotion(CAMERA_MOVE_OUT, time, motionTime, speed);
     }
 }
 
@@ -2303,12 +2303,12 @@ void CGCamera::ZoomToDistance(float distance, uint32_t time, float duration, int
     }
 
     if (this->m_motionFlags & 0x1) {
-        this->m_motionStopTime[0] = time;
+        this->m_motionStopTime[CAMERA_MOVE_IN] = time;
         this->m_motionFlags &= ~0x3;
     }
 
     if (this->m_motionFlags & 0x4) {
-        this->m_motionStopTime[1] = time;
+        this->m_motionStopTime[CAMERA_MOVE_OUT] = time;
         this->m_motionFlags &= ~0xC;
     }
 
@@ -2876,7 +2876,7 @@ void CGCamera::UpdateMotion(uint32_t time) {
 
     this->m_state |= 0x40;
 
-    for (int32_t i = 0; i < 6; i++) {
+    for (int32_t i = 0; i < NUM_CAMERA_MOTIONS; i++) {
         uint32_t bit = 1 << (2 * i);
 
         if (!(this->m_motionFlags & bit)) {
@@ -2911,8 +2911,8 @@ void CGCamera::UpdateMotion(uint32_t time) {
         }
 
         switch (i) {
-            case 0:
-                this->m_smoothDistance.m_target = this->m_smoothDistance.m_target - s_cvCameraDistanceMoveSpeed->m_floatValue * this->m_motionSpeed[0] * static_cast<float>(elapsed) * 0.001f;
+            case CAMERA_MOVE_IN:
+                this->m_smoothDistance.m_target = this->m_smoothDistance.m_target - s_cvCameraDistanceMoveSpeed->m_floatValue * this->m_motionSpeed[CAMERA_MOVE_IN] * static_cast<float>(elapsed) * 0.001f;
 
                 if (this->m_smoothDistance.m_target < minDistance) {
                     this->m_smoothDistance.m_target = minDistance;
@@ -2924,8 +2924,8 @@ void CGCamera::UpdateMotion(uint32_t time) {
 
                 break;
 
-            case 1:
-                this->m_smoothDistance.m_target = s_cvCameraDistanceMoveSpeed->m_floatValue * this->m_motionSpeed[1] * static_cast<float>(elapsed) * 0.001f + this->m_smoothDistance.m_target;
+            case CAMERA_MOVE_OUT:
+                this->m_smoothDistance.m_target = s_cvCameraDistanceMoveSpeed->m_floatValue * this->m_motionSpeed[CAMERA_MOVE_OUT] * static_cast<float>(elapsed) * 0.001f + this->m_smoothDistance.m_target;
 
                 if (this->m_smoothDistance.m_target > maxDistance) {
                     this->m_smoothDistance.m_target = maxDistance;
@@ -2937,8 +2937,8 @@ void CGCamera::UpdateMotion(uint32_t time) {
 
                 break;
 
-            case 2:
-                this->m_smoothYaw.m_target = s_cvCameraYawMoveSpeed->m_floatValue * this->m_motionSpeed[2] * static_cast<float>(elapsed) * 0.001f * 0.017453292f + this->m_smoothYaw.m_target;
+            case CAMERA_MOVE_RIGHT:
+                this->m_smoothYaw.m_target = s_cvCameraYawMoveSpeed->m_floatValue * this->m_motionSpeed[CAMERA_MOVE_RIGHT] * static_cast<float>(elapsed) * 0.001f * 0.017453292f + this->m_smoothYaw.m_target;
 
                 if (this->m_smoothYaw.m_target > 6.2831855f) {
                     do {
@@ -2952,8 +2952,8 @@ void CGCamera::UpdateMotion(uint32_t time) {
 
                 break;
 
-            case 3:
-                this->m_smoothYaw.m_target = this->m_smoothYaw.m_target - s_cvCameraYawMoveSpeed->m_floatValue * this->m_motionSpeed[3] * static_cast<float>(elapsed) * 0.001f * 0.017453292f;
+            case CAMERA_MOVE_LEFT:
+                this->m_smoothYaw.m_target = this->m_smoothYaw.m_target - s_cvCameraYawMoveSpeed->m_floatValue * this->m_motionSpeed[CAMERA_MOVE_LEFT] * static_cast<float>(elapsed) * 0.001f * 0.017453292f;
 
                 if (this->m_smoothYaw.m_target < 0.0f) {
                     do {
@@ -2967,8 +2967,8 @@ void CGCamera::UpdateMotion(uint32_t time) {
 
                 break;
 
-            case 4:
-                this->m_smoothPitch.m_target = s_cvCameraPitchMoveSpeed->m_floatValue * this->m_motionSpeed[4] * static_cast<float>(elapsed) * 0.001f * 0.017453292f + this->m_smoothPitch.m_target;
+            case CAMERA_MOVE_UP:
+                this->m_smoothPitch.m_target = s_cvCameraPitchMoveSpeed->m_floatValue * this->m_motionSpeed[CAMERA_MOVE_UP] * static_cast<float>(elapsed) * 0.001f * 0.017453292f + this->m_smoothPitch.m_target;
 
                 if (this->m_smoothPitch.m_target > MAX_PITCH_ANGLE) {
                     this->m_smoothPitch.m_target = MAX_PITCH_ANGLE;
@@ -2980,8 +2980,8 @@ void CGCamera::UpdateMotion(uint32_t time) {
 
                 break;
 
-            case 5:
-                this->m_smoothPitch.m_target = this->m_smoothPitch.m_target - s_cvCameraPitchMoveSpeed->m_floatValue * this->m_motionSpeed[5] * static_cast<float>(elapsed) * 0.001f * 0.017453292f;
+            case CAMERA_MOVE_DOWN:
+                this->m_smoothPitch.m_target = this->m_smoothPitch.m_target - s_cvCameraPitchMoveSpeed->m_floatValue * this->m_motionSpeed[CAMERA_MOVE_DOWN] * static_cast<float>(elapsed) * 0.001f * 0.017453292f;
 
                 if (this->m_smoothPitch.m_target < MIN_PITCH_ANGLE) {
                     this->m_smoothPitch.m_target = MIN_PITCH_ANGLE;
