@@ -55,7 +55,7 @@ CBLPFile::CBLPFile() {
     this->m_quality = 100;
     memset(&this->m_header, 0, sizeof(this->m_header));
     this->m_header.m_hasMips &= ~0x10;
-    this->m_header.m_magic = 0x32504C42;
+    this->m_header.m_magic = BLP_MAGIC_BLP2;
     this->m_header.m_formatVersion = 1;
     this->m_header.m_preferredFormat = 2;
     this->m_inMemoryImage = nullptr;
@@ -92,7 +92,7 @@ void CBLPFile::Close() {
 // VERIFY: 507be47e auto
 // OFFSET: 0x006AE8E0
 int32_t CBLPFile::ValidateHeader(const BLPHeader& header) {
-    return header.m_magic == 0x32504C42 && header.m_formatVersion == 1;
+    return header.m_magic == BLP_MAGIC_BLP2 && header.m_formatVersion == 1;
 }
 
 // VERIFY: ec3a562c manual

@@ -4,6 +4,10 @@
 #include <cstddef>
 #include <cstdint>
 
+enum BLP_FILE_MAGIC : uint32_t {
+    BLP_MAGIC_BLP2 = 0x32504C42,
+};
+
 enum COLOR_FILE_FORMAT : uint8_t {
     COLOR_JPEG = 0, // Legacy encoding; JPEG decoding is disabled in this client.
     COLOR_PAL = 1,
