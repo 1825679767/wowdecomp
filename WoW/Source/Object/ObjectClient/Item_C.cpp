@@ -510,14 +510,14 @@ uint32_t CGItem_C::GetSheatheType() const {
 }
 
 // INLINED
-bool CGItem_C::IsBoundToAccount() {
+bool CGItem_C::IsPetition() {
     return (this->GetItemStaticFlags(0) >> 13) & 1;
 }
 
 // VERIFY: 6b7047e1 manual
 // OFFSET: 0x007073E0
 bool CGItem_C::HasSoulboundEnchant() {
-    if (this->IsBoundToAccount()) {
+    if (this->IsPetition()) {
         return false;
     }
 
@@ -594,7 +594,7 @@ int32_t CGItem_C::GetRandomItemSlot() const {
 // VERIFY: 7676d8ac manual
 // OFFSET: 0x00708140
 int32_t CGItem_C::GetPrismaticSocketCount() {
-    if (this->IsBoundToAccount()) {
+    if (this->IsPetition()) {
         return 0;
     }
 
@@ -652,17 +652,17 @@ void CGItem_C::RequestItemPurchaseData() {
 // VERIFY: afbf928a manual
 // OFFSET: 0x00708AC0
 bool CGItem_C::HasEnchantments() {
-    if (!this->IsBoundToAccount() && this->m_item->m_itemFieldEnchantment[0].m_id) {
+    if (!this->IsPetition() && this->m_item->m_itemFieldEnchantment[0].m_id) {
         return true;
     }
 
     for (uint32_t i = 2; i < 4; i++) {
-        if (!this->IsBoundToAccount() && this->m_item->m_itemFieldEnchantment[i].m_id) {
+        if (!this->IsPetition() && this->m_item->m_itemFieldEnchantment[i].m_id) {
             return true;
         }
     }
 
-    return !this->IsBoundToAccount() && this->m_item->m_itemFieldEnchantment[6].m_id;
+    return !this->IsPetition() && this->m_item->m_itemFieldEnchantment[6].m_id;
 }
 
 // VERIFY: 104e4ba4 auto
@@ -920,7 +920,7 @@ int32_t CGItem_C::GetCurrentSpellCharges() {
         if (rec) {
             for (uint32_t i = 0; i < 3; i++) {
                 if (rec->m_effect[i] == 7 && rec->m_effectArg[i]) {
-                    if (!this->IsBoundToAccount()) {
+                    if (!this->IsPetition()) {
                         return this->m_item->m_itemFieldEnchantment[i].m_charges;
                     }
 
