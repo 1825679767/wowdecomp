@@ -347,7 +347,7 @@ void ApplyGameObjectArtKit(CM2Model* model, int32_t artKit) {
                 CTexture* texture = TextureCreate(rec->m_textureVariation[i], flags, &status, 0);
 
                 if (texture) {
-                    model->ReplaceTexture(i + 11, texture);
+                    model->ReplaceTexture(i + M2TEX_MONSTER_1, texture);
                     HandleClose(reinterpret_cast<HOBJECT>(texture));
                 }
             }

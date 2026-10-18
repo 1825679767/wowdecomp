@@ -4,6 +4,17 @@
 #include <cstddef>
 #include <cstdint>
 
+enum M2TEXTURETYPE : uint32_t {
+    M2TEX_SKIN = 1,
+    M2TEX_OBJECT_SKIN = 2,
+    M2TEX_HAIR = 6,
+    M2TEX_EXTRA_SKIN = 8,
+    M2TEX_MONSTER_1 = 11,
+    M2TEX_MONSTER_2 = 12,
+    M2TEX_MONSTER_3 = 13,
+    M2TEX_ITEM_ICON = 14,
+};
+
 enum M2PASS {
     M2PASS_0 = 0,
     M2PASS_1 = 1,

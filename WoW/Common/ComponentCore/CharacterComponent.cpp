@@ -1736,7 +1736,7 @@ void CCharacterComponent::ReplaceExtraSkinTexture(const char* debug) {
     CTexture* texture = CreateTexture(s_path, &s_status);
 
     if (texture) {
-        this->m_data.m_model->ReplaceTexture(8, texture);
+        this->m_data.m_model->ReplaceTexture(M2TEX_EXTRA_SKIN, texture);
         HandleClose(reinterpret_cast<HOBJECT>(texture));
     }
 }
@@ -1758,7 +1758,7 @@ void CCharacterComponent::ReplaceHairTexture(int32_t hairStyleID, const char* de
     CTexture* texture = CreateTexture(s_path, &s_status);
 
     if (texture) {
-        this->m_data.m_model->ReplaceTexture(6, texture);
+        this->m_data.m_model->ReplaceTexture(M2TEX_HAIR, texture);
         HandleClose(reinterpret_cast<HOBJECT>(texture));
     }
 }
@@ -2052,7 +2052,7 @@ void CCharacterComponent::AddLink(CM2Model* parent, GEOCOMPONENTLINKS link, cons
         return;
     }
 
-    model->ReplaceTexture(2, texture);
+    model->ReplaceTexture(M2TEX_OBJECT_SKIN, texture);
     HandleClose(reinterpret_cast<HOBJECT>(texture));
 
     if (itemVisual > 0) {
@@ -2113,7 +2113,7 @@ CM2Model* CCharacterComponent::MakeAmmoModel(CM2Model* model, const ItemDisplayI
         return nullptr;
     }
 
-    ammoModel->ReplaceTexture(2, texture);
+    ammoModel->ReplaceTexture(M2TEX_OBJECT_SKIN, texture);
     HandleClose(reinterpret_cast<HOBJECT>(texture));
     CCharacterComponent::ComponentUtilAddItemVisual(ammoModel, displayRec->m_itemVisual);
 
@@ -4316,7 +4316,7 @@ void CCharacterComponent::CreateBaseTexture() {
     }
 
     this->m_baseSkinTexture = TextureCreate(s_textureSize, s_textureSize, this->m_gxTexFormat, dataFormat, flags, this, &CCharacterComponent::UpdateBaseTexture, "CharacterBaseSkin", 1);
-    this->m_data.m_model->ReplaceTexture(1, this->m_baseSkinTexture);
+    this->m_data.m_model->ReplaceTexture(M2TEX_SKIN, this->m_baseSkinTexture);
 }
 
 // VERIFY: 51c5a21d manual
@@ -5380,7 +5380,7 @@ bool CCharacterComponent::SkinNpc(const char* debug) {
         return false;
     }
 
-    this->m_data.m_model->ReplaceTexture(1, texture);
+    this->m_data.m_model->ReplaceTexture(M2TEX_SKIN, texture);
     HandleClose(reinterpret_cast<HOBJECT>(texture));
     this->ReplaceExtraSkinTexture(debug);
     this->m_data.m_flags |= 0x1;
@@ -5412,7 +5412,7 @@ void CCharacterComponent::ReplaceMonsterSkin(CM2Model* model, const CreatureDisp
             CTexture* texture = TextureCreate(path, flags, &status, 0);
 
             if (texture) {
-                model->ReplaceTexture(i + 11, texture);
+                model->ReplaceTexture(i + M2TEX_MONSTER_1, texture);
                 HandleClose(reinterpret_cast<HOBJECT>(texture));
             }
         }
@@ -5443,7 +5443,7 @@ void CCharacterComponent::AddCape() {
     CTexture* texture = CreateTexture(s_path, &status);
 
     if (texture) {
-        this->m_data.m_model->ReplaceTexture(2, texture);
+        this->m_data.m_model->ReplaceTexture(M2TEX_OBJECT_SKIN, texture);
         HandleClose(reinterpret_cast<HOBJECT>(texture));
     }
 }

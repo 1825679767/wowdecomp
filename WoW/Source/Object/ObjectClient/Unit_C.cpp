@@ -21793,7 +21793,7 @@ CM2Model* CGUnit_C::CreateItemModel(uint32_t displayId, uint32_t inventoryType, 
         CTexture* texture = CreateTexture(fileName, &status);
 
         if (texture) {
-            model->ReplaceTexture(2, texture);
+            model->ReplaceTexture(M2TEX_OBJECT_SKIN, texture);
             HandleClose(reinterpret_cast<HOBJECT>(texture));
         }
     }
