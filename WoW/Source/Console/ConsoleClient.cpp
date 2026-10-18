@@ -920,7 +920,7 @@ void ConsolePrintf(const char* format, ...) {
 // VERIFY: d43d21f6 manual
 // OFFSET: 0x007658A0
 void ConsoleCommandExecute(const char* commandLine, int32_t addToHistory) {
-    if (s_execState == 1 || s_execState == 0 || s_execState == 2) {
+    if (s_execState == EM_RECORDING || s_execState == EM_PROMPTOVERWRITE || s_execState == EM_APPEND) {
         if (!AddLineToExecFile(commandLine)) {
             return;
         }
