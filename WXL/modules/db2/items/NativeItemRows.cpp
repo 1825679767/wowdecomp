@@ -188,7 +188,7 @@ void PumpItemGraph() noexcept {
    auto* player=static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid,TYPEMASK_PLAYER,__FILE__,__LINE__));if(!player)continue;
    for(int slot=0;slot<19;++slot){auto* visible=player->GetVisibleItem(slot);if(!visible||!VisibleItemKey(visible->m_itemId))continue;if(slot<15&&player->m_characterComponent){
     const auto componentSlot=CCharacterComponent::GetItemSlotForInvSlot(static_cast<INVENTORY_SLOTS>(slot));
-    const auto id=visible->GetDisplayID();
+    const auto id=const_cast<VisibleItem_C*>(visible)->GetDisplayID();
     if(componentSlot!=NUM_ITEM_SLOTS&&id>0&&player->m_characterComponent->m_itemDisplayID[componentSlot]==uint32_t(id))continue;
    }
    player->EquipVisibleItem(visible,slot);if(slot==15||slot==16)player->UpdateObjComponentVisualsSlot(visible,slot);}
