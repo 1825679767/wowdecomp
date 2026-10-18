@@ -4732,7 +4732,7 @@ void CGGameUI::CastItemSpell(WOWGUID guid, int32_t confirmed) {
         int32_t effect = spell.m_effect[i];
 
         if (effect == 53 || effect == 54 || effect == 156) {
-            if (item->GetItemStaticFlags(0) & 0x2000) {
+            if (item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION) {
                 return;
             }
 
@@ -4793,7 +4793,7 @@ void CGGameUI::CastItemSpell(WOWGUID guid, int32_t confirmed) {
 
             uint32_t slot = spell.m_effect[i] != 53;
 
-            if (!(item->GetItemStaticFlags(0) & 0x2000)) {
+            if (!(item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION)) {
                 int32_t existingId = item->m_item->m_itemFieldEnchantment[slot].m_id;
 
                 if (existingId) {

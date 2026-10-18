@@ -1152,7 +1152,7 @@ uint32_t CGItem::GetMaxDurability() const {
 // VERIFY: d3247ea5 manual
 // OFFSET: 0x0061DC90
 int32_t CGItem::GetPetitionSignatures() {
-    if (this->GetItemStaticFlags(0) & 0x2000) {
+    if (this->GetItemStaticFlags(0) & ITEM_FLAG_PETITION) {
         return this->m_item->m_itemFieldEnchantment[0].m_duration;
     }
 
@@ -1551,7 +1551,7 @@ int32_t CGItem_C::UseItem(WOWGUID* target, int32_t confirmed) {
         return 0;
     }
 
-    if (stats->m_flags[0] & 0x200) {
+    if (stats->m_flags[0] & ITEM_FLAG_IS_WRAPPER) {
         if (this->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) {
             player->OpenWrappedItem(this);
         } else {
@@ -1631,12 +1631,12 @@ int32_t CGItem_C::UseItem(WOWGUID* target, int32_t confirmed) {
         }
     }
 
-    if (stats->m_flags[0] & 0x4) {
+    if (stats->m_flags[0] & ITEM_FLAG_HAS_LOOT) {
         player->OpenLootItem(this);
         return 0;
     }
 
-    if (stats->m_flags[0] & 0x2000) {
+    if (stats->m_flags[0] & ITEM_FLAG_PETITION) {
         CGPlayer_C::RequestPetitionSignatures(this->m_obj->m_guid);
         return 0;
     }
@@ -1774,7 +1774,7 @@ void CGItem_C::PostInitWithStats() {
         CGQuestLog::UpdateQuestItem(this->m_obj->m_entryID);
         CGContainerInfo::UpdateItem(this->m_obj->m_guid);
 
-        if ((stats->m_flags[0] & 0x1000) && !this->m_itemPurchaseData && !(this->m_itemFlags & 4)) {
+        if ((stats->m_flags[0] & ITEM_FLAG_REFUNDABLE) && !this->m_itemPurchaseData && !(this->m_itemFlags & 4)) {
             this->RequestItemPurchaseData();
         }
 
@@ -1886,7 +1886,7 @@ int32_t GetItemIDByName(const char* name) {
 // VERIFY: 6c2f725a manual
 // OFFSET: 0x00707F50
 void CGItem_C::UpdateEnchantments() {
-    if (this->GetItemStaticFlags(0) & 0x2000) {
+    if (this->GetItemStaticFlags(0) & ITEM_FLAG_PETITION) {
         return;
     }
 

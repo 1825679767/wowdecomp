@@ -4,6 +4,16 @@
 #include <cstddef>
 #include <cstdint>
 
+enum ITEM_STATIC_FLAGS : uint32_t {
+    // First ItemStats_C flag word; the second word is a separate domain.
+    ITEM_FLAG_CONJURED = 2,
+    ITEM_FLAG_HAS_LOOT = 4,
+    ITEM_FLAG_HEROIC = 8,
+    ITEM_FLAG_IS_WRAPPER = 512,
+    ITEM_FLAG_REFUNDABLE = 4096,
+    ITEM_FLAG_PETITION = 8192,
+};
+
 enum ITEM_DYNAMIC_FLAGS : uint32_t {
     ITEM_DFLAG_BOUND = 1,
     ITEM_DFLAG_TRANSLATED = 2,

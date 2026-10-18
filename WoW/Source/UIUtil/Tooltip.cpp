@@ -2321,7 +2321,7 @@ const char* CGTooltip::GetItemHyperlinkString(CGItem_C* item) {
     int32_t gems[3];
 
     for (uint32_t i = 0; i < 3; i++) {
-        if (!wrapped && !(item->GetItemStaticFlags(0) & 0x2000)) {
+        if (!wrapped && !(item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION)) {
             gems[i] = item->m_item->m_itemFieldEnchantment[2 + i].m_id;
         } else {
             gems[i] = 0;
@@ -2338,7 +2338,7 @@ const char* CGTooltip::GetItemHyperlinkString(CGItem_C* item) {
     } else {
         randomPropertiesId = item->m_item->m_itemFieldRandomPropertiesId;
         seed = item->m_item->m_itemFieldPropertySeed;
-        enchant = item->GetItemStaticFlags(0) & 0x2000 ? 0 : item->m_item->m_itemFieldEnchantment[0].m_id;
+        enchant = item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION ? 0 : item->m_item->m_itemFieldEnchantment[0].m_id;
     }
 
     return CGTooltip::CreateItemLink(item->m_obj->m_entryID, stats ? stats->m_quality : 1, enchant, gems, randomPropertiesId, seed);
@@ -4135,13 +4135,13 @@ static void AddItemNameLines(CGTooltip* tooltip, const ItemStats_C* stats, int32
     CVar* colorblindMode = CVar::Lookup("colorblindMode");
 
     if (colorblindMode && colorblindMode->m_intValue) {
-        if (stats->m_flags[0] & 8) {
+        if (stats->m_flags[0] & ITEM_FLAG_HEROIC) {
             tooltip->AddLine(FrameScript_GetText("ITEM_HEROIC_EPIC", -1, GENDER_NOT_APPLICABLE), nullptr, textColor, textColor, 0);
         } else {
             SStrPrintf(format, sizeof(format), "ITEM_QUALITY%d_DESC", destroyGem ? 0 : stats->m_quality);
             tooltip->AddLine(FrameScript_GetText(format, -1, GENDER_NOT_APPLICABLE), nullptr, textColor, textColor, 0);
         }
-    } else if (stats->m_flags[0] & 8) {
+    } else if (stats->m_flags[0] & ITEM_FLAG_HEROIC) {
         tooltip->AddLine(FrameScript_GetText("ITEM_HEROIC", -1, GENDER_NOT_APPLICABLE), nullptr, greenColor, greenColor, 0);
     }
 }
@@ -4151,11 +4151,11 @@ static bool AddItemPetitionLines(CGTooltip* tooltip, CGItem_C* item, const WOWGU
     const CImVector& textColor = *reinterpret_cast<const CImVector*>(&s_tooltipTextColor);
     char text[4096];
 
-    if (!(item->GetItemStaticFlags(0) & 0x2000)) {
+    if (!(item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION)) {
         return true;
     }
 
-    int32_t petitionId = (item->GetItemStaticFlags(0) & 0x2000) ? item->m_item->m_itemFieldEnchantment[0].m_id : 0;
+    int32_t petitionId = (item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION) ? item->m_item->m_itemFieldEnchantment[0].m_id : 0;
     CGPetition* petition = g_petitionCache.GetRecord(petitionId, *itemGuid, TooltipItemCallback, tooltip, true);
 
     if (!petition) {
@@ -4296,7 +4296,7 @@ static const LockRec* AddItemBindLines(CGTooltip* tooltip, const ItemStats_C* st
         }
     }
 
-    if (stats->m_flags[0] & 2) {
+    if (stats->m_flags[0] & ITEM_FLAG_CONJURED) {
         FormatString("ITEM_CONJURED", -1, GENDER_NOT_APPLICABLE, format, sizeof(format));
         tooltip->AddLine(format, nullptr, textColor, textColor, 0);
     }
@@ -4766,7 +4766,7 @@ static int32_t AddItemSocketLines(CGTooltip* tooltip, const ItemStats_C* stats, 
         int32_t enchantId;
 
         if (item) {
-            enchantId = (item->GetItemStaticFlags(0) & 0x2000) ? 0 : item->m_item->m_itemFieldEnchantment[slot].m_id;
+            enchantId = (item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION) ? 0 : item->m_item->m_itemFieldEnchantment[slot].m_id;
         } else {
             enchantId = tooltip->m_itemLinkInfo.m_enchants[slot];
         }
@@ -4832,7 +4832,7 @@ static int32_t AddItemSocketLines(CGTooltip* tooltip, const ItemStats_C* stats, 
             int32_t prismaticId = 0;
 
             if (item) {
-                prismaticId = (item->GetItemStaticFlags(0) & 0x2000) ? 0 : item->m_item->m_itemFieldEnchantment[6].m_id;
+                prismaticId = (item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION) ? 0 : item->m_item->m_itemFieldEnchantment[6].m_id;
             } else if (tooltip->m_itemUseLinkInfo) {
                 prismaticId = tooltip->m_itemLinkInfo.m_enchants[6];
             }
@@ -4891,7 +4891,7 @@ static int32_t AddItemSocketLines(CGTooltip* tooltip, const ItemStats_C* stats, 
             *useSpell = enchant->m_effectArg[0];
 
             if (item) {
-                *useCharges = (item->GetItemStaticFlags(0) & 0x2000) ? 0 : item->m_item->m_itemFieldEnchantment[slot].m_charges;
+                *useCharges = (item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION) ? 0 : item->m_item->m_itemFieldEnchantment[slot].m_charges;
             } else {
                 *useCharges = tooltip->m_itemLinkInfo.m_enchantCharges[slot];
             }
@@ -4925,14 +4925,14 @@ static int32_t AddItemSocketLines(CGTooltip* tooltip, const ItemStats_C* stats, 
             SStrCopy(text, format, sizeof(text));
         }
 
-        if (!item || !(item->GetItemStaticFlags(0) & 0x2000)) {
+        if (!item || !(item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION)) {
             int32_t hasCharges = item ? item->m_item->m_itemFieldEnchantment[slot].m_charges : tooltip->m_itemLinkInfo.m_enchantCharges[slot];
 
             if (hasCharges) {
                 int32_t count;
 
                 if (item) {
-                    count = (item->GetItemStaticFlags(0) & 0x2000) ? 0 : item->m_item->m_itemFieldEnchantment[slot].m_charges;
+                    count = (item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION) ? 0 : item->m_item->m_itemFieldEnchantment[slot].m_charges;
                 } else {
                     count = tooltip->m_itemLinkInfo.m_enchantCharges[slot];
                 }
@@ -4968,7 +4968,7 @@ static int32_t AddItemSocketLines(CGTooltip* tooltip, const ItemStats_C* stats, 
         bool prismaticEmpty;
 
         if (item) {
-            prismaticEmpty = (item->GetItemStaticFlags(0) & 0x2000) || !item->m_item->m_itemFieldEnchantment[6].m_id;
+            prismaticEmpty = (item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION) || !item->m_item->m_itemFieldEnchantment[6].m_id;
         } else {
             prismaticEmpty = !tooltip->m_itemLinkInfo.m_enchants[6];
         }
@@ -4985,7 +4985,7 @@ static int32_t AddItemSocketLines(CGTooltip* tooltip, const ItemStats_C* stats, 
             }
         } else if (!stats->m_socketColor[socket] || !prismaticEmpty) {
             if (item) {
-                if (!(item->GetItemStaticFlags(0) & 0x2000)) {
+                if (!(item->GetItemStaticFlags(0) & ITEM_FLAG_PETITION)) {
                     socketEnchantId = item->m_item->m_itemFieldEnchantment[slot].m_id;
                 }
             } else if (tooltip->m_itemUseLinkInfo) {
@@ -6221,7 +6221,7 @@ static void AddItemCreatorLines(CGTooltip* tooltip, const ItemStats_C* stats, CG
 
     uint32_t flags = stats->m_flags[0];
 
-    if (!tooltip->m_itemUseLinkInfo && (((flags & 4) && (!stats->m_lockId || (item->m_item->m_itemFieldFlags & ITEM_DFLAG_UNLOCKED))) || ((flags & 0x200) && (item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED)))) {
+    if (!tooltip->m_itemUseLinkInfo && (((flags & ITEM_FLAG_HAS_LOOT) && (!stats->m_lockId || (item->m_item->m_itemFieldFlags & ITEM_DFLAG_UNLOCKED))) || ((flags & ITEM_FLAG_IS_WRAPPER) && (item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED)))) {
         tooltip->AddLine(FrameScript_GetText("ITEM_OPENABLE", -1, GENDER_NOT_APPLICABLE), nullptr, greenColor, greenColor, 0);
     } else if (item->GetPageTextID(nullptr) || (item->m_item->m_itemFieldFlags & 0x200)) {
         tooltip->AddLine(FrameScript_GetText("ITEM_READABLE", -1, GENDER_NOT_APPLICABLE), nullptr, greenColor, greenColor, 0);
@@ -6291,7 +6291,7 @@ static int32_t AddItemTradeLines(CGTooltip* tooltip, const ItemStats_C* stats, C
             tooltip->AddLine(text, nullptr, refundColor, refundColor, 1);
             refundable = 1;
         }
-    } else if ((stats->m_flags[0] & 0x1000) && !(item->m_itemFlags & 4)) {
+    } else if ((stats->m_flags[0] & ITEM_FLAG_REFUNDABLE) && !(item->m_itemFlags & 4)) {
         item->RequestItemPurchaseData();
         refundable = 1;
     }
@@ -6482,7 +6482,7 @@ int32_t CGTooltip::SetItem(int32_t itemId, const WOWGUID* requester, const WOWGU
         return 0;
     }
 
-    if (stats->m_flags[0] & 0x2000) {
+    if (stats->m_flags[0] & ITEM_FLAG_PETITION) {
         const CImVector& greenColor = *reinterpret_cast<const CImVector*>(&s_tooltipGreenColor);
         this->AddLine(FrameScript_GetText("ITEM_SIGNABLE", -1, GENDER_NOT_APPLICABLE), nullptr, greenColor, greenColor, 0);
     }
