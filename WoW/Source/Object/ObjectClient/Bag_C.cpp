@@ -182,7 +182,7 @@ int32_t CGBag_C::GetNumItems() const {
 // VERIFY: 724d9331 auto
 // OFFSET: 0x00753A50
 static int32_t __stdcall SlotMatchesSearchFlags(uint32_t slot, uint32_t flags) {
-    return (slot <= 18 && (flags & 0x1)) || (slot - 23 <= 15 && (flags & 0x4)) || (slot - 19 <= 3 && (flags & 0x2)) || (((slot >= 39 && slot <= 66) || slot - 67 <= 6) && (flags & 0x8)) || (slot - 86 <= 31 && (flags & 0x40)) || (slot - 118 <= 31 && (flags & 0x200));
+    return (slot <= 18 && (flags & BAG_SEARCH_EQUIPMENT)) || (slot - 23 <= 15 && (flags & BAG_SEARCH_BACKPACK)) || (slot - 19 <= 3 && (flags & BAG_SEARCH_BAG_SLOTS)) || (((slot >= 39 && slot <= 66) || slot - 67 <= 6) && (flags & BAG_SEARCH_BANK)) || (slot - 86 <= 31 && (flags & BAG_SEARCH_KEYRING)) || (slot - 118 <= 31 && (flags & BAG_SEARCH_CURRENCY));
 }
 
 // VERIFY: ddfa3202 auto
@@ -470,8 +470,8 @@ int32_t FindItemIDCallback(const CGItem_C* item, void* param) {
 // VERIFY: 45f963f6 manual
 // OFFSET: 0x007541F0
 bool CGBag_C::FindTotemCategory(int32_t type, int32_t& mask, bool recurse, uint32_t flags) {
-    if (!(flags & 0x7)) {
-        flags |= 0x7;
+    if (!(flags & BAG_SEARCH_TOTEM_LOCATIONS)) {
+        flags |= BAG_SEARCH_TOTEM_LOCATIONS;
     }
 
     uint32_t slot = this->m_hasBank ? s_bagSlotRanges[0].m_first : 0;
@@ -781,8 +781,8 @@ CGItem_C* CGBag_C::FindItem(int32_t (*callback)(const CGItem_C* item, void* para
 // VERIFY: 35fbcc70 manual
 // OFFSET: 0x007546F0
 CGItem_C* CGBag_C::FindItem(int32_t (*callback)(const CGItem_C* item, void* param), void* param, WOWGUID& container, uint32_t& slot, uint32_t flags) {
-    if (this->m_hasBank && !(flags & 0x247)) {
-        flags |= 0x247;
+    if (this->m_hasBank && !(flags & BAG_SEARCH_DEFAULT_LOCATIONS)) {
+        flags |= BAG_SEARCH_DEFAULT_LOCATIONS;
     }
 
     container = WOWGUID();
@@ -800,18 +800,18 @@ CGItem_C* CGBag_C::FindItem(int32_t (*callback)(const CGItem_C* item, void* para
             WOWGUID guid = index < numSlots ? this->m_slots[index] : WOWGUID();
             CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
 
-            if (item && !(item->m_modelFlags & 0x10000) && ((flags & 0x80) || (((item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) || !item->m_item->m_itemFieldMaxdurability || item->m_item->m_itemFieldDurability) && !(item->m_item->m_itemFieldFlags & 0x10))) && (!(flags & 0x20) || (item->GetBag() && !(flags & 0x10)) || (item->GetEnchantmentSpell(0) && item->GetCurrentSpellCharges()))) {
+            if (item && !(item->m_modelFlags & 0x10000) && ((flags & BAG_SEARCH_IGNORE_ITEM_STATE) || (((item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) || !item->m_item->m_itemFieldMaxdurability || item->m_item->m_itemFieldDurability) && !(item->m_item->m_itemFieldFlags & 0x10))) && (!(flags & BAG_SEARCH_REQUIRE_CHARGES) || (item->GetBag() && !(flags & BAG_SEARCH_NO_RECURSE)) || (item->GetEnchantmentSpell(0) && item->GetCurrentSpellCharges()))) {
                 if (callback(item, param)) {
                     container = this->m_guid;
                     slot = index;
-                } else if (item->GetBag() && !(flags & 0x10)) {
+                } else if (item->GetBag() && !(flags & BAG_SEARCH_NO_RECURSE)) {
                     item = item->GetBag()->FindItem(callback, param, container, slot, flags);
                 } else {
                     item = nullptr;
                 }
 
                 if (item) {
-                    if (!(flags & 0x100)) {
+                    if (!(flags & BAG_SEARCH_SMALLEST_STACK)) {
                         return item;
                     }
 
