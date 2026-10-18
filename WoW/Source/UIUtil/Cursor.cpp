@@ -12,6 +12,14 @@
 #include "WoW/Source/DB/DBClient/DBClient.h"
 #include "WoW/Source/Ui/LootFrame.h"
 
+enum CURSORITEMTYPE : uint32_t {
+    CURSOR_EMPTY = 0,
+    CURSOR_ITEM = 1,
+    CURSOR_MONEY = 2,
+    CURSOR_SPELL = 3,
+    // NUM_CURSOR_ITEM_TYPES = 4,
+};
+
 // STATIC: 0x00AD2808
 static const char* s_cursorNames[NUM_CURSOR_IMAGES] = {
     nullptr,
@@ -83,7 +91,7 @@ static uint32_t s_cursorItemMipsWidth;
 static MipBits* s_cursorItemMips;
 
 // STATIC: 0x00C25DE0
-static uint32_t s_cursorItemType;
+static CURSORITEMTYPE s_cursorItemType;
 
 // STATIC: 0x00C25DE4
 static CURSORMODE s_cursorResetMode;
@@ -101,7 +109,7 @@ static uint32_t s_cursorImages[NUM_CURSOR_IMAGES][1024];
 // OFFSET: 0x006167E0
 void CursorDropItem() {
     if (s_cursorItemType) {
-        s_cursorItemType = 0;
+        s_cursorItemType = CURSOR_EMPTY;
         UpdateCursor();
     }
 }
@@ -185,7 +193,7 @@ void UpdateCursor() {
 void CursorInitialize() {
     s_cursorMode = POINT_CURSOR;
     s_cursorResetMode = POINT_CURSOR;
-    s_cursorItemType = 0;
+    s_cursorItemType = CURSOR_EMPTY;
     s_cursorItemMips = nullptr;
     s_cursorItemMipsWidth = 0;
     s_cursorItemMipsHeight = 0;
@@ -264,7 +272,7 @@ void CursorGrabVirtualItem(int32_t displayId) {
         s_cursorItemMips = TextureLoadImage(fileName, &s_cursorItemMipsWidth, &s_cursorItemMipsHeight, &format, nullptr, nullptr, nullptr, 0);
     }
 
-    s_cursorItemType = 1;
+    s_cursorItemType = CURSOR_ITEM;
     CursorReleaseItemMips();
 }
 
@@ -361,7 +369,7 @@ void CursorSetHeldItem(WOWGUID item) {
         s_cursorItemMips = TextureLoadImage(fileName, &s_cursorItemMipsWidth, &s_cursorItemMipsHeight, &format, nullptr, nullptr, nullptr, 0);
     }
 
-    s_cursorItemType = 1;
+    s_cursorItemType = CURSOR_ITEM;
     CursorReleaseItemMips();
 }
 
@@ -379,7 +387,7 @@ void CursorGrabMoney(uint32_t amount) {
     GetCurrencyIcon(amount, fileName, sizeof(fileName));
     PIXEL_FORMAT format = PIXEL_ARGB8888;
     s_cursorItemMips = TextureLoadImage(fileName, &s_cursorItemMipsWidth, &s_cursorItemMipsHeight, &format, nullptr, nullptr, nullptr, 0);
-    s_cursorItemType = 2;
+    s_cursorItemType = CURSOR_MONEY;
     CursorReleaseItemMips();
 }
 
@@ -398,7 +406,7 @@ void CursorGrabSpell(const char* texture) {
         s_cursorItemMips = TextureLoadImage(texture, &s_cursorItemMipsWidth, &s_cursorItemMipsHeight, &format, nullptr, nullptr, nullptr, 0);
     }
 
-    s_cursorItemType = 3;
+    s_cursorItemType = CURSOR_SPELL;
     CursorReleaseItemMips();
 }
 
