@@ -201,6 +201,9 @@ int32_t CGxDeviceD3d11::DeviceSetFormat(const CGxFormat& format){
         // down window/targets or invoke resource-restoration callbacks. Windowed
         // refresh selections do not change the desktop's display mode.
         CGxDevice::DeviceSetFormat(format);
+        // Base Gx applies minimum window dimensions even to small offscreen
+        // targets. No resize occurred: keep format and actual target in sync.
+        m_format.m_size.x=m->width;m_format.m_size.y=m->height;
         Log("DX11 presentation updated without reset: vsync=%u fixLag=%u",format.m_vsync,unsigned(format.m_fixLag));
         if(m_log)SLogFlush(m_log);
         return 1;
