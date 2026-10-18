@@ -4,6 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 
+enum AMBIENCE : int32_t {
+    AMB_DAY = 0,
+    AMB_NIGHT = 1,
+    NUM_AMBIENCES = 2,
+};
+
 enum WEAPONSWING_SOUNDTYPES : int32_t {
     WEAPONSWING_LIGHT = 0,
     WEAPONSWING_MEDIUM = 1,
