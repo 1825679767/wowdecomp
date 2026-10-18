@@ -16349,15 +16349,15 @@ uint32_t CGUnit_C::GetSortedAuraSlot(int32_t index, const char* name, const char
     }
 
     WOWGUID player = ClntObjMgrGetActivePlayer();
-    bool helpful = filter & 0x1;
-    bool playerOnly = (filter & 0x4) != 0;
+    bool helpful = filter & BUFF_FILTER_HELPFUL;
+    bool playerOnly = (filter & BUFF_FILTER_PLAYER) != 0;
     int32_t found = 0;
 
     if (!this->GetAuraCount()) {
         return 0xFFFFFFFF;
     }
 
-    TSCGrowableArray<SortedAuraInfo, 16>& sorted = this->m_sortedAuras[(filter & 0x8) != 0];
+    TSCGrowableArray<SortedAuraInfo, 16>& sorted = this->m_sortedAuras[(filter & BUFF_FILTER_RAID) != 0];
 
     for (uint32_t i = 0; i < this->GetAuraCount(); i++) {
         uint32_t auraIndex = sorted[i].m_auraIndex;
@@ -16371,7 +16371,7 @@ uint32_t CGUnit_C::GetSortedAuraSlot(int32_t index, const char* name, const char
             continue;
         }
 
-        if ((aura->m_flags & 0x10) ? (filter & 0x20) : (filter & 0x10)) {
+        if ((aura->m_flags & 0x10) ? (filter & BUFF_FILTER_NOT_CANCELABLE) : (filter & BUFF_FILTER_CANCELABLE)) {
             continue;
         }
 

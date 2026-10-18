@@ -992,7 +992,7 @@ static int32_t Script_GetAuraInfo(lua_State* L, int32_t index, ScriptAuraInfo* i
         filterIndex = index + 2;
     }
 
-    info->m_filter = 1;
+    info->m_filter = BUFF_FILTER_HELPFUL;
 
     if (lua_isstring(L, filterIndex)) {
         const char* filter = lua_tostring(L, filterIndex);
@@ -1006,17 +1006,17 @@ static int32_t Script_GetAuraInfo(lua_State* L, int32_t index, ScriptAuraInfo* i
             }
 
             if (!SStrCmpI(token, "HELPFUL", STORM_MAX_STR)) {
-                info->m_filter = (info->m_filter & ~3) | 1;
+                info->m_filter = (info->m_filter & ~(BUFF_FILTER_HELPFUL | BUFF_FILTER_HARMFUL)) | BUFF_FILTER_HELPFUL;
             } else if (!SStrCmpI(token, "HARMFUL", STORM_MAX_STR)) {
-                info->m_filter = (info->m_filter & ~3) | 2;
+                info->m_filter = (info->m_filter & ~(BUFF_FILTER_HELPFUL | BUFF_FILTER_HARMFUL)) | BUFF_FILTER_HARMFUL;
             } else if (!SStrCmpI(token, "PLAYER", STORM_MAX_STR)) {
-                info->m_filter |= 4;
+                info->m_filter |= BUFF_FILTER_PLAYER;
             } else if (!SStrCmpI(token, "RAID", STORM_MAX_STR)) {
-                info->m_filter |= 8;
+                info->m_filter |= BUFF_FILTER_RAID;
             } else if (!SStrCmpI(token, "CANCELABLE", STORM_MAX_STR)) {
-                info->m_filter |= 0x10;
+                info->m_filter |= BUFF_FILTER_CANCELABLE;
             } else if (!SStrCmpI(token, "NOT_CANCELABLE", STORM_MAX_STR)) {
-                info->m_filter |= 0x20;
+                info->m_filter |= BUFF_FILTER_NOT_CANCELABLE;
             }
         } while (token[0] && *filter);
     }
@@ -1117,8 +1117,8 @@ int32_t PushUnitAura(lua_State* L, ScriptAuraInfo* info) {
         return 0;
     }
 
-    bool helpful = info->m_filter & 0x1;
-    bool raid = (info->m_filter & 0x8) != 0;
+    bool helpful = info->m_filter & BUFF_FILTER_HELPFUL;
+    bool raid = (info->m_filter & BUFF_FILTER_RAID) != 0;
     int32_t found = 0;
 
     for (uint32_t i = 0; i < 64 && auras[i]; i++) {
@@ -1142,7 +1142,7 @@ int32_t PushUnitAura(lua_State* L, ScriptAuraInfo* info) {
             continue;
         }
 
-        if ((auraFlags[i] & 0x10) ? (info->m_filter & 0x20) : (info->m_filter & 0x10)) {
+        if ((auraFlags[i] & 0x10) ? (info->m_filter & BUFF_FILTER_NOT_CANCELABLE) : (info->m_filter & BUFF_FILTER_CANCELABLE)) {
             continue;
         }
 

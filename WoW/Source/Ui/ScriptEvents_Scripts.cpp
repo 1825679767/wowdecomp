@@ -2682,7 +2682,7 @@ static int32_t Script_UnitBuff(lua_State* L) {
         return 0;
     }
 
-    info.m_filter = (info.m_filter & ~0x3) | 0x1;
+    info.m_filter = (info.m_filter & ~(BUFF_FILTER_HELPFUL | BUFF_FILTER_HARMFUL)) | BUFF_FILTER_HELPFUL;
     return PushUnitAura(L, &info);
 }
 
@@ -2696,7 +2696,7 @@ static int32_t Script_UnitDebuff(lua_State* L) {
         return 0;
     }
 
-    info.m_filter = (info.m_filter & ~0x1) | 0x2;
+    info.m_filter = (info.m_filter & ~BUFF_FILTER_HELPFUL) | BUFF_FILTER_HARMFUL;
     return PushUnitAura(L, &info);
 }
 

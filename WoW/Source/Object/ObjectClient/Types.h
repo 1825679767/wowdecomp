@@ -4,6 +4,16 @@
 #include <cstddef>
 #include <cstdint>
 
+enum BUFF_FILTER_FLAGS : uint32_t {
+    // Query filters, separate from AuraData::m_flags.
+    BUFF_FILTER_HELPFUL = 1,
+    BUFF_FILTER_HARMFUL = 2,
+    BUFF_FILTER_PLAYER = 4,
+    BUFF_FILTER_RAID = 8,
+    BUFF_FILTER_CANCELABLE = 16,
+    BUFF_FILTER_NOT_CANCELABLE = 32,
+};
+
 enum TRACKTYPE : int32_t {
     TRACKTYPE_SPELLPRECAST = 0,
     TRACKTYPE_SPELLCHANNEL = 1,

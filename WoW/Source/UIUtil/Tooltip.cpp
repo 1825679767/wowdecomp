@@ -3987,8 +3987,8 @@ int32_t SetTooltipUnitAura(CGTooltip* tooltip, ScriptAuraInfo* info) {
         return 0;
     }
 
-    bool helpful = info->m_filter & 0x1;
-    bool raid = (info->m_filter & 0x8) != 0;
+    bool helpful = info->m_filter & BUFF_FILTER_HELPFUL;
+    bool raid = (info->m_filter & BUFF_FILTER_RAID) != 0;
     int32_t found = 0;
 
     for (uint32_t i = 0; i < 64 && auras[i]; i++) {
@@ -4012,7 +4012,7 @@ int32_t SetTooltipUnitAura(CGTooltip* tooltip, ScriptAuraInfo* info) {
             continue;
         }
 
-        if ((auraFlags[i] & 0x10) ? (info->m_filter & 0x20) : (info->m_filter & 0x10)) {
+        if ((auraFlags[i] & 0x10) ? (info->m_filter & BUFF_FILTER_NOT_CANCELABLE) : (info->m_filter & BUFF_FILTER_CANCELABLE)) {
             continue;
         }
 
