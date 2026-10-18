@@ -88,6 +88,12 @@
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
+enum ANIMATED_OBJECT_STATE : int32_t {
+    STATE_OPENING = 0,
+    STATE_CLOSING = 1,
+    STATE_DESTROYED = 2,
+};
+
 // STATIC: 0x00A335E8
 static const uint32_t s_oneShotAnims[7] = { 0xFFFFFFFF, 0, 8, 9, 10, 11, 12 };
 
@@ -1004,8 +1010,8 @@ void CGGameObject_C_TypeAnimated::UpdateState(int32_t oldState, int32_t newState
     SI2::StopSound(&this->m_sound, 0, -1.0f, 1);
 
     switch (newState) {
-        case 0: {
-            if (oldState == 1 || this->m_owner->m_gameObject->m_pathProgress != 0xFFFF) {
+        case STATE_OPENING: {
+            if (oldState == STATE_CLOSING || this->m_owner->m_gameObject->m_pathProgress != 0xFFFF) {
                 this->UpdateAnimState(2);
             } else {
                 this->UpdateAnimState(3);
@@ -1014,16 +1020,16 @@ void CGGameObject_C_TypeAnimated::UpdateState(int32_t oldState, int32_t newState
             break;
         }
 
-        case 1: {
-            int32_t state = this->m_owner->m_gameObject->m_pathProgress == 0xFFFF ? oldState : 0;
+        case STATE_CLOSING: {
+            int32_t state = this->m_owner->m_gameObject->m_pathProgress == 0xFFFF ? oldState : STATE_OPENING;
 
             switch (state) {
-                case 0: {
+                case STATE_OPENING: {
                     this->UpdateAnimState(4);
                     break;
                 }
 
-                case 2: {
+                case STATE_DESTROYED: {
                     this->UpdateAnimState(7);
                     break;
                 }
@@ -1037,8 +1043,8 @@ void CGGameObject_C_TypeAnimated::UpdateState(int32_t oldState, int32_t newState
             break;
         }
 
-        case 2: {
-            if (oldState == 1 || this->m_owner->m_gameObject->m_pathProgress != 0xFFFF) {
+        case STATE_DESTROYED: {
+            if (oldState == STATE_CLOSING || this->m_owner->m_gameObject->m_pathProgress != 0xFFFF) {
                 this->UpdateAnimState(5);
             } else {
                 this->UpdateAnimState(6);
