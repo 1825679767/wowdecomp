@@ -156,8 +156,14 @@ static C2Vector s_blipTexCoords[32][4];
 // STATIC: 0x00BEBA40
 static int32_t s_inWorld;
 
+enum MINIMAP_OBJECT_TYPES : uint32_t {
+    MINIMAP_OBJECT = 8,
+    MINIMAP_PET = 15,
+    MINIMAP_NUM_TYPES = 23,
+};
+
 // STATIC: 0x00BEB9A8
-static uint32_t s_hoverObjects[23];
+static uint32_t s_hoverObjects[MINIMAP_NUM_TYPES];
 
 // STATIC: 0x00BEBA74
 static uint32_t s_hoverPOIs;
@@ -280,7 +286,7 @@ static TSGrowableArray<C2Vector> s_blipTexCoords2;
 static TSGrowableArray<uint16_t> s_blipIndices;
 
 // STATIC: 0x00BF8098
-static TSGrowableArray<OBJINFO> s_objInfo[23];
+static TSGrowableArray<OBJINFO> s_objInfo[MINIMAP_NUM_TYPES];
 
 // STATIC: 0x00BF5FC8
 static C2Vector s_poiArrowPositions[3];
@@ -1976,7 +1982,7 @@ void CGMinimapFrame::Render() {
             this->m_lastUpdateTime = 1;
         }
 
-        for (uint32_t i = 0; i < 23; i++) {
+        for (uint32_t i = 0; i < MINIMAP_NUM_TYPES; i++) {
             s_objInfo[i].SetCount(0);
         }
 
@@ -2245,7 +2251,7 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
         CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(object);
 
         if (gameObject->IsTracked() && static_cast<CGUnit_C*>(player)->CanInteract(gameObject)) {
-            type = 8;
+            type = MINIMAP_OBJECT;
         } else {
             uint32_t status = gameObject->m_questStatus;
 
@@ -2260,7 +2266,7 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
                     return 1;
                 }
 
-                type = 8;
+                type = MINIMAP_OBJECT;
             }
         }
     } else {
@@ -2276,7 +2282,7 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
         const WOWGUID& controller = unit->m_unit->m_unitFieldCharmedby ? unit->m_unit->m_unitFieldCharmedby : unit->m_unit->m_unitFieldSummonedby;
 
         if (controller == ClntObjMgrGetActivePlayer()) {
-            type = 15;
+            type = MINIMAP_PET;
         } else {
             if (unit->m_unit->m_unitFieldHealth <= 0 && !unit->CanInteractWhileDead()) {
                 return 1;
@@ -2287,7 +2293,7 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
                     tracked = 1;
                 }
 
-                type = 8;
+                type = MINIMAP_OBJECT;
             } else {
                 uint32_t status = unit->m_questStatus;
 
@@ -2655,7 +2661,7 @@ void CGMinimapFrame::LeaveWorld() {
     s_indoor.m_texture = nullptr;
     s_poiInfo.Clear();
 
-    for (uint32_t i = 0; i < 23; i++) {
+    for (uint32_t i = 0; i < MINIMAP_NUM_TYPES; i++) {
         s_objInfo[i].Clear();
     }
 
@@ -2809,7 +2815,7 @@ void CGMinimapFrame::RenderObjectBlips(const C44Matrix& rotation, bool otherFloo
 // VERIFY: a016d4c5 manual
 // OFFSET: 0x00580720
 void CGMinimapFrame::RenderVehicleBlips(const C44Matrix& rotation) {
-    for (uint32_t list = 16; list < 23; list++) {
+    for (uint32_t list = 16; list < MINIMAP_NUM_TYPES; list++) {
         CTexture* texture = s_vehicleTextures[list - 16];
 
         if (!s_objInfo[list].m_count || !texture) {
@@ -3290,7 +3296,7 @@ int32_t CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
     if (!CSimpleFrame::OnLayerTrackUpdate(evt)) {
         bool anyObject = false;
 
-        for (uint32_t i = 0; i < 23; i++) {
+        for (uint32_t i = 0; i < MINIMAP_NUM_TYPES; i++) {
             if (s_hoverObjects[i]) {
                 anyObject = true;
                 break;
@@ -3325,10 +3331,10 @@ int32_t CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
         }
     }
 
-    uint32_t objects[23];
+    uint32_t objects[MINIMAP_NUM_TYPES];
     memset(objects, 0, sizeof(objects));
 
-    for (uint32_t i = 0; i < 23; i++) {
+    for (uint32_t i = 0; i < MINIMAP_NUM_TYPES; i++) {
         for (uint32_t j = 0; j < s_objInfo[i].Count(); j++) {
             OBJINFO& info = s_objInfo[i][j];
             float x = info.m_position.x + rect.minX;
@@ -3382,7 +3388,7 @@ int32_t CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
 
     bool objectsChanged = false;
 
-    for (uint32_t i = 0; i < 23; i++) {
+    for (uint32_t i = 0; i < MINIMAP_NUM_TYPES; i++) {
         if (s_hoverObjects[i] != objects[i]) {
             objectsChanged = true;
             break;
@@ -3399,7 +3405,7 @@ int32_t CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
     s_hoverRaid = raid;
     bool anyObject = false;
 
-    for (uint32_t i = 0; i < 23; i++) {
+    for (uint32_t i = 0; i < MINIMAP_NUM_TYPES; i++) {
         s_hoverObjects[i] = objects[i];
 
         if (objects[i]) {
@@ -3482,7 +3488,7 @@ int32_t CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
         }
     }
 
-    for (uint32_t i = 0; i < 23; i++) {
+    for (uint32_t i = 0; i < MINIMAP_NUM_TYPES; i++) {
         for (uint32_t j = 0; j < s_objInfo[i].Count(); j++) {
             if (!(s_hoverObjects[i] & (1 << j))) {
                 continue;
