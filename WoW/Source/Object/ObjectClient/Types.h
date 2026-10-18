@@ -4,6 +4,14 @@
 #include <cstddef>
 #include <cstdint>
 
+enum UNIT_SEX : uint32_t {
+    UNITSEX_MALE = 0,
+    UNITSEX_FEMALE = 1,
+    UNITSEX_NONE = 2,
+    UNITSEX_LAST = 3,
+    // UNITSEX_BOTH = 3, // Historical alias, not a current unit-sex value.
+};
+
 enum WEAPONMODE : uint32_t {
     WEAPONMODE_SHEATHEDMODE = 0,
     WEAPONMODE_NORMALMODE = 1,

@@ -143,7 +143,7 @@ int32_t Script_CanEjectPassengerFromSeat(lua_State* L);
 int32_t Script_IsXPUserDisabled(lua_State* L);
 
 // STATIC: 0x009FE7EC
-const int32_t s_unitSexValues[3] = { 2, 3, 1 };
+const int32_t s_unitSexValues[UNITSEX_LAST] = { GENDER_MALE, GENDER_FEMALE, GENDER_NONE };
 
 // STATIC: 0x00AD21BC
 static const char* s_unitClassificationTokens[7] = { "normal", "elite", "rareelite", "worldboss", "rare", "trivial", nullptr };
@@ -599,7 +599,7 @@ static int32_t Script_UnitSex(lua_State* L) {
             sex = s_unitSexValues[unit->m_unit->m_unitFieldBytes0[2]];
         } else {
             NameCache* nameCache = g_nameDBCache.GetRecord(guid.m_guid, WOWGUID(), nullptr, nullptr, false);
-            sex = nameCache ? s_unitSexValues[nameCache->m_sex] : 1;
+            sex = nameCache ? s_unitSexValues[nameCache->m_sex] : GENDER_NONE;
         }
     }
 

@@ -6531,12 +6531,12 @@ uint32_t CGUnit_C::GetDisplayRace() const {
 
 // VERIFY: f436709c auto
 // OFFSET: 0x0071A490
-uint32_t CGUnit_C::GetDisplaySex() const {
+UNIT_SEX CGUnit_C::GetDisplaySex() const {
     if (this->m_displayInfoExtra) {
-        return this->m_displayInfoExtra->m_displaySexID;
+        return static_cast<UNIT_SEX>(this->m_displayInfoExtra->m_displaySexID);
     }
 
-    return this->m_unit->m_unitFieldBytes0[2];
+    return static_cast<UNIT_SEX>(this->m_unit->m_unitFieldBytes0[2]);
 }
 
 // VERIFY: d86707be auto
@@ -7329,15 +7329,15 @@ void CGUnit_C::TrackingMakeRelativeTo(const C44Matrix* transform, float facing) 
 // VERIFY: c2e94952 manual
 // OFFSET: 0x007225E0
 const char* CGUnit_C::GetFrameScriptText(const char* token, int32_t count) const {
-    uint32_t sex;
+    UNIT_SEX sex;
 
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
-        sex = static_cast<const CGPlayer_C*>(this)->m_player->m_playerBytes3[0];
+        sex = static_cast<UNIT_SEX>(static_cast<const CGPlayer_C*>(this)->m_player->m_playerBytes3[0]);
     } else {
-        sex = this->m_unit->m_unitFieldBytes0[2];
+        sex = static_cast<UNIT_SEX>(this->m_unit->m_unitFieldBytes0[2]);
     }
 
-    return FrameScript_GetText(token, count, sex == 1 ? GENDER_FEMALE : GENDER_MALE);
+    return FrameScript_GetText(token, count, sex == UNITSEX_FEMALE ? GENDER_FEMALE : GENDER_MALE);
 }
 
 // VERIFY: 2b9830ba manual

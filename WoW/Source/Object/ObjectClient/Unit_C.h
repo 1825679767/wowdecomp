@@ -547,7 +547,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
     int32_t IsSplashing(const C3Vector& position) const;
     int32_t HasBakedNpcTexture() const;
     uint32_t GetDisplayRace() const;
-    uint32_t GetDisplaySex() const;
+    UNIT_SEX GetDisplaySex() const;
     uint32_t GetShapeshiftForm() const;
     int32_t IsInMelee() const;
     int32_t IsInCombat() const;

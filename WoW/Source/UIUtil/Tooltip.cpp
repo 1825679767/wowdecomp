@@ -1853,7 +1853,7 @@ int32_t CGTooltip::SetUnit(const WOWGUID& guid, int32_t showHealth, const WOWGUI
     if (colorblind && colorblind->m_intValue && (player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__))) != nullptr) {
         if (unit) {
             line[0] = 0;
-            FRAMESCRIPT_GENDER gender = player->m_unit->m_unitFieldBytes0[2] == 1 ? GENDER_FEMALE : GENDER_MALE;
+            FRAMESCRIPT_GENDER gender = player->m_unit->m_unitFieldBytes0[2] == UNITSEX_FEMALE ? GENDER_FEMALE : GENDER_MALE;
             SStrPrintf(line, sizeof(line), "FACTION_STANDING_LABEL%d", unit->UnitReaction(player) + 1);
             this->AddLine(FrameScript_GetText(line, 0, gender), nullptr, textColor, textColor, 0);
         }
