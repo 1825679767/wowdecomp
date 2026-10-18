@@ -59,7 +59,7 @@ class CAMERA_SMOOTH {
 };
 
 struct CameraShake : public TSLinkedNode<CameraShake> {
-    /* 0008 */ int32_t m_type;
+    /* 0008 */ CGCameraShakeType m_type;
     /* 000C */ CGCameraDir m_dir;
     /* 0010 */ float m_amplitude;
     /* 0014 */ float m_frequency;
@@ -99,7 +99,7 @@ class CGCamera : public CSimpleCamera {
     static uint32_t GetCollisionQueryFlags();
     static float GetDefaultZoomMaxDistance();
     float GetDefaultZoomMinDistance();
-    static void __stdcall AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, int32_t type, float damping, CGCameraDir dir);
+    static void __stdcall AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, CGCameraShakeType type, float damping, CGCameraDir dir);
     void SetPositionAndTargetWithRoll(const C3Vector& position, const C3Vector& target, float roll);
     void CommentatorSetViewAndPosition(const C3Vector& position, float facing, float pitch);
     void BarberShopSetView(float distance, float facing, float pitch);

@@ -1477,7 +1477,7 @@ void CGCamera::AddShake(const C3Vector& position, int32_t type, CGCameraDir dir,
 
     if (shake) {
         shake->m_amplitude = amplitude;
-        shake->m_type = type;
+        shake->m_type = static_cast<CGCameraShakeType>(type);
         shake->m_frequency = frequency;
         shake->m_dir = dir;
         shake->m_duration = duration;
@@ -4018,10 +4018,10 @@ static int32_t __stdcall ComputeShakeFalloff(const C3Vector& position, const C3V
 
 // VERIFY: 6b01b912 manual
 // OFFSET: 0x005FE6C0
-void CGCamera::AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, int32_t type, float damping, CGCameraDir dir) {
+void CGCamera::AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, CGCameraShakeType type, float damping, CGCameraDir dir) {
     float value = sinf(frequency * time * 6.2831855f) * amplitude;
 
-    if (type == 1) {
+    if (type == CAMSHAKE_DECAYED_SINE) {
         value = value * expf(-(time * damping));
     }
 

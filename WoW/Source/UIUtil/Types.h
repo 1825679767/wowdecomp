@@ -69,6 +69,11 @@ enum CURSORMODE : uint32_t {
     // NUM_CURSOR_ANIMS = 18,
 };
 
+enum CGCameraShakeType : int32_t {
+    CAMSHAKE_SINE = 0,
+    CAMSHAKE_DECAYED_SINE = 1,
+};
+
 enum CGCameraDir : int32_t {
     CAMERA_FORWARD = 0,
     CAMERA_RIGHT = 1,
