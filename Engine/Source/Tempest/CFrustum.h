@@ -22,6 +22,16 @@ enum FRUSTUM_CORNER : uint32_t {
     NUM_CORNERS = 8,
 };
 
+enum FRUSTUM_PLANE : uint32_t {
+    P_TOP = 0,
+    P_BOTTOM = 1,
+    P_LEFT = 2,
+    P_RIGHT = 3,
+    P_FAR = 4,
+    P_NEAR = 5,
+    NUM_PLANES = 6,
+};
+
 enum WorldCullStatus : uint32_t {
     WorldCull_outside = 0,
     WorldCull_notOutside = 3,
@@ -34,7 +44,7 @@ enum WorldCullStatus : uint32_t {
 
 class CFrustum {
     public:
-    /* 0000 */ C4Plane planes[6];
+    /* 0000 */ C4Plane planes[NUM_PLANES];
     /* 0060 */ C3Vector corners[NUM_CORNERS];
     /* 00C0 */ C3Vector lookPos;
     /* 00CC */ C3Vector lookAt;
