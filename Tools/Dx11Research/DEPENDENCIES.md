@@ -1,9 +1,9 @@
 # Native DX11 build dependencies
 
-The source vendors only the MIT-licensed shader-converter portion of Microsoft/D3D9On12, pinned to `f3352d12acb286e09c0b73d44a1fe2dfbb05065e`. Its D3D12 device/mapping layer is not included or linked. WDK build headers and the official DXBC signer come from pinned Microsoft NuGet packages, verified before extraction. Run:
+The source vendors only the MIT-licensed shader-converter portion of Microsoft/D3D9On12, pinned to `f3352d12acb286e09c0b73d44a1fe2dfbb05065e`. Its D3D12 device/mapping layer is not included or linked. WDK build headers and the official DXBC signer come from pinned Microsoft NuGet packages, verified before extraction. Use Python 3.11 or newer (the fetcher uses `hashlib.file_digest`). Run from the repository root:
 
 ```powershell
-python Tools/Dx11Research/fetch_dependencies.py --output E:/WXL1.1/dx11/dependencies
+python Tools/Dx11Research/fetch_dependencies.py --output .dx11-dependencies
 ```
 
 Set `WXL_DX11_WDK_ROOT` to `dependencies/wdk/c/Include/10.0.26100.0`, and `WXL_DX11_SIGNER_DLL` to `dependencies/dxbcsigner/build/native/bin/x64/dxbcSigner.dll` when configuring. The signer must be retained next to the AMD64 executable that translates shaders. It is loaded from the executable/system directory. No replacement D3D9 DLL is supplied. Package licenses are retained in the dependency directory.

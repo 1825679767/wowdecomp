@@ -1,8 +1,10 @@
 # Native modular WXL for WotLK x64
 
+Shared developer snapshot: [Furioz420/wowdecomp-dx11](https://github.com/Furioz420/wowdecomp-dx11), branch `codex/wxl-native-x64`. Read the [current handoff](../docs/DX11-DEVELOPER-HANDOFF.md) before extracting features. This directory is included intentionally so another developer can inspect all DX11 integration dependencies. Build-time or CVar disabling does not remove linked interfaces. Latest compiled code checkpoint: `69b5ba38be507fcd41c2877c399d5748fee0f8d0`; later documentation commits do not change that binary attribution.
+
 This separate integration branch combines native WotLK x64/WXL with the optional `WXL_ENABLE_DX11` backend. Existing D3D9/D3D9Ex/OpenGL paths remain available, and the default build keeps DX11 disabled. WXL rendering policy stays with its native modules; native fog, liquids, weather and postprocessing are not replaced by WXL. See [the DX11 integration notes](../Tools/Dx11Research/README.md) for dependencies, tests and remaining gameplay acceptance.
 
-WotLK base: SatyPardus/wowdecomp cd29da38b9162419ee0fa29c6b16e07e10f6c4f0. Portable WXL vendor provenance is recorded in VENDORED-SOURCE.json and APPEARANCE-VENDOR-SOURCE.json. No executable addresses, injected host, Win32 proxy or binary signature hooks are used in this integration.
+WotLK base: SatyPardus/wowdecomp b1c71b8bd108823bca952f16c6f83a7ad33b9648 (merged into the combined branch). Portable WXL vendor provenance is recorded in VENDORED-SOURCE.json and APPEARANCE-VENDOR-SOURCE.json. No executable addresses, injected host, Win32 proxy or binary signature hooks are used in this integration.
 
 ## Module boundaries
 
@@ -152,4 +154,4 @@ The source21/33/35 custom GPU material path supports1..4influences/section palet
 
 The default-on CreationBeams module presents the Priest channel through mounted native spell/visual/kit/chain metadata and CLightningManager inside the actual Glue camera pass. Existing world callers keep their native behavior. Modern ItemVisuals direct model slots and ItemVisualsXEffect attachment/model/scale rows now have owned typed consumers, preserving nativeDBC precedence and explicit item-subclass selection. Kit-only modern rows remain metadata, not fabricated WotLK kit IDs. See modules/beams/INTEGRATION.md and modules/equipment/RETAIL-ENCHANTS.md.
 
-These entries supersede earlier missing-slice notes while preserving their history. Source integration does not establish visual or gameplay acceptance. DX11/native world/fog/liquids/weather remain outside this port.
+These entries supersede earlier missing-slice notes while preserving their history. Source integration does not establish visual or gameplay acceptance. Native world/fog/liquids/weather retain native renderer ownership; WXL does not replace their environment behavior. DX11 is included by the combined branch, with separate visual and gameplay acceptance gates.

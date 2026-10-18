@@ -1,5 +1,7 @@
 # Combined native x64 / DX11 integration
 
+**Historical integration record.** The current shared branch already includes the merges described below and later fixes through code checkpoint `69b5ba38be507fcd41c2877c399d5748fee0f8d0`. See the [current developer handoff](../../docs/DX11-DEVELOPER-HANDOFF.md) for the branch, upstream base and open checks. The old branch names/checkpoints below are provenance, not instructions to overwrite or re-import current source.
+
 Branch `integration/dx11-x64-20261016` starts from captured x64 commit
 `a6e243bb257d00241c22aa48cf522c7326560964`, preserves its captured uncommitted
 custom-material visibility ownership fix, and merges all eight DX11 commits

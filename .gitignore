@@ -410,3 +410,6 @@ FodyWeavers.xsd
 
 # Local Visual Studio CMake settings (absolute paths to re/tools)
 CMakeSettings.json
+
+# Hash-pinned local DX11 dependencies; fetch, do not commit packages/binaries.
+/.dx11-dependencies/

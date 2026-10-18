@@ -1,109 +1,96 @@
-# wowdecomp
+# wowdecomp-dx11: native x64 DX11 + WXL development source
 
-A C++ decompilation of the World of Warcraft 3.3.5a client (`Wow.exe`, build 12340, June 2010).
+This fork shares our current Windows x64 Direct3D 11 work on top of [SatyPardus/wowdecomp](https://github.com/SatyPardus/wowdecomp), a C++ reconstruction of the World of Warcraft 3.3.5a (12340) client. It contains the **combined native WXL integration**, not just an isolated graphics backend. It is intended for developers and their coding agents to inspect, build and integrate.
 
-Join the discord for other clients and to show off some cool stuff you build.
+`main` is the shared development snapshot. `codex/wxl-native-x64` exposes the same source at publication. The original upstream history is preserved; the last integrated upstream point is `b1c71b8bd108823bca952f16c6f83a7ad33b9648`.
 
-https://discord.gg/DsZMGUD8aT
+The latest compiled/tested code checkpoint is **`69b5ba38be507fcd41c2877c399d5748fee0f8d0`** (October 18, 2026). Later documentation commits do not imply another client build. This is experimental development source; rendered parity, performance and gameplay acceptance are separate from compilation and automated checks.
 
-Every function is reconstructed from the original binary and keeps the address it came from in an
-`// OFFSET:` tag, so each one can be compared against the original. The source tree follows the layout
-of the original client (`Engine/Source/<Module>`, `WoW/Source/<Module>`, original file names).
+Start with the [developer and agent handoff](docs/DX11-DEVELOPER-HANDOFF.md), [backend notes](Tools/Dx11Research/README.md) and [WXL module map](WXL/README.md).
 
-x64 is the main target. Win32 still builds and is used to check struct layouts against the 32-bit
-original.
+## What is included
 
-## Progress
+- Native `CGxDeviceD3d11` backend, legacy Wrath shader conversion, resource/state ownership, GPU frame retirement, recovery and offscreen regression tests.
+- Native WXL model/material/particle, appearance/equipment, world-data and client protocol modules, including their current integration fixes.
+- Default D3D9/D3D9Ex/OpenGL paths. DX11 is additive and remains a build-time opt-in.
+- Source and existing third-party notices. Game assets, MPQs, user configuration, accounts, build outputs and the official signer binary are not supplied by this work.
 
-The percentages below measure how much of the original binary has a counterpart in this source tree. They do
-**not** say how much of the game works, and the missing part is not missing gameplay: the client builds into a
-complete executable and the game is 100% playable. Bugs could still be hiding, though; a ported function can behave differently
-from the original.
+## Build DX11 on Windows x64
 
-Measured against the 12340 binary on 2026-10-15. A function counts as ported when its address is
-tagged in the source.
+Use Windows 10/11, Git, **Python 3.11+**, CMake and Visual Studio's Desktop development with C++ workload with a Windows SDK. The current combined build was verified with **Visual Studio 2026 (generator `Visual Studio 18 2026`)**. The upstream project documents Visual Studio 2022 too; this fork's current combined checkpoint has not been revalidated with that toolchain.
 
-| | Ported | Total | Share of the original |
-|---|---:|---:|---:|
-| Functions | 24,515 | 27,157 | 90.3% |
-| Code bytes | 5,270,186 | 5,656,573 | 93.2% |
-
-The total leaves out 658 functions that IDA identifies as compiler library code and 132 import thunks.
-Most of the untagged remainder is code the build gets elsewhere: compiler-generated code (static
-initializers, template instances) that our compiler emits on its own, C runtime helpers, and third-party
-libraries that are linked from their upstream sources instead of being decompiled (FreeType, zlib, PCRE,
-parts of FMOD Ex).
-
-## Requirements
-
-- Windows 10 or 11
-- Visual Studio 2022 with the **Desktop development with C++** workload (MSVC v143 and a Windows SDK)
-- CMake 3.10 or newer (the one that ships with Visual Studio works)
-- For Win32 builds only: [NASM](https://www.nasm.us/), on `PATH` or passed as `-DNASM_EXECUTABLE=<path>`, and
-  `DivxDecoder.dll` from your 3.3.5a client copied to `ThirdParty/DivxDecoder/` (the build copies it next to the
-  executables; the x64 build uses its own decoder instead)
-- A World of Warcraft **3.3.5a (12340)** client. No game data is included in this repository.
-
-## Building
-
-From a Developer PowerShell or any shell with `cmake` on `PATH`:
+From a Developer PowerShell:
 
 ```powershell
-git clone https://github.com/SatyPardus/wowdecomp.git
-cd wowdecomp
+git clone --branch codex/wxl-native-x64 https://github.com/Furioz420/wowdecomp-dx11.git
+cd wowdecomp-dx11
 
-# x64 (main target)
-cmake -S . -B build/x64 -G "Visual Studio 17 2022" -A x64
-cmake --build build/x64 --config Release --target WowClient --parallel
+python Tools/Dx11Research/fetch_dependencies.py --output .dx11-dependencies
+$deps = (Resolve-Path .dx11-dependencies).Path
 
-# Win32 (optional, needs NASM)
-cmake -S . -B build/win32 -G "Visual Studio 17 2022" -A Win32
-cmake --build build/win32 --config Release --target WowClient --parallel
+cmake -S . -B build/dx11 -G "Visual Studio 18 2026" -A x64 `
+  -DWXL_ENABLE_DX11=ON `
+  -DWXL_DX11_WDK_ROOT="$deps/wdk/c/Include/10.0.26100.0" `
+  -DWXL_DX11_SIGNER_DLL="$deps/dxbcsigner/build/native/bin/x64/dxbcSigner.dll" `
+  -DWOWDECOMP_DISABLE_SIGNATURE_CHECKS=ON
+
+cmake --build build/dx11 --config Release `
+  --target WowClient XvidDecoder NativeDx11BackendTests --parallel 4
 ```
 
-In-source builds are refused, so keep the build directory separate (`build/` above).
+The dependency fetcher verifies pinned official Microsoft packages before extraction. See [dependency details and licenses](Tools/Dx11Research/DEPENDENCIES.md). It does not install a client. Signature checks are disabled above to match development with modified assets; omit that option to retain upstream's default signature checks.
 
-The client is written to `bin/Win/`:
+The client target writes `bin/Win/WowClient64.exe`; keep its matching `XvidDecoder.dll` and `dxbcSigner.dll` beside it. The native test executable is under `build/dx11/bin/Release/`, with its own matching dependencies copied by CMake. Win32 injected/proxy DLLs are not dependencies of this native x64 family.
 
-| Target | x64 | Win32 |
-|---|---|---|
-| `WowClient` | `WowClient64.exe` | `WowClient32.exe` |
-| `Wow` | `Wow64.exe` | `Wow32.exe` |
+WXL feature options default mostly ON in this branch. `WXL_ENABLE_NATIVE=OFF` suppresses native WXL feature behavior but **does not remove its linked modules or all backend references**. For a standalone DX11 port, review the [integration boundaries](docs/DX11-DEVELOPER-HANDOFF.md#integration-boundaries) rather than deleting `WXL/`.
 
-`WowClient` is the client with a crash logger: it opens a console window and writes
-`WowClient_crash.log` when the client crashes. `Wow` is the same client without it. You can also turn the
-logger off in `WowClient` with `-DWOWCLIENT_CRASH_LOG=OFF`.
+## Run with an existing client
 
-### Options
+Use your own compatible 3.3.5a client data. The native `-datadir` option selects the existing client root, so no Data copy is needed:
 
-| CMake option | Default | Effect |
-|---|---|---|
-| `WOWDECOMP_DISABLE_SIGNATURE_CHECKS` | `OFF` | Skip the MPQ file and `.toc.sig` signature checks, so modified game data and interface files load |
-| `WOWCLIENT_CRASH_LOG` | `ON` | Build `WowClient` with the crash logger |
-| `WOWCLIENT_OUTPUT_OVERRIDE` | empty | Name the `WowClient` executable something other than `WowClient64` / `WowClient32` |
+```powershell
+$exe = (Resolve-Path bin/Win/WowClient64.exe).Path
+& $exe -datadir 'C:\Path\To\ExistingClient' -d3d11
+```
 
-## Running
+The same build accepts `-d3d` for the D3D9 path. Use the matching data/addons/server when exercising WXL custom features; enabling DX11 does not create retail assets or server protocol support. Logs and saved settings are written under the selected data root, so use a client you intend to test with.
 
-1. Copy the `Data` folder of your 3.3.5a client into `bin/Win/`, so you have `bin/Win/Data/`.
-2. Point `Data/<locale>/realmlist.wtf` at the server you want to connect to.
-3. Start `bin/Win/WowClient64.exe` (or `Wow64.exe`).
+## Focused renderer checks
 
-## Layout
+Run from a disposable working directory outside your client. These modes open no game/account session and require no client Data:
 
-| Path | Contents |
-|---|---|
-| `Engine/Source/` | Engine modules: Storm, Gx (Direct3D 9 / OpenGL), Model2, Frame/FrameXML UI, SoundEngine, Lua, ... |
-| `WoW/Source/` | Game modules: objects, world rendering, UI, networking, database, glue screens |
-| `WoW/Common/` | Code shared by the game modules |
-| `ThirdParty/` | Libraries linked from their upstream sources |
-| `Tools/WowClient/` | The `WowClient` executable target |
-| `Tools/XvidDecoder/` | x64 movie decoder that replaces the original 32-bit `DivxDecoder.dll` |
+```powershell
+$tests = (Resolve-Path build/dx11/bin/Release/NativeDx11BackendTests.exe).Path
+& $tests --presentation-apply warp
+& $tests --frame-resources warp
+```
 
-## Special thanks
+`--presentation-apply` passed **11 checks** at the latest code checkpoint: VSync on/off and a windowed refresh selection preserve target contents; actual resize remains usable. `--frame-resources` is a separate bounded uncapped-resource regression; its presence is not a claim that every game scene has bounded memory. See the [backend README](Tools/Dx11Research/README.md) for shader-fixture, hardware/window and model-companion tests.
 
-- [binana](https://github.com/thunderbrewhq/binana)
-- [thunderbrew](https://github.com/thunderbrewhq/thunderbrew)
-- [whoa](https://github.com/whoahq/whoa)
-- TOMRUS, for the initial IDB
-- Everyone who has reported bugs so far
-- The WoW modding community
+## Current limits and open checks
+
+- In-game VSync Apply previously caused severe unresponsiveness. The latest checkpoint avoids a full window/target reset for presentation-only changes. Offscreen regression passes; the reported hardware-window scenario still needs confirmation.
+- NPC Human guards had a separate model/baked-texture mismatch. The latest checkpoint routes matching NPC families to the canonical Retail model, preserving packed baked textures and native model-less helmet policy. Actual guard visuals remain pending.
+- Earlier reports include retail race eyes/materials, equipment collections, loading latency, graphics settings and uncapped performance/memory behavior. Do not infer complete x32 parity from the source being present.
+- Some modern materials use explicitly scoped donor approximations. Unsupported shader/positioner semantics are not claimed as exact retail behavior.
+- FPS limiting is optional. The backend's bounded GPU work queue is independent of a user FPS cap.
+
+## Source map
+
+| Path | Purpose |
+| --- | --- |
+| `Engine/Source/Gx/CGxDeviceD3d11/` | Native DX11 device, buffers, textures, state, draw and presentation |
+| `Engine/Source/Gx/ShaderContainer/` | Wrath shader containers and translation |
+| `ThirdParty/D3D9ShaderConverter/` | Pinned Microsoft converter subset and notices; no D3D12 device layer |
+| `Tools/Dx11Research/` | Dependency fetcher, parser/renderer tests and extraction tools |
+| `WXL/` | Native WXL integration, public interfaces and vendored provenance |
+| `WoW/Source/`, `WoW/Common/` | Game, UI, character and protocol integration sites |
+| `docs/DX11-DEVELOPER-HANDOFF.md` | Entry point for a developer or coding agent |
+
+## Upstream and attribution
+
+The original client reconstruction retains `// OFFSET:` annotations for comparison with build 12340. Upstream's function/code coverage statistics describe reconstruction coverage, not this fork's visual or gameplay acceptance. See [upstream wowdecomp](https://github.com/SatyPardus/wowdecomp) and its README for its own progress and Win32 workflow.
+
+Preserve the existing notices and provenance in WXL/vendor and ThirdParty. The shader converter's MIT notice is in `ThirdParty/D3D9ShaderConverter/LICENSE`; fetched packages retain their own licenses. This fork does not assign a new blanket license to third-party or upstream code.
+
+Upstream credits include binana, thunderbrew, whoa, TOMRUS, bug reporters and the WoW modding community. Upstream community: https://discord.gg/DsZMGUD8aT.

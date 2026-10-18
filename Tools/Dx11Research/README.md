@@ -1,6 +1,8 @@
 # Native WotLK x64 D3D11 backend
 
-This branch adds an opt-in native `CGxDeviceD3d11` implementation to the Wrath Gx contract. It does not inherit D3D9 API state or replace shared game layouts. The ordinary D3D9 build stays the default. Select `SET gxApi "D3D11"` in a separate diagnostic client's WTF/Config.wtf after building with the option below.
+This is the combined developer source shared in `Furioz420/wowdecomp-dx11` (`main` / `codex/wxl-native-x64`). Start with the [root quick start](../../README.md) and [developer/agent handoff](../../docs/DX11-DEVELOPER-HANDOFF.md). The historical import notes below describe how the tracks were combined; do not replay those merges into this already-integrated branch. Latest compiled code is `69b5ba38be507fcd41c2877c399d5748fee0f8d0`.
+
+This branch adds an opt-in native `CGxDeviceD3d11` implementation to the Wrath Gx contract. It does not inherit D3D9 API state or replace shared game layouts. The ordinary D3D9 build stays the default. Select DX11 with native `-d3d11` and an existing client root via `-datadir`; `SET gxApi "D3D11"` is also supported. No client/Data duplication is required.
 
 ## Build
 
@@ -65,6 +67,14 @@ destruction path. Negative fixtures cover short/empty streams, index/object and
 alias failures, count overflow, unchanged rejected model bytes and global tracks.
 The reported race crash still needs its exact runtime reproduction.
 
-## Import into the active x64 branch
+## Historical import into the active x64 branch
 
 The separate DX11 track starts at `760079926aada4cf4e46c4cc3d83a89f3d4f0907`. Apply its ordered commit series to an isolated integration branch, retaining all subsequent WXL modules and game changes. Review overlapping root/Gx/ThirdParty/Wow CMake changes and Gx factory/adapter hooks; do not replace whole files with older copies. The shader translator and new device are additive. Build both DX11 ON and the default OFF configuration, then repeat native tests and game acceptance against the combined source. Bring `fetch_dependencies.py`, licenses and the signer deployment hook with the code. Release-control pending intake is not promotion or permission to publish.
+
+## Current focused checks and settings status (October 18, 2026)
+
+`NativeDx11BackendTests.exe --presentation-apply warp` opens no visible window or client Data. At code 69b5ba3 it passed 11 checks: existing target contents survive VSync on/off and windowed refresh selection, requested settings persist, frames retire, and a physical resize still works. A presentation-only Apply no longer tears down the window/targets or invokes resource-restoration callbacks. The base format's minimum-window clamp must not change recorded dimensions of an unchanged offscreen target. The original hardware-window Apply freeze still needs user confirmation; this test is not a game replay.
+
+`NativeDx11BackendTests.exe --frame-resources warp` exercises the separate uncapped resource path. GPU frame retirement is bounded independently of optional FPS limits. Use `hardware` instead of `warp` to select the adapter deliberately. Run in a scratch working directory; test logs remain there.
+
+NPC guard model/bake routing and model-less native head visibility are included in the same checkpoint, retaining existing packed bakes. These are separate from player atlas composition. In-game guard appearance and full retail race/equipment parity remain open.
