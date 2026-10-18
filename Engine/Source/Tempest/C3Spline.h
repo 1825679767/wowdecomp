@@ -17,14 +17,15 @@ class C3Spline {
     public:
     enum EvalType {
         EVAL_PARAMETRIC = 0,
-        EVAL_ARCLENGTH = 1
+        EVAL_ARCLENGTH = 1,
+        EVAL_COUNT = 0x2,
     };
 
-    /* 0004 */ float m_length;
-    /* 0008 */ C3Vector m_points [25];
+    /* 0004 */ float cachedLength;
+    /* 0008 */ C3Vector points [25];
     /* 0134 */ TSGrowableArray<C3Vector> m_extraPoints;
     /* 0144 */ uint32_t m_pointCount;
-    /* 0148 */ float m_segLength [25];
+    /* 0148 */ float cachedSegLength [25];
     /* 01AC */ TSGrowableArray<float> m_extraSegLength;
     /* 01BC */ uint32_t m_segCount;
 

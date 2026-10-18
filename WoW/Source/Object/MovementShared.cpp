@@ -527,7 +527,7 @@ float CMovementShared::GetBaseSpeed(int32_t walk) const {
             return 0.0f;
         }
 
-        return this->m_spline->m_spline.m_length / spline->m_duration * 1000.0f;
+        return this->m_spline->m_spline.cachedLength / spline->m_duration * 1000.0f;
     }
 
     if (flags & MOVEMENTFLAG_FLYING) {
