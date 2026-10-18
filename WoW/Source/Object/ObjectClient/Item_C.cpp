@@ -266,16 +266,18 @@ void CGItem_C::Shutdown() {
 static void LoadItemCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
     CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
 
-    if (!item || !success) {
+    if (!item) {
         return;
     }
 
-    item->PostInitWithStats();
-
     CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
 
-    if (owner) {
+    if (owner && owner->m_pendingItemCacheCount) {
         owner->m_pendingItemCacheCount--;
+    }
+
+    if (success) {
+        item->PostInitWithStats();
     }
 }
 

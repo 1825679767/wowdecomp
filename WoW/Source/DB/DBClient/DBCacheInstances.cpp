@@ -400,6 +400,7 @@ void DBCache_Destroy() {
     g_creatureDBCache.Destroy();
     g_gameObjectDBCache.Destroy();
     g_itemDBCache.Destroy();
+    ClearItemDBOverlay();
     g_itemNameDBCache.Destroy();
     g_npcTextDBCache.Destroy();
     g_nameDBCache.Destroy();
@@ -473,6 +474,7 @@ void DBCache_ClearTemporaryCaches() {
 
     if (!g_itemDBCache.m_enabled) {
         g_itemDBCache.Clear();
+        ClearItemDBOverlay();
     }
 
     if (!g_itemNameDBCache.m_enabled) {
