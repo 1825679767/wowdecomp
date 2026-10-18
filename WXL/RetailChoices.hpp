@@ -22,6 +22,7 @@ uint32_t RetailRaceId(uint32_t) noexcept;
 // Owned recipe path, stable for the lifetime of the immutable authority.
 // Private/classic actors retain the caller's mounted DBC path.
 const char* RetailActorModelPath(uint32_t race,uint32_t sex,const char* nativePath) noexcept;
+const char* RetailNpcActorModelPath(uint32_t race,uint32_t sex,const char* nativePath) noexcept;
 uint32_t RetailChoiceCount(uint32_t,uint32_t,RetailAxis) noexcept;
 bool RetailAxisChoicesReady(const CharacterPreferences&,const CM2Model* = nullptr) noexcept;
 void SyncPrivateHairColor(CCharacterComponent&,uint32_t color) noexcept;

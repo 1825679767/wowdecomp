@@ -104,7 +104,10 @@ bool ItemGraphHelmetData(uint32_t id,uint32_t sex,uint32_t modelRace,ItemGraphHe
    if(!g_itemDisplayInfoDB.GetRecord(int32_t(id),&native))return false;
    const auto visibility=native.m_helmetGeosetVisID[sex];
    if(visibility<0)return false;
-   result.visibilityId=uint32_t(visibility);
+   // x32 11f5461: native model-less head rows carry old visibility IDs
+   // without a helmet covering the actor. Their hair/ears remain visible.
+   result.visibilityId=(!native.m_modelName[0]||!*native.m_modelName[0])
+       &&(!native.m_modelName[1]||!*native.m_modelName[1])?0u:uint32_t(visibility);
   }else{
    if(!index->resolvedDisplays.contains(id)){display::Request(id);return false;}
    const auto row=index->displayRecords.find(id);if(row==index->displayRecords.end())return false;

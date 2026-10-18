@@ -7933,6 +7933,9 @@ int32_t CGUnit_C::GetModelFileName(const char** name) const {
             if (sex < 2 && this->m_displayInfo->m_id == GetDisplayIdFromRaceAndGender(race,sex))
                 *name = wxl::native::RetailActorModelPath(race,sex,*name);
         }
+        if(this->m_displayInfoExtra && this->m_obj && !(this->m_obj->m_type&TYPEMASK_PLAYER))
+            *name=wxl::native::RetailNpcActorModelPath(this->m_displayInfoExtra->m_displayRaceID,
+                this->m_displayInfoExtra->m_displaySexID,*name);
         return *name != nullptr;
     }
 

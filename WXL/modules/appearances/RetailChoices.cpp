@@ -168,6 +168,21 @@ const char* RetailActorModelPath(uint32_t race,uint32_t sex,const char* nativePa
  if(inserted)WLOG_INFO("native-retail-actor: wire=%u retail=%u sex=%u fdid=%u path=%s",race,family,sex,recipe.modelFileDataId,it->second.c_str());
  return it->second.c_str();
  }catch(...){return nativePath;}}
+const char* RetailNpcActorModelPath(uint32_t race,uint32_t sex,const char* nativePath) noexcept {try{
+ // x32 HdSwitch canonicalizes the exact race/sex model family, including HD
+ // archive namespaces. Never substitute a creature disguise or custom family.
+ if(!nativePath||private_appearances::Identity(race,sex))return nativePath;
+ const auto* served=RetailActorModelPath(race,sex,nativePath);
+ auto requested=Key(nativePath),canonical=Key(served);
+ if(requested.starts_with("hd\\"))requested.erase(0,3);
+ if(!requested.starts_with("character\\")||!requested.ends_with(".m2")||!canonical.ends_with(".m2"))return nativePath;
+ requested.resize(requested.size()-3);canonical.resize(canonical.size()-3);
+ if(canonical!=requested&&canonical!=requested+"_hd")return nativePath;
+ static std::mutex traceMutex;static std::map<std::string,bool> traces;
+ {std::lock_guard guard(traceMutex);if(traces.size()<64&&traces.emplace(Key(nativePath),true).second)
+  WLOG_INFO("native-retail-npc-actor: race=%u sex=%u requested=%s served=%s; baked texture authority retained",race,sex,nativePath,served);}
+ return served;
+ }catch(...){return nativePath;}}
 uint32_t RetailEquipmentRace(const CCharacterComponent& c) noexcept {try{auto* a=For(c.m_data.m_preferences,c.m_data.m_model);return a?a->equipmentRace:0;}catch(...){return 0;}}
 uint32_t RetailChoiceCount(uint32_t race,uint32_t sex,RetailAxis axis) noexcept {try{auto* a=Get(race,sex);const auto i=uint32_t(axis);return a&&!a->privateProfile&&i<5?a->counts[i]:0;}catch(...){return 0;}}
 bool RetailChoicesReady(const CharacterPreferences& p,const CM2Model* model) noexcept {try{return For(p,model)!=nullptr;}catch(...){return false;}}

@@ -186,6 +186,25 @@ int32_t CGxDeviceD3d11::DeviceSetFormat(const CGxFormat& format){
     struct FormatScope {bool& active;explicit FormatScope(bool& value):active(value){active=true;}~FormatScope(){active=false;}} scope(m->changingFormat);
     Log("DX11 requested format %dx%d refresh=%u window=%u samples=%u",format.m_size.x,format.m_size.y,format.m_refreshRate,format.m_window,format.m_multisampleCount);
     if(m_log)SLogFlush(m_log);
+    const auto& old=m_format;
+    const bool sameTargets=old.m_window==format.m_window&&old.m_maximize==format.m_maximize
+        &&old.m_size.x==format.m_size.x&&old.m_size.y==format.m_size.y
+        &&old.m_colorFormat==format.m_colorFormat&&old.m_depthFormat==format.m_depthFormat
+        &&old.m_multisampleCount==format.m_multisampleCount&&old.m_multisampleQuality==format.m_multisampleQuality
+        &&old.m_backBufferCount==format.m_backBufferCount&&old.m_hwTnL==format.m_hwTnL
+        &&old.m_hwCursor==format.m_hwCursor&&old.m_stereoEnabled==format.m_stereoEnabled
+        &&old.m_pos.x==format.m_pos.x&&old.m_pos.y==format.m_pos.y
+        &&std::equal(std::begin(old.m_fixedFunction),std::end(old.m_fixedFunction),std::begin(format.m_fixedFunction))
+        &&(format.m_window||(old.m_refreshRate==format.m_refreshRate&&old.m_apiSpecificModeID==format.m_apiSpecificModeID));
+    if(m_context&&sameTargets){
+        // Present owns VSync directly. A presentation-only Apply must not tear
+        // down window/targets or invoke resource-restoration callbacks. Windowed
+        // refresh selections do not change the desktop's display mode.
+        CGxDevice::DeviceSetFormat(format);
+        Log("DX11 presentation updated without reset: vsync=%u fixLag=%u",format.m_vsync,unsigned(format.m_fixLag));
+        if(m_log)SLogFlush(m_log);
+        return 1;
+    }
     m->RestoreGamma();
     CGxDevice::DeviceSetFormat(format);if(!m->device)return 0;
     if(m->window&&m->ownWindow){
@@ -256,7 +275,7 @@ void CGxDeviceD3d11::CapsWindowSizeInScreenCoords(CRect& rect){
 }
 void CGxDeviceD3d11::LogCrashInfo(char* out,uint32_t n){if(out&&n)std::snprintf(out,n,"Native DX11 FL=%x WARP=%d %ux%u MSAA=%u frames=%llu draws=%llu variants=%zu",m->featureLevel,m->warp,m->width,m->height,m->samples,m->presentedFrames,m->drawCalls,m->variants.size());}
 void CGxDeviceD3d11::ScenePresent(){
-    if(!m_context)return;
+    if(!m_context){Sleep(1);return;} // A failed reset must yield rather than spin.
     if(m_scrShotClick){CiRect r(0,0,m->height,m->width);DeviceReadPixels(r,m_scrShotPixels);m_scrShotWidth=m->width;m_scrShotHeight=m->height;}
     ICursorDraw();
     // Opt-in, bounded capture of this renderer's own framebuffer for offline

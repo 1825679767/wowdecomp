@@ -139,7 +139,7 @@ namespace {
 bool SameOwner(const CCharacterComponent& c,const EquipmentAttachmentState& s){auto* model=c.m_data.m_model;return model&&model==s.model&&model->m_handle==s.handle&&c.m_wxlSerial==s.serial;}
 bool HelmetActor(const CCharacterComponent& c,const EquipmentAttachmentState& owner){
  const auto wire=c.m_data.m_preferences.m_raceID;
- if(!owner.race||wire==16||wire==23||(c.m_data.m_flags&1u))return false;
+ if(!owner.race||wire==16||wire==23)return false;
  auto path=Key(owner.model->m_shared->m_fileName);
  if(path.find("eredar")!=std::string::npos||path.find("broken")!=std::string::npos)return false;
  if(path.starts_with("hd\\"))path.erase(0,3);
@@ -292,7 +292,7 @@ bool Pending(const CCharacterComponent& c) noexcept {
 void Apply(CCharacterComponent& c) noexcept{try{
  struct QueuePending {CCharacterComponent& c;~QueuePending(){if(Pending(c)&&!c.m_link.m_next)CCharacterComponent::s_queue.LinkToTail(&c);}} queuePending{c};
  auto* model=c.m_data.m_model;const auto& prefs=c.m_data.m_preferences;
- if(!Enabled()||(c.m_data.m_flags&1u)||prefs.m_sexID>1||!model){Release(c);return;}
+ if(!Enabled()||prefs.m_sexID>1||!model){Release(c);return;}
  bool needed=c.m_itemDisplayID[ITEMSLOT_HEAD]&&RetailChoicesReady(prefs,model);
  for(uint32_t slot=0;slot<11;++slot)needed|=c.m_itemDisplayID[slot]&&ItemGraphOwnsDisplay(c.m_itemDisplayID[slot]);if(!needed){Release(c);return;}
  if(!model->IsLoaded(0,0)||!model->m_shared||!model->m_shared->m_data||!model->m_scene||!g_theGxDevicePtr||!g_theGxDevicePtr->CapsHasContext(-1))return;

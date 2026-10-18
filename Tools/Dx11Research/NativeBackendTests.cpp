@@ -135,6 +135,24 @@ static void ConstantUpdateChecks(bool warp){
 #include "GrassWindChecks.h"
 #include "QuestNavigationChecks.h"
 #include "FrameResourceChecks.h"
+static int PresentationApplyChecks(bool warp){
+    CGxDeviceD3d11 device;g_theGxDevicePtr=&device;
+    Check(device.CreateOffscreen(16,16,warp),"presentation Apply native device");
+    const CImVector color(31,97,151,255);device.SceneClear(3,color);
+    auto format=device.m_format;format.m_vsync=1;
+    Check(device.DeviceSetFormat(format)!=0,"enable VSync without reset");
+    Equal(Center(device),color,"VSync Apply preserves existing target contents");
+    format.m_vsync=0;format.m_refreshRate=59;
+    Check(device.DeviceSetFormat(format)!=0,"disable VSync and select windowed refresh");
+    Equal(Center(device),color,"windowed presentation Apply preserves target contents");
+    Check(device.m_format.m_vsync==0&&device.m_format.m_refreshRate==59,"requested presentation settings retained");
+    device.ScenePresent();device.ScenePresent();
+    format.m_size.x=8;format.m_size.y=8;
+    Check(device.DeviceSetFormat(format)!=0,"physical target changes still resize");
+    device.SceneClear(3,color);Equal(Center(device,8,8),color,"resized target remains usable");
+    device.DeviceDestroy();g_theGxDevicePtr=nullptr;CGxDevice::LogClose();
+    std::cout<<"PASS presentation Apply checks="<<checks<<"\n";return 0;
+}
 int main(int argc,char** argv) try {
     SetUnhandledExceptionFilter(TraceCrash);
     std::cerr<<"native DX11 backend tests: initialize\n"<<std::flush;
@@ -143,6 +161,7 @@ int main(int argc,char** argv) try {
     std::filesystem::create_directories("Logs");CGxDevice::LogOpen();
     OsTimeManagerCreate(OsTimeManager::SystemMethod2);
     if(argc==3&&!std::strcmp(argv[1],"--frame-resources"))return FrameResourceChecks(std::strcmp(argv[2],"hardware")!=0);
+    if(argc==3&&!std::strcmp(argv[1],"--presentation-apply"))return PresentationApplyChecks(std::strcmp(argv[2],"hardware")!=0);
     Check(argc==3||argc==4,"pass extracted native UI vertex and pixel containers, optional hardware");
     CGxDeviceD3d11 device;g_theGxDevicePtr=&device;
     std::cerr<<"native device constructed\n"<<std::flush;
