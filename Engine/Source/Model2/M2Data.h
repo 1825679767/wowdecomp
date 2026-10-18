@@ -154,7 +154,7 @@ class M2TextureTransform {
 class M2Material {
     public:
     /* 0000 */ uint16_t m_flags;
-    /* 0002 */ uint16_t m_blendMode;
+    /* 0002 */ M2BLEND m_blendMode;
 };
 
 class M2Attachment {

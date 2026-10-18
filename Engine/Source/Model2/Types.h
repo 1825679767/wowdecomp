@@ -22,6 +22,17 @@ enum M2TRACKTYPE : uint16_t {
     M2TRACK_HERMITE = 3,
 };
 
+enum M2BLEND : uint16_t {
+    M2BLEND_OPAQUE = 0,
+    M2BLEND_ALPHA_KEY = 1,
+    M2BLEND_ALPHA = 2,
+    M2BLEND_NO_ALPHA_ADD = 3,
+    M2BLEND_ADD = 4,
+    M2BLEND_MOD = 5,
+    M2BLEND_MOD2X = 6,
+    M2BLEND_COUNT = 7,
+};
+
 enum M2PASS {
     M2PASS_0 = 0,
     M2PASS_1 = 1,
