@@ -10,6 +10,18 @@ class C44Matrix;
 class CAaBox;
 class CAaSphere;
 
+enum FRUSTUM_CORNER : uint32_t {
+    NEAR_LL = 0,
+    NEAR_UL = 1,
+    NEAR_UR = 2,
+    NEAR_LR = 3,
+    FAR_LL = 4,
+    FAR_UL = 5,
+    FAR_UR = 6,
+    FAR_LR = 7,
+    NUM_CORNERS = 8,
+};
+
 enum WorldCullStatus : uint32_t {
     WorldCull_outside = 0,
     WorldCull_notOutside = 3,
@@ -23,7 +35,7 @@ enum WorldCullStatus : uint32_t {
 class CFrustum {
     public:
     /* 0000 */ C4Plane planes[6];
-    /* 0060 */ C3Vector corners[8];
+    /* 0060 */ C3Vector corners[NUM_CORNERS];
     /* 00C0 */ C3Vector lookPos;
     /* 00CC */ C3Vector lookAt;
     /* 00D8 */ C3Vector lookUp;

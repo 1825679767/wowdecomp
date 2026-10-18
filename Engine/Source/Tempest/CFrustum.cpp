@@ -7,7 +7,7 @@
 // VERIFY: e0dd73d2 auto
 // OFFSET: 0x00983990
 void CFrustum::Extents(CAaBox& box) {
-    box = CAaBox::Bounding(this->corners, 8);
+    box = CAaBox::Bounding(this->corners, NUM_CORNERS);
 }
 
 // VERIFY: 835d8937 auto
@@ -51,7 +51,7 @@ WorldCullStatus CFrustum::CullInv(const CAaBox& box) {
 // VERIFY: 2f6339ef manual
 // OFFSET: 0x00983AE0
 void CFrustum::Translate(const C3Vector& v) {
-    for (uint32_t i = 0; i < 8; i++) {
+    for (uint32_t i = 0; i < NUM_CORNERS; i++) {
         this->corners[i] += v;
     }
 
@@ -96,22 +96,22 @@ void CFrustum::Cull(const C3Vector& point, uint8_t& outside) const {
 // VERIFY: ccfad69b manual
 // OFFSET: 0x00983E70
 void CFrustum::CalcPlanesFromCorners() {
-    this->planes[0].From3Pos(this->corners[1], this->corners[5], this->corners[6]);
-    this->planes[1].From3Pos(this->corners[0], this->corners[7], this->corners[4]);
-    this->planes[2].From3Pos(this->corners[0], this->corners[4], this->corners[5]);
-    this->planes[3].From3Pos(this->corners[3], this->corners[6], this->corners[7]);
-    this->planes[4].From3Pos(this->corners[5], this->corners[4], this->corners[6]);
+    this->planes[0].From3Pos(this->corners[NEAR_UL], this->corners[FAR_UL], this->corners[FAR_UR]);
+    this->planes[1].From3Pos(this->corners[NEAR_LL], this->corners[FAR_LR], this->corners[FAR_LL]);
+    this->planes[2].From3Pos(this->corners[NEAR_LL], this->corners[FAR_LL], this->corners[FAR_UL]);
+    this->planes[3].From3Pos(this->corners[NEAR_LR], this->corners[FAR_UR], this->corners[FAR_LR]);
+    this->planes[4].From3Pos(this->corners[FAR_UL], this->corners[FAR_LL], this->corners[FAR_UR]);
 
     this->planes[5].n.x = -this->planes[4].n.x;
     this->planes[5].n.y = -this->planes[4].n.y;
     this->planes[5].n.z = -this->planes[4].n.z;
-    this->planes[5].d = -(this->planes[5].n.z * this->corners[2].z + this->planes[5].n.y * this->corners[2].y + this->planes[5].n.x * this->corners[2].x);
+    this->planes[5].d = -(this->planes[5].n.z * this->corners[NEAR_UR].z + this->planes[5].n.y * this->corners[NEAR_UR].y + this->planes[5].n.x * this->corners[NEAR_UR].x);
 }
 
 // VERIFY: 88718e38 auto
 // OFFSET: 0x00983F40
 void CFrustum::Transform(const C44Matrix& m) {
-    for (uint32_t i = 0; i < 8; i++) {
+    for (uint32_t i = 0; i < NUM_CORNERS; i++) {
         this->corners[i] *= m;
     }
 
@@ -140,7 +140,7 @@ CFrustum::CFrustum() {
         this->planes[i].n.z = 1.0f;
     }
 
-    for (uint32_t i = 0; i < 8; i++) {
+    for (uint32_t i = 0; i < NUM_CORNERS; i++) {
         this->corners[i].x = 0.0f;
         this->corners[i].y = 0.0f;
         this->corners[i].z = 0.0f;
@@ -167,7 +167,7 @@ CFrustum::CFrustum(const C3Vector* corners) {
         this->planes[i].d = 0.0f;
     }
 
-    for (uint32_t i = 0; i < 8; i++) {
+    for (uint32_t i = 0; i < NUM_CORNERS; i++) {
         this->corners[i] = corners[i];
     }
 
@@ -177,7 +177,7 @@ CFrustum::CFrustum(const C3Vector* corners) {
 // VERIFY: 6d9a59ac manual
 // OFFSET: 0x00984240
 void CFrustum::CalcPlanesFromCorners(const C3Vector* corners) {
-    for (uint32_t i = 0; i < 8; i++) {
+    for (uint32_t i = 0; i < NUM_CORNERS; i++) {
         this->corners[i] = corners[i];
     }
 
@@ -192,7 +192,7 @@ CFrustum& CFrustum::operator=(const CFrustum& source) {
             this->planes[i] = source.planes[i];
         }
 
-        for (uint32_t i = 0; i < 8; i++) {
+        for (uint32_t i = 0; i < NUM_CORNERS; i++) {
             this->corners[i] = source.corners[i];
         }
 
@@ -222,19 +222,19 @@ void CFrustum::InvertPlanes() {
 // VERIFY: aa9403a2 auto
 // OFFSET: 0x007BAAA0
 void CFrustum::SwapCorners() {
-    C3Vector corner = this->corners[0];
-    this->corners[0] = this->corners[3];
-    this->corners[3] = corner;
+    C3Vector corner = this->corners[NEAR_LL];
+    this->corners[NEAR_LL] = this->corners[NEAR_LR];
+    this->corners[NEAR_LR] = corner;
 
-    corner = this->corners[1];
-    this->corners[1] = this->corners[2];
-    this->corners[2] = corner;
+    corner = this->corners[NEAR_UL];
+    this->corners[NEAR_UL] = this->corners[NEAR_UR];
+    this->corners[NEAR_UR] = corner;
 
-    corner = this->corners[4];
-    this->corners[4] = this->corners[7];
-    this->corners[7] = corner;
+    corner = this->corners[FAR_LL];
+    this->corners[FAR_LL] = this->corners[FAR_LR];
+    this->corners[FAR_LR] = corner;
 
-    corner = this->corners[5];
-    this->corners[5] = this->corners[6];
-    this->corners[6] = corner;
+    corner = this->corners[FAR_UL];
+    this->corners[FAR_UL] = this->corners[FAR_UR];
+    this->corners[FAR_UR] = corner;
 }
