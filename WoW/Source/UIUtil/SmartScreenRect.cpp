@@ -24,20 +24,20 @@ static CRect SmartScreenRectMoveRight(SCREENRECTGRIDS grid, CRect rect);
 static CRect SmartScreenRectMoveDown(SCREENRECTGRIDS grid, CRect rect);
 
 // STATIC: 0x00A23C08
-static int32_t s_searchDirections[9][4] = {
-    { 0, 2, 3, 1 },
-    { 1, 0, 2, 0 },
-    { 1, 3, 2, 3 },
-    { 0, 1, 3, 1 },
-    { 0, 2, 3, 2 },
-    { 0, 1, 0, 1 },
-    { 0, 2, 0, 2 },
-    { 3, 1, 3, 1 },
-    { 3, 2, 3, 2 },
+static TEST_DIRECTION s_searchDirections[9][NUM_TESTDIRECTIONS] = {
+    { TEST_UP, TEST_RIGHT, TEST_DOWN, TEST_LEFT },
+    { TEST_LEFT, TEST_UP, TEST_RIGHT, TEST_UP },
+    { TEST_LEFT, TEST_DOWN, TEST_RIGHT, TEST_DOWN },
+    { TEST_UP, TEST_LEFT, TEST_DOWN, TEST_LEFT },
+    { TEST_UP, TEST_RIGHT, TEST_DOWN, TEST_RIGHT },
+    { TEST_UP, TEST_LEFT, TEST_UP, TEST_LEFT },
+    { TEST_UP, TEST_RIGHT, TEST_UP, TEST_RIGHT },
+    { TEST_DOWN, TEST_LEFT, TEST_DOWN, TEST_LEFT },
+    { TEST_DOWN, TEST_RIGHT, TEST_DOWN, TEST_RIGHT },
 };
 
 // STATIC: 0x00A23C98
-static CRect (*s_moveFunctions[4])(SCREENRECTGRIDS grid, CRect rect) = {
+static CRect (*s_moveFunctions[NUM_TESTDIRECTIONS])(SCREENRECTGRIDS grid, CRect rect) = {
     SmartScreenRectMoveUp,
     SmartScreenRectMoveLeft,
     SmartScreenRectMoveRight,
@@ -182,19 +182,19 @@ static int32_t SmartScreenRectFindOverlap(SCREENRECTGRIDS grid, const CRect& rec
         }
 
         switch (direction) {
-            case 0:
+            case TEST_UP:
                 *distance = other.minY - rect.maxY;
                 return 1;
 
-            case 1:
+            case TEST_LEFT:
                 *distance = rect.maxX - other.minX;
                 return 1;
 
-            case 2:
+            case TEST_RIGHT:
                 *distance = other.maxX - rect.minX;
                 return 1;
 
-            case 3:
+            case TEST_DOWN:
                 *distance = rect.minY - other.maxY;
                 return 1;
         }
@@ -208,7 +208,7 @@ static int32_t SmartScreenRectFindOverlap(SCREENRECTGRIDS grid, const CRect& rec
 static CRect SmartScreenRectMoveUp(SCREENRECTGRIDS grid, CRect rect) {
     float distance;
 
-    if (SmartScreenRectFindOverlap(grid, rect, 0, &distance)) {
+    if (SmartScreenRectFindOverlap(grid, rect, TEST_UP, &distance)) {
         rect.minY = rect.minY + distance;
         rect.maxY = distance + rect.maxY;
     }
@@ -221,7 +221,7 @@ static CRect SmartScreenRectMoveUp(SCREENRECTGRIDS grid, CRect rect) {
 static CRect SmartScreenRectMoveLeft(SCREENRECTGRIDS grid, CRect rect) {
     float distance;
 
-    if (SmartScreenRectFindOverlap(grid, rect, 1, &distance)) {
+    if (SmartScreenRectFindOverlap(grid, rect, TEST_LEFT, &distance)) {
         rect.minX = rect.minX - distance;
         rect.maxX = rect.maxX - distance;
     }
@@ -234,7 +234,7 @@ static CRect SmartScreenRectMoveLeft(SCREENRECTGRIDS grid, CRect rect) {
 static CRect SmartScreenRectMoveRight(SCREENRECTGRIDS grid, CRect rect) {
     float distance;
 
-    if (SmartScreenRectFindOverlap(grid, rect, 2, &distance)) {
+    if (SmartScreenRectFindOverlap(grid, rect, TEST_RIGHT, &distance)) {
         rect.minX = rect.minX + distance;
         rect.maxX = rect.maxX + distance;
     }
@@ -247,7 +247,7 @@ static CRect SmartScreenRectMoveRight(SCREENRECTGRIDS grid, CRect rect) {
 static CRect SmartScreenRectMoveDown(SCREENRECTGRIDS grid, CRect rect) {
     float distance;
 
-    if (SmartScreenRectFindOverlap(grid, rect, 3, &distance)) {
+    if (SmartScreenRectFindOverlap(grid, rect, TEST_DOWN, &distance)) {
         rect.minY = rect.minY - distance;
         rect.maxY = rect.maxY - distance;
     }
@@ -284,12 +284,12 @@ static BFSNODE* SmartScreenRectAllocNode() {
 
     if (node) {
         s_searchQueue.LinkToHead(node);
-        node->m_direction = -1;
+        node->m_direction = TEST_INVALID;
         return node;
     }
 
     node = s_searchQueue.NewNode(2, 0, 0);
-    node->m_direction = -1;
+    node->m_direction = TEST_INVALID;
 
     return node;
 }
@@ -328,8 +328,8 @@ static CRect SmartScreenRectFindFreeRect(SCREENRECTGRIDS grid, const CRect& rect
             break;
         }
 
-        for (uint32_t i = 0; i < 4; i++) {
-            if (node->m_direction != -1 && node->m_direction == s_searchDirections[start][i]) {
+        for (uint32_t i = 0; i < NUM_TESTDIRECTIONS; i++) {
+            if (node->m_direction != TEST_INVALID && node->m_direction == s_searchDirections[start][i]) {
                 continue;
             }
 
@@ -339,7 +339,7 @@ static CRect SmartScreenRectFindFreeRect(SCREENRECTGRIDS grid, const CRect& rect
 
             int32_t direction = s_searchDirections[start][i];
 
-            if (direction == -1) {
+            if (direction == TEST_INVALID) {
                 continue;
             }
 

@@ -11,6 +11,15 @@ enum SCREENRECTGRIDS : uint32_t {
     // NUM_SRECTGRIDS = 2, // Historical count; not current storage capacity.
 };
 
+enum TEST_DIRECTION : int32_t {
+    TEST_UP = 0,
+    TEST_LEFT = 1,
+    TEST_RIGHT = 2,
+    TEST_DOWN = 3,
+    NUM_TESTDIRECTIONS = 4,
+    TEST_INVALID = -1,
+};
+
 class C3Vector;
 class CRect;
 class CSimpleFrame;
