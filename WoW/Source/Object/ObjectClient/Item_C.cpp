@@ -1597,7 +1597,7 @@ int32_t CGItem_C::UseItem(WOWGUID* target, int32_t confirmed) {
         SpellItemEnchantmentRec* enchant = g_spellItemEnchantmentDB.GetRecord(enchantId);
 
         if (enchant && enchant->m_requiredSkillID && static_cast<int32_t>(player->GetSkillValue(player->GetSkillIndex(enchant->m_requiredSkillID))) < enchant->m_requiredSkillRank) {
-            CGGameUI::DisplayError(static_cast<UIErrors>(GetDisplayErrorByInventoryError(2)));
+            CGGameUI::DisplayError(static_cast<UIErrors>(GetDisplayErrorByInventoryError(BAG_CANT_EQUIP_SKILL)));
             return 0;
         }
     }

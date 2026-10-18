@@ -297,16 +297,16 @@ void CGTradeInfo::UnlockTradeItems() {
 // OFFSET: 0x00586520
 int32_t CGTradeInfo::GetGameError(int32_t error, int32_t target) {
     switch (error) {
-        case 4:
+        case BAG_FULL:
             return target ? ERR_TRADE_BAG_FULL : ERR_TRADE_TARGET_BAG_FULL;
 
-        case 17:
+        case BAG_ITEM_MAX_COUNT:
             return target ? ERR_TRADE_TARGET_MAX_COUNT_EXCEEDED : ERR_TRADE_MAX_COUNT_EXCEEDED;
 
-        case 28:
+        case BAG_SPELL_FAILED_REAGENTS_GENERIC:
             return target ? ERR_MAX_VALUE : ERR_SPELL_FAILED_REAGENTS_GENERIC;
 
-        case 84:
+        case BAG_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS:
             return target ? ERR_TRADE_TARGET_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS : ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS;
 
         default:

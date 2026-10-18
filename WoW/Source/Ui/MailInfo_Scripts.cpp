@@ -971,7 +971,7 @@ static int32_t Script_SendMail(lua_State* L) {
         CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
 
         if (!item || item->m_item->m_itemFieldOwner != ClntObjMgrGetActivePlayer()) {
-            CGGameUI::DisplayError(static_cast<UIErrors>(GetDisplayErrorByInventoryError(23)));
+            CGGameUI::DisplayError(static_cast<UIErrors>(GetDisplayErrorByInventoryError(BAG_ITEM_NOT_FOUND)));
             CGMailInfo::ClearSendItem(i);
             FrameScript_SignalEvent(SCRIPT_EVENT_MAIL_SEND_INFO_UPDATE, nullptr);
             return 0;

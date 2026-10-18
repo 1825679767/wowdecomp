@@ -9044,7 +9044,7 @@ int32_t Packet_Group_9(void* param, NETMESSAGE msgId, uint32_t time, CDataStore*
         }
 
         case SMSG_INVENTORY_CHANGE_FAILURE: {
-            uint8_t result = 0;
+            uint8_t result = BAG_OK;
             msg->Get(result);
 
             if (!result) {
@@ -9061,15 +9061,15 @@ int32_t Packet_Group_9(void* param, NETMESSAGE msgId, uint32_t time, CDataStore*
             CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
             switch (result) {
-                case 1:
-                case 87: {
+                case BAG_CANT_EQUIP_LEVEL_I:
+                case BAG_PURCHASE_LEVEL_TOO_LOW: {
                     uint32_t requiredLevel = 0;
                     msg->Get(requiredLevel);
                     CGGameUI::DisplayError(error, requiredLevel);
                     break;
                 }
 
-                case 16: {
+                case BAG_WRONG_BAG_TYPE_2: {
                     CGPlayer_C* activePlayer = ClntObjMgrGetActivePlayerObj();
 
                     if (!activePlayer || !activePlayer->ReportBagItemSubtypeMismatch(bag)) {
@@ -9079,7 +9079,7 @@ int32_t Packet_Group_9(void* param, NETMESSAGE msgId, uint32_t time, CDataStore*
                     break;
                 }
 
-                case 81: {
+                case BAG_AUTOEQUIP_BIND_CONFIRM: {
                     uint64_t a2 = 0;
                     uint32_t a3 = 0;
                     uint64_t a4 = 0;
@@ -9094,9 +9094,9 @@ int32_t Packet_Group_9(void* param, NETMESSAGE msgId, uint32_t time, CDataStore*
                     break;
                 }
 
-                case 84:
-                case 85:
-                case 89: {
+                case BAG_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS:
+                case BAG_ITEM_MAX_LIMIT_CATEGORY_SOCKETED_EXCEEDED_IS:
+                case BAG_ITEM_MAX_LIMIT_CATEGORY_EQUIPPED_EXCEEDED_IS: {
                     uint32_t category = 0;
                     msg->Get(category);
                     ItemLimitCategoryRec* rec = nullptr;

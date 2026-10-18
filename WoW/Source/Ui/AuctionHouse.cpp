@@ -1798,7 +1798,7 @@ int32_t Packet_MSG_AUCTION_HELLO(void* param, NETMESSAGE msgId, uint32_t time, C
 // VERIFY: 7f72240d manual
 // OFFSET: 0x0059FFB0
 int32_t Packet_SMSG_AUCTION_COMMAND_RESULT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
-    uint32_t inventoryError = 40;
+    uint32_t inventoryError = BAG_INTERNAL_BAG_ERROR;
     uint32_t auctionID;
     uint32_t action;
     uint32_t result;

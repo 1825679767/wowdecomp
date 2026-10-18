@@ -198,7 +198,7 @@ static StationeryInfo* GetStationery(uint32_t index) {
 // OFFSET: 0x005717B0
 int32_t Packet_SMSG_SEND_MAIL_RESULT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint32_t itemGuid = 0;
-    uint32_t inventoryError = 40;
+    uint32_t inventoryError = BAG_INTERNAL_BAG_ERROR;
     uint32_t itemCount = 0;
     uint32_t messageID;
     uint32_t action;

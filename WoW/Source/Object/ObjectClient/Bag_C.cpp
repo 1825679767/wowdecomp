@@ -197,245 +197,245 @@ static int32_t FindItemFullNameCallback(const CGItem_C* item, void* param) {
 // OFFSET: 0x00753BB0
 int32_t GetDisplayErrorByInventoryError(int32_t error) {
     switch (error) {
-        case 0:
-        case 81:
-        case 83:
+        case BAG_OK:
+        case BAG_AUTOEQUIP_BIND_CONFIRM:
+        case BAG_NO_DISPLAY_ERROR:
             return ERR_MAX_VALUE;
 
-        case 1:
+        case BAG_CANT_EQUIP_LEVEL_I:
             return ERR_CANT_EQUIP_LEVEL_I;
 
-        case 2:
+        case BAG_CANT_EQUIP_SKILL:
             return ERR_CANT_EQUIP_SKILL;
 
-        case 3:
+        case BAG_WRONG_SLOT:
             return ERR_WRONG_SLOT;
 
-        case 5:
+        case BAG_IN_BAG:
             return ERR_BAG_IN_BAG;
 
-        case 6:
+        case BAG_TRADE_EQUIPPED_BAG:
             return ERR_TRADE_EQUIPPED_BAG;
 
-        case 7:
+        case BAG_AMMO_ONLY:
             return ERR_AMMO_ONLY;
 
-        case 8:
+        case BAG_PROFICIENCY_NEEDED:
             return ERR_PROFICIENCY_NEEDED;
 
-        case 9:
-        case 12:
-        case 18:
+        case BAG_NO_SLOT_AVAILABLE:
+        case BAG_NO_SLOT_AVAILABLE_2:
+        case BAG_NO_SLOT_AVAILABLE_3:
             return ERR_NO_SLOT_AVAILABLE;
 
-        case 10:
-        case 11:
+        case BAG_CANT_EQUIP_EVER:
+        case BAG_CANT_EQUIP_EVER_2:
             return ERR_CANT_EQUIP_EVER;
 
-        case 13:
+        case BAG_2HANDED_EQUIPPED:
             return ERR_2HANDED_EQUIPPED;
 
-        case 14:
+        case BAG_2HSKILLNOTFOUND:
             return ERR_2HSKILLNOTFOUND;
 
-        case 15:
-        case 16:
+        case BAG_WRONG_BAG_TYPE:
+        case BAG_WRONG_BAG_TYPE_2:
             return ERR_WRONG_BAG_TYPE;
 
-        case 17:
+        case BAG_ITEM_MAX_COUNT:
             return ERR_ITEM_MAX_COUNT;
 
-        case 19:
-        case 55:
+        case BAG_CANT_STACK:
+        case BAG_CANT_STACK_2:
             return ERR_CANT_STACK;
 
-        case 20:
+        case BAG_NOT_EQUIPPABLE:
             return ERR_NOT_EQUIPPABLE;
 
-        case 21:
+        case BAG_CANT_SWAP:
             return ERR_CANT_SWAP;
 
-        case 22:
+        case BAG_SLOT_EMPTY:
             return ERR_SLOT_EMPTY;
 
-        case 23:
-        case 54:
+        case BAG_ITEM_NOT_FOUND:
+        case BAG_ITEM_NOT_FOUND_2:
             return ERR_ITEM_NOT_FOUND;
 
-        case 24:
+        case BAG_DROP_BOUND_ITEM:
             return ERR_DROP_BOUND_ITEM;
 
-        case 25:
+        case BAG_OUT_OF_RANGE:
             return ERR_OUT_OF_RANGE;
 
-        case 26:
+        case BAG_TOO_FEW_TO_SPLIT:
             return ERR_TOO_FEW_TO_SPLIT;
 
-        case 27:
+        case BAG_SPLIT_FAILED:
             return ERR_SPLIT_FAILED;
 
-        case 28:
+        case BAG_SPELL_FAILED_REAGENTS_GENERIC:
             return ERR_SPELL_FAILED_REAGENTS_GENERIC;
 
-        case 29:
+        case BAG_NOT_ENOUGH_MONEY:
             return ERR_NOT_ENOUGH_MONEY;
 
-        case 30:
+        case BAG_NOT_A_BAG:
             return ERR_NOT_A_BAG;
 
-        case 31:
+        case BAG_DESTROY_NONEMPTY_BAG:
             return ERR_DESTROY_NONEMPTY_BAG;
 
-        case 32:
+        case BAG_NOT_OWNER:
             return ERR_NOT_OWNER;
 
-        case 33:
+        case BAG_ONLY_ONE_QUIVER:
             return ERR_ONLY_ONE_QUIVER;
 
-        case 34:
+        case BAG_NO_BANK_SLOT:
             return ERR_NO_BANK_SLOT;
 
-        case 35:
+        case BAG_NO_BANK_HERE:
             return ERR_NO_BANK_HERE;
 
-        case 36:
+        case BAG_ITEM_LOCKED:
             return ERR_ITEM_LOCKED;
 
-        case 37:
+        case BAG_GENERIC_STUNNED:
             return ERR_GENERIC_STUNNED;
 
-        case 38:
+        case BAG_PLAYER_DEAD:
             return ERR_PLAYER_DEAD;
 
-        case 39:
+        case BAG_CLIENT_LOCKED_OUT:
             return ERR_CLIENT_LOCKED_OUT;
 
-        case 40:
-        case 73:
+        case BAG_INTERNAL_BAG_ERROR:
+        case BAG_INTERNAL_BAG_ERROR_2:
             return ERR_INTERNAL_BAG_ERROR;
 
-        case 41:
+        case BAG_ONLY_ONE_BOLT:
             return ERR_ONLY_ONE_BOLT;
 
-        case 42:
+        case BAG_ONLY_ONE_AMMO:
             return ERR_ONLY_ONE_AMMO;
 
-        case 43:
+        case BAG_CANT_WRAP_STACKABLE:
             return ERR_CANT_WRAP_STACKABLE;
 
-        case 44:
+        case BAG_CANT_WRAP_EQUIPPED:
             return ERR_CANT_WRAP_EQUIPPED;
 
-        case 45:
+        case BAG_CANT_WRAP_WRAPPED:
             return ERR_CANT_WRAP_WRAPPED;
 
-        case 46:
+        case BAG_CANT_WRAP_BOUND:
             return ERR_CANT_WRAP_BOUND;
 
-        case 47:
+        case BAG_CANT_WRAP_UNIQUE:
             return ERR_CANT_WRAP_UNIQUE;
 
-        case 48:
+        case BAG_CANT_WRAP_BAGS:
             return ERR_CANT_WRAP_BAGS;
 
-        case 49:
+        case BAG_LOOT_GONE:
             return ERR_LOOT_GONE;
 
-        case 50:
+        case BAG_INV_FULL:
             return ERR_INV_FULL;
 
-        case 51:
+        case BAG_BANK_FULL:
             return ERR_BANK_FULL;
 
-        case 52:
-        case 57:
+        case BAG_VENDOR_SOLD_OUT:
+        case BAG_VENDOR_SOLD_OUT_2:
             return ERR_VENDOR_SOLD_OUT;
 
-        case 58:
+        case BAG_OBJECT_IS_BUSY:
             return ERR_OBJECT_IS_BUSY;
 
-        case 59:
+        case BAG_CANT_BE_DISENCHANTED:
             return ERR_CANT_BE_DISENCHANTED;
 
-        case 60:
+        case BAG_NOT_IN_COMBAT:
             return ERR_NOT_IN_COMBAT;
 
-        case 61:
+        case BAG_NOT_WHILE_DISARMED:
             return ERR_NOT_WHILE_DISARMED;
 
-        case 63:
+        case BAG_CANT_EQUIP_RANK:
             return ERR_CANT_EQUIP_RANK;
 
-        case 64:
+        case BAG_CANT_EQUIP_REPUTATION:
             return ERR_CANT_EQUIP_REPUTATION;
 
-        case 65:
+        case BAG_TOO_MANY_SPECIAL_BAGS:
             return ERR_TOO_MANY_SPECIAL_BAGS;
 
-        case 66:
+        case BAG_LOOT_CANT_LOOT_THAT_NOW:
             return ERR_LOOT_CANT_LOOT_THAT_NOW;
 
-        case 67:
+        case BAG_ITEM_UNIQUE_EQUIPPABLE:
             return ERR_ITEM_UNIQUE_EQUIPPABLE;
 
-        case 68:
+        case BAG_VENDOR_MISSING_TURNINS:
             return ERR_VENDOR_MISSING_TURNINS;
 
-        case 69:
+        case BAG_NOT_ENOUGH_HONOR_POINTS:
             return ERR_NOT_ENOUGH_HONOR_POINTS;
 
-        case 70:
+        case BAG_NOT_ENOUGH_ARENA_POINTS:
             return ERR_NOT_ENOUGH_ARENA_POINTS;
 
-        case 71:
+        case BAG_ITEM_MAX_COUNT_SOCKETED:
             return ERR_ITEM_MAX_COUNT_SOCKETED;
 
-        case 72:
+        case BAG_MAIL_BOUND_ITEM:
             return ERR_MAIL_BOUND_ITEM;
 
-        case 75:
+        case BAG_ITEM_MAX_COUNT_EQUIPPED_SOCKETED:
             return ERR_ITEM_MAX_COUNT_EQUIPPED_SOCKETED;
 
-        case 76:
+        case BAG_ITEM_UNIQUE_EQUIPPABLE_SOCKETED:
             return ERR_ITEM_UNIQUE_EQUIPPABLE_SOCKETED;
 
-        case 77:
+        case BAG_TOO_MUCH_GOLD:
             return ERR_TOO_MUCH_GOLD;
 
-        case 78:
+        case BAG_NOT_DURING_ARENA_MATCH:
             return ERR_NOT_DURING_ARENA_MATCH;
 
-        case 79:
+        case BAG_TRADE_BOUND_ITEM:
             return ERR_TRADE_BOUND_ITEM;
 
-        case 80:
+        case BAG_CANT_EQUIP_RATING:
             return ERR_CANT_EQUIP_RATING;
 
-        case 82:
+        case BAG_NOT_SAME_ACCOUNT:
             return ERR_NOT_SAME_ACCOUNT;
 
-        case 84:
+        case BAG_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS:
             return ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS;
 
-        case 85:
+        case BAG_ITEM_MAX_LIMIT_CATEGORY_SOCKETED_EXCEEDED_IS:
             return ERR_ITEM_MAX_LIMIT_CATEGORY_SOCKETED_EXCEEDED_IS;
 
-        case 86:
+        case BAG_SCALING_STAT_ITEM_LEVEL_EXCEEDED:
             return ERR_SCALING_STAT_ITEM_LEVEL_EXCEEDED;
 
-        case 87:
+        case BAG_PURCHASE_LEVEL_TOO_LOW:
             return ERR_PURCHASE_LEVEL_TOO_LOW;
 
-        case 88:
+        case BAG_CANT_EQUIP_NEED_TALENT:
             return ERR_CANT_EQUIP_NEED_TALENT;
 
-        case 89:
+        case BAG_ITEM_MAX_LIMIT_CATEGORY_EQUIPPED_EXCEEDED_IS:
             return ERR_ITEM_MAX_LIMIT_CATEGORY_EQUIPPED_EXCEEDED_IS;
 
-        case 90:
+        case BAG_SHAPESHIFT_FORM_CANNOT_EQUIP:
             return ERR_SHAPESHIFT_FORM_CANNOT_EQUIP;
 
-        case 91:
+        case BAG_ITEM_INVENTORY_FULL_SATCHEL:
             return ERR_ITEM_INVENTORY_FULL_SATCHEL;
 
         default:
