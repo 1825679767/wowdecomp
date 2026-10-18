@@ -114,8 +114,14 @@ static const char* s_completedCmd;
 // STATIC: 0x00CA198C
 HTEXTFONT s_textFont;
 
+enum CONSOLERESIZESTATE : int32_t {
+    CS_NONE = 0,
+    CS_STRETCH = 1,
+    NUM_CONSOLERESIZESTATES = 2,
+};
+
 // STATIC: 0x00CA1990
-static int32_t s_consoleResizeState;
+static CONSOLERESIZESTATE s_consoleResizeState;
 
 enum HIGHLIGHTSTATE : int32_t {
     HS_NONE = 0,
@@ -245,7 +251,7 @@ static void UpdateHighlight() {
 static int32_t OnMouseUp(const void* data, void* param) {
     if (!EventIsKeyDown(s_consoleHotKey) && s_active) {
         s_highlightState = HS_ENDHIGHLIGHT;
-        s_consoleResizeState = 0;
+        s_consoleResizeState = CS_NONE;
     }
 
     return 1;
@@ -260,7 +266,7 @@ static int32_t OnMouseMove(const void* data, void* param) {
         return 1;
     }
 
-    if (s_consoleResizeState == 1) {
+    if (s_consoleResizeState == CS_STRETCH) {
         s_consoleHeight = 1.0f - mouse->m_y;
 
         if (s_consoleHeight < s_fontHeight) {
@@ -711,7 +717,7 @@ static int32_t OnMouseDown(const void* data, void* param) {
 
     if (y >= height - s_fontHeight * 0.75f && s_consoleHeight >= y) {
         ResetHighlight();
-        s_consoleResizeState = 1;
+        s_consoleResizeState = CS_STRETCH;
 
         return 0;
     }
