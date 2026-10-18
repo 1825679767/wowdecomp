@@ -125,6 +125,16 @@ enum EGxWM {
     GxWM_KillFocus = 4,
 };
 
+enum EGxTexCubeFace : uint32_t {
+    GxTex_PositiveX = 0,
+    GxTex_NegativeX = 1,
+    GxTex_PositiveY = 2,
+    GxTex_NegativeY = 3,
+    GxTex_PositiveZ = 4,
+    GxTex_NegativeZ = 5,
+    GxTexCubeFaces_Last = 6,
+};
+
 enum EGxTexGen {
     GxTexGen_Disabled = 0,
     GxTexGen_ObjectLinear = 1,

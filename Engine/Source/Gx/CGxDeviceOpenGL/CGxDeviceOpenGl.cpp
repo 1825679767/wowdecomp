@@ -42,7 +42,7 @@ static const GLint s_glMagFilter[GxTexFilters_Last] = { GL_NEAREST, GL_LINEAR, G
 static const uint32_t s_glBytesPerPixel[GxTexFormats_Last] = { 0, 4, 4, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0 };
 
 // STATIC: 0x00A2F2E0
-static const GLenum s_glCubeFaces[6] = { 0x8515, 0x8516, 0x8517, 0x8518, 0x8519, 0x851A };
+static const GLenum s_glCubeFaces[GxTexCubeFaces_Last] = { 0x8515, 0x8516, 0x8517, 0x8518, 0x8519, 0x851A };
 
 // STATIC: 0x00A2F278
 static const GLenum s_glFormat[GxTexFormats_Last] = { 0, GL_RGBA, 0x80E1, 0x80E1, 0x80E1, GL_RGB, 0, 0, 0, 0x86F5, GL_RGB, GL_RGB, GL_DEPTH_COMPONENT };
@@ -4353,7 +4353,7 @@ void CGxDeviceOpenGl::ITexMarkAsUpdated(CGxTex* texId, uint32_t tmu) {
             this->BindTexture(texId, tmu);
         }
 
-        uint32_t faceCount = texId->m_target == GxTex_CubeMap ? 6 : 1;
+        uint32_t faceCount = texId->m_target == GxTex_CubeMap ? GxTexCubeFaces_Last : 1;
 
         for (uint32_t face = 0; face < faceCount; face++) {
             uint32_t mipWidth = width;

@@ -2012,7 +2012,7 @@ uint32_t CGxDevice::ITexBitsSize(CGxTex* texId, uint32_t width, uint32_t height)
     }
 
     if (texId->m_target == GxTex_CubeMap) {
-        return 6 * size;
+        return GxTexCubeFaces_Last * size;
     }
 
     return size;
