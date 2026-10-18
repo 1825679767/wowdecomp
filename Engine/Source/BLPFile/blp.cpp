@@ -146,7 +146,7 @@ void CBLPFile::DecompPalARGB8888(uint8_t* out, const void* in, uint32_t count) {
     const uint8_t* alpha = indices;
 
     switch (this->m_header.m_alphaSize) {
-        case 1: {
+        case ALPHA_1: {
             uint32_t bytes = count >> 3;
 
             for (uint32_t i = 0; i < bytes; i++) {
@@ -172,7 +172,7 @@ void CBLPFile::DecompPalARGB8888(uint8_t* out, const void* in, uint32_t count) {
             break;
         }
 
-        case 4: {
+        case ALPHA_4: {
             for (uint32_t i = count >> 1; i; i--) {
                 pixels[0].m_pad = CBLPFile::s_eightBitAlphaLookup[*alpha & 0xF];
                 pixels[1].m_pad = CBLPFile::s_eightBitAlphaLookup[*alpha >> 4];
@@ -187,7 +187,7 @@ void CBLPFile::DecompPalARGB8888(uint8_t* out, const void* in, uint32_t count) {
             break;
         }
 
-        case 8: {
+        case ALPHA_8: {
             for (uint32_t i = 0; i < count; i++) {
                 pixels[i].m_pad = *alpha;
                 alpha++;
@@ -268,7 +268,7 @@ void CBLPFile::DecompPalARGB4444DitherFloydSteinberg(uint8_t* out, const void* i
     const uint8_t* alpha = indices;
 
     switch (this->m_header.m_alphaSize) {
-        case 1: {
+        case ALPHA_1: {
             uint32_t mask = 1;
 
             for (; count; count--) {
@@ -285,7 +285,7 @@ void CBLPFile::DecompPalARGB4444DitherFloydSteinberg(uint8_t* out, const void* i
             break;
         }
 
-        case 4: {
+        case ALPHA_4: {
             for (uint32_t i = 0; i < count; i++) {
                 if (i & 1) {
                     *pixel |= (*alpha & 0xF0) << 8;
@@ -300,7 +300,7 @@ void CBLPFile::DecompPalARGB4444DitherFloydSteinberg(uint8_t* out, const void* i
             break;
         }
 
-        case 8: {
+        case ALPHA_8: {
             for (; count; count--) {
                 *pixel |= (*alpha & 0xF0) << 8;
                 pixel++;
@@ -383,7 +383,7 @@ void CBLPFile::DecompPalARGB1555DitherFloydSteinberg(uint8_t* out, const void* i
     uint32_t shift = 0;
 
     switch (this->m_header.m_alphaSize) {
-        case 1: {
+        case ALPHA_1: {
             for (; count; count--) {
                 *pixel |= static_cast<uint16_t>((*alpha & (1 << shift)) << (15 - shift));
                 shift++;
@@ -398,7 +398,7 @@ void CBLPFile::DecompPalARGB1555DitherFloydSteinberg(uint8_t* out, const void* i
             break;
         }
 
-        case 4: {
+        case ALPHA_4: {
             for (; count; count--) {
                 if (shift) {
                     shift = 0;
@@ -415,7 +415,7 @@ void CBLPFile::DecompPalARGB1555DitherFloydSteinberg(uint8_t* out, const void* i
             break;
         }
 
-        case 8: {
+        case ALPHA_8: {
             for (; count; count--) {
                 *pixel |= (*alpha & 0x80) << 8;
                 pixel++;
@@ -563,7 +563,7 @@ void CBLPFile::DecompPalARGB2565DitherFloydSteinberg(uint8_t* out, const void* i
     const uint8_t* alpha = indices;
 
     switch (this->m_header.m_alphaSize) {
-        case 1: {
+        case ALPHA_1: {
             for (uint32_t i = 0; i < count; i++) {
                 uint8_t* dest = alphaOut + (i >> 2);
                 uint8_t value = static_cast<uint8_t>(((alpha[i >> 3] >> (i & 7)) * 2) << s_twoBitAlphaShift[i & 3]);
@@ -573,7 +573,7 @@ void CBLPFile::DecompPalARGB2565DitherFloydSteinberg(uint8_t* out, const void* i
             break;
         }
 
-        case 4: {
+        case ALPHA_4: {
             for (uint32_t i = 0; i < count; i++) {
                 uint8_t* dest = alphaOut + (i >> 2);
                 uint8_t value = static_cast<uint8_t>((alpha[i >> 1] >> s_fourBitAlphaShift[i & 1]) << s_twoBitAlphaShift[i & 3]);
@@ -583,7 +583,7 @@ void CBLPFile::DecompPalARGB2565DitherFloydSteinberg(uint8_t* out, const void* i
             break;
         }
 
-        case 8: {
+        case ALPHA_8: {
             for (uint32_t i = 0; i < count; i++) {
                 uint8_t* dest = alphaOut + (i >> 2);
                 uint8_t value = static_cast<uint8_t>((alpha[i] >> 6) << s_twoBitAlphaShift[i & 3]);
@@ -665,7 +665,7 @@ int32_t CBLPFile::DecompPalDither(PIXEL_FORMAT format, uint32_t mipLevel, uint8_
         case PIXEL_ARGB8888: {
             uint32_t pixels = this->Pixels(mipLevel);
 
-            if (this->m_header.m_alphaSize == 8) {
+            if (this->m_header.m_alphaSize == ALPHA_8) {
                 this->DecompPalFastPath(out, in, pixels);
             } else {
                 this->DecompPalARGB8888(out, in, pixels);

@@ -11,6 +11,13 @@ enum COLOR_FILE_FORMAT : uint8_t {
     COLOR_RAW = 3,
 };
 
+enum BLP_ALPHA_BITS : uint8_t {
+    ALPHA_0 = 0,
+    ALPHA_1 = 1,
+    ALPHA_4 = 4,
+    ALPHA_8 = 8,
+};
+
 struct C4Pixel {
     /* 0000 */ uint8_t m_b;
     /* 0001 */ uint8_t m_g;
