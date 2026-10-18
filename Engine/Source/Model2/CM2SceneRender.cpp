@@ -943,7 +943,7 @@ void CM2SceneRender::Draw(M2PASS pass, M2Element* elements, uint32_t* indices, u
     world.m_flags[world.m_level] &= ~CGxMatrixStack::F_Identity;
     world.m_mtx[world.m_level] = s_identity;
 
-    GxRsSet(GxRs_DepthFunc, 0);
+    GxRsSet(GxRs_DepthFunc, GxCmp_LEqual);
     GxRsSet(GxRs_PolygonOffset, 0);
     GxRsSet(GxRs_Lighting, 0);
     GxRsSet(GxRs_Fog, 0);

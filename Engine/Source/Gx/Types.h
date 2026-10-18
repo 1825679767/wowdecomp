@@ -36,6 +36,14 @@ enum EGxBlend {
     GxBlends_Last = 12,
 };
 
+enum EGxCmp : int32_t {
+    GxCmp_LEqual = 0,
+    GxCmp_Equal = 1,
+    GxCmp_GEqual = 2,
+    GxCmp_Less = 3,
+    GxCmps_Last = 4,
+};
+
 enum EGxTexFormat {
     GxTex_Unknown = 0,
     GxTex_Abgr8888 = 1,
