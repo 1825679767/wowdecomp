@@ -94,7 +94,7 @@ static int32_t sIsCharacterAllowed(char c, uint32_t filters) {
 }
 
 // INLINED
-void* COsTreeView::GetEditControl() {
+OsGuiHandle COsTreeView::GetEditControl() {
     return reinterpret_cast<void*>(SendMessageA(static_cast<HWND>(this->m_handle), TVM_GETEDITCONTROL, 0, 0));
 }
 
@@ -112,7 +112,7 @@ int32_t COsTreeView::IsCharacterAllowed(char c) {
 }
 
 // OFFSET: 0x0086C650
-void OsGuiSetWindowTitle(void* window, const char* title) {
+void OsGuiSetWindowTitle(OsGuiHandle window, const char* title) {
     uint32_t length = SUniConvertUTF8to16Len(title, 0x7FFFFFFF, nullptr);
     uint16_t* wideTitle = static_cast<uint16_t*>(_alloca(length * sizeof(uint16_t)));
     SUniConvertUTF8to16(wideTitle, length, title, 0x7FFFFFFF, nullptr, nullptr);
@@ -121,7 +121,7 @@ void OsGuiSetWindowTitle(void* window, const char* title) {
 }
 
 // OFFSET: 0x0086C6A0
-void* OsGuiGetWindow(int32_t type) {
+OsGuiHandle OsGuiGetWindow(int32_t type) {
     switch (type) {
         case 0:
             return s_GxDevWindow;
@@ -138,12 +138,12 @@ void* OsGuiGetWindow(int32_t type) {
 }
 
 // OFFSET: 0x0086C6D0
-void OsGuiSetGxWindow(void* window) {
+void OsGuiSetGxWindow(OsGuiHandle window) {
     s_GxDevWindow = static_cast<HWND>(window);
 }
 
 // OFFSET: 0x0086C6E0
-int32_t OsGuiMessageBox(void* parentWindow, int32_t style, const char* message, const char* title) {
+int32_t OsGuiMessageBox(OsGuiHandle parentWindow, int32_t style, const char* message, const char* title) {
     uint32_t messageLength = SUniConvertUTF8to16Len(message, 0x7FFFFFFF, nullptr);
     uint16_t* wideMessage = static_cast<uint16_t*>(_alloca(messageLength * sizeof(uint16_t)));
     SUniConvertUTF8to16(wideMessage, messageLength, message, 0x7FFFFFFF, nullptr, nullptr);
@@ -234,7 +234,7 @@ int32_t COsTabControl::GetNumItems() {
 }
 
 // INLINED
-void* COsDialog::GetParentWindow() {
+OsGuiHandle COsDialog::GetParentWindow() {
     return GetParent(static_cast<HWND>(this->m_handle));
 }
 
@@ -249,7 +249,7 @@ int32_t COsDialog::IsInFront() {
 }
 
 // OFFSET: 0x0086C840
-COsControl* COsDialog::FindControl(void* handle) {
+COsControl* COsDialog::FindControl(OsGuiHandle handle) {
     for (uint32_t i = 0; i < this->m_controls.Count(); i++) {
         if (this->m_controls[i]->IsHandleFromControl(handle)) {
             return this->m_controls[i];
