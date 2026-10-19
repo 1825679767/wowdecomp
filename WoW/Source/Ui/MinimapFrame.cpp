@@ -2273,7 +2273,7 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
     uint32_t type;
     uint32_t objectType = object->m_obj->m_type;
 
-    if (objectType == (TYPE_GAMEOBJECT)) {
+    if (objectType == HEIR_TYPE_GAMEOBJECT) {
         CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(object);
 
         if (gameObject->IsTracked() && static_cast<CGUnit_C*>(player)->CanInteract(gameObject)) {
