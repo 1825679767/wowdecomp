@@ -82,7 +82,7 @@ static int32_t Script_GetLFGRoles(lua_State* L) {
 // VERIFY: 8d22b555 manual
 // OFFSET: 0x00558060
 static int32_t Script_GetLFGRandomCooldownExpiration(lua_State* L) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return 0;
@@ -101,7 +101,7 @@ static int32_t Script_GetLFGRandomCooldownExpiration(lua_State* L) {
 // VERIFY: 56281bf7 manual
 // OFFSET: 0x005580E0
 static int32_t Script_GetLFGDeserterExpiration(lua_State* L) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return 0;
@@ -1315,7 +1315,7 @@ static int32_t Script_UnitHasLFGRandomCooldown(lua_State* L) {
         return 0;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         lua_pushboolean(L, unit->HasAuraBySpellId(71328));
@@ -1353,7 +1353,7 @@ static int32_t Script_UnitHasLFGDeserter(lua_State* L) {
         return 0;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         lua_pushboolean(L, unit->HasAuraBySpellId(71041));

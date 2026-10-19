@@ -50,7 +50,7 @@ static int32_t Script_GetBackpackCurrencyInfo(lua_State* L) {
         lua_pushnil(L);
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         lua_pushnumber(L, 0.0);
@@ -72,7 +72,7 @@ static int32_t Script_GetBackpackCurrencyInfo(lua_State* L) {
                 for (uint32_t slot = 118; slot <= 149; slot++) {
                     WOWGUID itemGuid;
                     itemGuid.m_guid = bag->GetItemGuid(slot);
-                    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+                    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(itemGuid, TYPE_ITEM, __FILE__, __LINE__));
 
                     if (item && static_cast<int32_t>(item->m_obj->m_entryID) == currency->m_itemID) {
                         count = item->m_item->m_itemFieldStackCount;
@@ -129,7 +129,7 @@ int32_t Script_GetCurrencyListInfo(lua_State* L) {
     lua_pushboolean(L, entry->m_isExpanded);
     lua_pushboolean(L, CGCurrencyTypes::IsCurrencyShown(index));
     lua_pushboolean(L, entry->m_isWatched);
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player) {
         uint32_t count = 0;
@@ -148,7 +148,7 @@ int32_t Script_GetCurrencyListInfo(lua_State* L) {
                 for (uint32_t slot = 118; slot <= 149; slot++) {
                     WOWGUID itemGuid;
                     itemGuid.m_guid = bag->GetItemGuid(slot);
-                    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(itemGuid, TYPEMASK_ITEM, __FILE__, __LINE__));
+                    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(itemGuid, TYPE_ITEM, __FILE__, __LINE__));
 
                     if (item && static_cast<int32_t>(item->m_obj->m_entryID) == entry->m_itemID) {
                         count = item->m_item->m_itemFieldStackCount;

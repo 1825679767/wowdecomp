@@ -366,7 +366,7 @@ void CGTradeSkillInfo::RefreshList(int32_t full) {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     WOWGUID none = WOWGUID();
     NameCache* name = g_nameDBCache.GetRecord(CGTradeSkillInfo::m_playerGuid.m_guid, none, nullptr, nullptr, false);
 
@@ -431,7 +431,7 @@ void CGTradeSkillInfo::RefreshList(int32_t full) {
 
     CGTradeSkillInfo::m_numDisplayEntries = count;
 
-    CGPlayer_C* activePlayer = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* activePlayer = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     int32_t skillRank;
 
     if (activePlayer && CGTradeSkillInfo::m_playerGuid == activePlayer->m_obj->m_guid) {

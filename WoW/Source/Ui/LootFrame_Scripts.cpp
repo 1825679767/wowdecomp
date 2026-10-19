@@ -354,7 +354,7 @@ static int32_t Script_GiveMasterLoot(lua_State* L) {
 // OFFSET: 0x00588F00
 static int32_t Script_SetLootPortrait(lua_State* L) {
     CSimpleTexture* texture = static_cast<CSimpleTexture*>(FrameScript_GetObjectThis(L, CSimpleTexture::GetObjectType()));
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGLootInfo::m_lootObj, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGLootInfo::m_lootObj, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         RenderPortraitTexture(texture, unit);

@@ -982,7 +982,7 @@ void CGMailInfo::Complain(uint32_t index) {
 // VERIFY: 77c88115 manual
 // OFFSET: 0x0056FC80
 void CGMailInfo::UpdateStationeryList() {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return;
@@ -1069,7 +1069,7 @@ void CGMailInfo::QueryNextMailTime() {
 // VERIFY: db821221 manual
 // OFFSET: 0x0056FFF0
 bool CGMailInfo::AddItemToOutgoingMail(uint32_t index, WOWGUID item, WOWGUID container, uint8_t slot) {
-    CGItem_C* object = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* object = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPE_ITEM, __FILE__, __LINE__));
 
     if (!object) {
         return false;
@@ -1115,7 +1115,7 @@ bool CGMailInfo::AddItemToOutgoingMail(uint32_t index, WOWGUID item, WOWGUID con
         return false;
     }
 
-    if (object->m_obj->m_type & TYPEMASK_CONTAINER) {
+    if (object->m_obj->m_type & TYPE_CONTAINER) {
         CGBag_C* bag = object->GetBag();
 
         if (bag && bag->GetNumItems()) {

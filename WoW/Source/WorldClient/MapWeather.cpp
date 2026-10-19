@@ -586,7 +586,7 @@ void Weather::Update() {
     WOWGUID activePlayer = ClntObjMgrGetActivePlayer();
 
     if (activePlayer) {
-        CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(activePlayer, TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(activePlayer, TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player) {
             C3Vector delta(this->m_playerVelocityX, this->m_playerVelocityY, 0.0f);
@@ -819,14 +819,14 @@ void Weather::UpdatePosDeltas() {
     WOWGUID activePlayer = ClntObjMgrGetActivePlayer();
 
     if (activePlayer) {
-        CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(activePlayer, TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(activePlayer, TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player) {
             playerPos = player->GetPosition();
             playerVelocity = player->m_movement->m_moveDir * player->m_movement->m_currentSpeed;
 
             if (player->GetTransportGUID()) {
-                CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ player->GetTransportGUID() }, TYPEMASK_OBJECT, __FILE__, __LINE__);
+                CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ player->GetTransportGUID() }, TYPE_OBJECT, __FILE__, __LINE__);
 
                 if (transport) {
                     transportPos = transport->GetPosition();

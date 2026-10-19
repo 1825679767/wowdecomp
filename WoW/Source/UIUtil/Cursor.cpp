@@ -352,7 +352,7 @@ void CursorSetHeldItem(WOWGUID item) {
         s_cursorItemMipsHeight = 0;
     }
 
-    CGItem_C* itemObject = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* itemObject = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPE_ITEM, __FILE__, __LINE__));
 
     if (itemObject) {
         const char* path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);

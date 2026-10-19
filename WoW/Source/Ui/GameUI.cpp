@@ -1316,7 +1316,7 @@ WOWGUID CGGameUI::GetRaidMemberPet(uint32_t index) {
         return WOWGUID();
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(member->m_guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(member->m_guid, TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!unit) {
         return member->m_stats.m_pet.m_guid;
@@ -1445,7 +1445,7 @@ struct TargetDirectionData {
 // VERIFY: 977893b4 manual
 // OFFSET: 0x00518F40
 static int32_t TargetDirectionProc(WOWGUID guid, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         return 1;
@@ -1474,7 +1474,7 @@ static int32_t TargetDirectionProc(WOWGUID guid, void* param) {
         return 1;
     }
 
-    if (!World::QueryObjectVisible(unit->m_worldObject) || ((unit->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(unit)->IsCommentatorUberOrInArena())) {
+    if (!World::QueryObjectVisible(unit->m_worldObject) || ((unit->m_obj->m_type & TYPE_PLAYER) && static_cast<CGPlayer_C*>(unit)->IsCommentatorUberOrInArena())) {
         return 1;
     }
 
@@ -1557,7 +1557,7 @@ void CGGameUI::TargetDirection(float facing, float angle, int32_t type) {
         return;
     }
 
-    CGUnit_C* origin = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* origin = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!origin) {
         origin = unit;
@@ -2004,7 +2004,7 @@ int32_t CGGameUI::Idle(const void* data, void* param) {
         SErrDisplayAppFatalMessage("", "", 0);
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && !(player->m_unit->m_unitFieldFlags & 0x80000)) {
         lua_gc(L, LUA_GCSTEP, 1);
@@ -2123,7 +2123,7 @@ int32_t CGGameUI::FilterMouseMotion(CMouseEvent* evt) {
 // VERIFY: a4222caa manual
 // OFFSET: 0x00520F70
 void CGGameUI::UpdateActivePlayer() {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         SErrDisplayAppFatalMessage("", "", 0);
@@ -2307,11 +2307,11 @@ void CGGameUI::HandleSpriteTrack(const CObjectTrackEvent& evt) {
 // VERIFY: b02d0e37 manual
 // OFFSET: 0x005277B0
 int32_t CGGameUI::OnSpriteRightClick(WOWGUID guid) {
-    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__)) {
         return 1;
     }
 
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object) {
         return 0;
@@ -2353,7 +2353,7 @@ int32_t CGGameUI::HandleSpriteClick(const CSpriteClickEvent& evt) {
 // OFFSET: 0x005278C0
 int32_t CGGameUI::HandleWorldClick(const CWorldClickEvent& evt) {
     int32_t noCursorItem = CGGameUI::m_cursorItemType == UICURSOR_EMPTY;
-    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPE_PLAYER, __FILE__, __LINE__));
     C3Vector direction(evt.m_segEnd.x - evt.m_segStart.x, evt.m_segEnd.y - evt.m_segStart.y, evt.m_segEnd.z - evt.m_segStart.z);
 
     if (noCursorItem && direction.x * direction.x + direction.z * direction.z + direction.y * direction.y != 0.0f && mover && mover->CanAutoInteract() && evt.m_button == MOUSE_BUTTON_RIGHT) {
@@ -2399,7 +2399,7 @@ void CGGameUI::GetCursorItem(WOWGUID& item, WOWGUID& container, uint32_t& slot) 
 // VERIFY: 9a21a87d manual
 // OFFSET: 0x00513770
 void CGGameUI::UnlockItem(WOWGUID guid) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (item) {
         item->Unlock();
@@ -2417,7 +2417,7 @@ void CGGameUI::ResetCamera(WOWGUID guid) {
         target = ClntObjMgrGetActivePlayer();
     }
 
-    CGObject_C* object = ClntObjMgrObjectPtr(target, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(target, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object || !CGWorldFrame::s_currentWorldFrame) {
         SErrDisplayAppFatalMessage("", "", 0);
@@ -2451,7 +2451,7 @@ void CGGameUI::ClearCursor(int32_t a1, int32_t a2) {
                 CGGameUI::UnlockItem(CGGameUI::m_cursorItem);
             }
 
-            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPE_ITEM, __FILE__, __LINE__));
 
             if (item) {
                 SndInterfacePlayItemSound(ITEMSOUND_DROP, item);
@@ -2553,7 +2553,7 @@ void CGGameUI::ClearCursor(int32_t a1, int32_t a2) {
 // VERIFY: efbc912f manual
 // OFFSET: 0x0051F790
 void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return;
@@ -2563,7 +2563,7 @@ void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
 
     if (previous || (previous = CGGameUI::m_currentObjectTrack)) {
         CGGameUI::m_currentObjectTrack = WOWGUID();
-        CGObject_C* object = ClntObjMgrObjectPtr(previous, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* object = ClntObjMgrObjectPtr(previous, TYPE_OBJECT, __FILE__, __LINE__);
         CGGameUI::m_gameTooltip->FadeOut();
 
         if (object) {
@@ -2572,7 +2572,7 @@ void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
     }
 
     CGGameUI::m_currentObjectTrack = guid;
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object) {
         return;
@@ -2583,8 +2583,8 @@ void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
     }
 
     switch (static_cast<uint32_t>(object->m_obj->m_type)) {
-        case TYPEMASK_OBJECT | TYPEMASK_UNIT:
-        case TYPEMASK_OBJECT | TYPEMASK_UNIT | TYPEMASK_PLAYER: {
+        case HEIR_TYPE_UNIT:
+        case HEIR_TYPE_PLAYER: {
             if (CSimpleTop::GetInstance()->m_mouseFocus == CGWorldFrame::s_currentWorldFrame) {
                 CGGameUI::m_gameTooltip->SetDefaultAnchor();
                 WOWGUID none = { 0 };
@@ -2605,7 +2605,7 @@ void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
             break;
         }
 
-        case TYPEMASK_OBJECT | TYPEMASK_GAMEOBJECT:
+        case HEIR_TYPE_GAMEOBJECT:
             if (CSimpleTop::GetInstance()->m_mouseFocus == CGWorldFrame::s_currentWorldFrame) {
                 if (object->FloatingTooltip()) {
                     CGGameUI::m_gameTooltip->SetOwner(CGGameUI::m_UISimpleParent, ANCHOR_CURSOR, 0.0f, 0.0f);
@@ -2619,7 +2619,7 @@ void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
             SI2::PlaySoundKit("GAMEHIGHLIGHTNEUTRALUNIT", nullptr, nullptr, nullptr);
             break;
 
-        case TYPEMASK_OBJECT | TYPEMASK_CORPSE:
+        case HEIR_TYPE_CORPSE:
             if (CSimpleTop::GetInstance()->m_mouseFocus == CGWorldFrame::s_currentWorldFrame) {
                 CGGameUI::m_gameTooltip->SetDefaultAnchor();
                 CGGameUI::m_gameTooltip->SetCorpse(guid);
@@ -2636,7 +2636,7 @@ void CGGameUI::HandleObjectTrackChange(WOWGUID guid, WOWGUID prevGuid) {
 // VERIFY: ecd66915 manual
 // OFFSET: 0x005206E0
 void CGGameUI::UpdateCombatMode() {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return;
@@ -2681,12 +2681,12 @@ void CGGameUI::ClearTarget(WOWGUID guid, int32_t a2) {
     }
 
     if (!noMgr) {
-        CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPE_OBJECT, __FILE__, __LINE__);
 
         if (object) {
             object->HideHighlightType(HT_OBJSELECTION);
 
-            if (object->m_obj->m_type & TYPEMASK_UNIT) {
+            if (object->m_obj->m_type & TYPE_UNIT) {
                 CGUnit_C* unit = static_cast<CGUnit_C*>(object);
                 PlayerNameTriggerColorUpdate(unit->m_nameDesc);
                 unit->UnregisterScript(0x1000);
@@ -2701,7 +2701,7 @@ void CGGameUI::ClearTarget(WOWGUID guid, int32_t a2) {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player) {
         player->SetCombatMode();
@@ -2725,7 +2725,7 @@ void CGGameUI::ClearTarget(WOWGUID guid, int32_t a2) {
 // VERIFY: e7c59690 manual
 // OFFSET: 0x00524650
 void CGGameUI::DeleteCursorItem() {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPE_ITEM, __FILE__, __LINE__));
 
     if (!item || item->m_item->m_itemFieldOwner != ClntObjMgrGetActivePlayer()) {
         return;
@@ -2787,13 +2787,13 @@ void CGGameUI::Target(WOWGUID guid) {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && player->m_unit->m_unitFieldCharmedby) {
         return;
     }
 
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (object) {
         if (Spell_C_IsTargeting()) {
@@ -2809,7 +2809,7 @@ void CGGameUI::Target(WOWGUID guid) {
             object->ShowHighlightType(HT_OBJSELECTION);
         }
 
-        if (object->m_obj->m_type & TYPEMASK_UNIT) {
+        if (object->m_obj->m_type & TYPE_UNIT) {
             CGUnit_C* unit = static_cast<CGUnit_C*>(object);
             PlayerNameTriggerColorUpdate(unit->m_nameDesc);
             unit->RegisterScript(0x1000);
@@ -2829,9 +2829,9 @@ void CGGameUI::Target(WOWGUID guid) {
                     CGGameUI::m_lastFriendTarget = guid;
                 }
 
-                if ((unit->m_obj->m_type & TYPEMASK_PLAYER) && unit->m_obj->m_guid != ClntObjMgrGetActivePlayer() && CanTriggerTutorial(18)) {
+                if ((unit->m_obj->m_type & TYPE_PLAYER) && unit->m_obj->m_guid != ClntObjMgrGetActivePlayer() && CanTriggerTutorial(18)) {
                     CGTutorial::TriggerTutorial(18);
-                } else if ((unit->m_obj->m_type & TYPEMASK_PLAYER) && player->CanCooperate(unit) && static_cast<int32_t>(player->m_unit->m_unitFieldLevel) >= 5) {
+                } else if ((unit->m_obj->m_type & TYPE_PLAYER) && player->CanCooperate(unit) && static_cast<int32_t>(player->m_unit->m_unitFieldLevel) >= 5) {
                     CGTutorial::TriggerTutorial(17);
                 } else if (player->CanAttack(unit)) {
                     CGTutorial::TriggerTutorial(4);
@@ -2898,7 +2898,7 @@ int32_t CGGameUI::OnTerrainClick(const CTerrainClickEvent& evt) {
         }
     }
 
-    CGPlayer_C* mover = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGPlayer_C* mover = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!mover) {
         return 1;
@@ -2907,7 +2907,7 @@ int32_t CGGameUI::OnTerrainClick(const CTerrainClickEvent& evt) {
     C3Vector point = evt.m_point;
 
     if (evt.m_guid) {
-        CGObject_C* object = ClntObjMgrObjectPtr(evt.m_guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* object = ClntObjMgrObjectPtr(evt.m_guid, TYPE_OBJECT, __FILE__, __LINE__);
 
         if (!object) {
             return 1;
@@ -2923,30 +2923,30 @@ int32_t CGGameUI::OnTerrainClick(const CTerrainClickEvent& evt) {
 // VERIFY: e20bf7fa manual
 // OFFSET: 0x005274F0
 int32_t CGGameUI::OnSpriteLeftClick(WOWGUID guid) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return 0;
     }
 
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object) {
         return 0;
     }
 
-    if ((object->m_obj->m_type & TYPEMASK_PLAYER) && ((CGGameUI::m_cursorItem && CGGameUI::m_cursorItemContainer) || CGGameUI::m_cursorMoney) && !Spell_C_IsTargeting()) {
+    if ((object->m_obj->m_type & TYPE_PLAYER) && ((CGGameUI::m_cursorItem && CGGameUI::m_cursorItemContainer) || CGGameUI::m_cursorMoney) && !Spell_C_IsTargeting()) {
         int32_t bound = 0;
 
         if (CGGameUI::m_cursorItem) {
-            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPE_ITEM, __FILE__, __LINE__));
 
             if (item) {
                 if (item->IsBound()) {
                     bound = 1;
                 }
 
-                if (item->m_obj->m_type & TYPEMASK_CONTAINER) {
+                if (item->m_obj->m_type & TYPE_CONTAINER) {
                     CGBag_C* bag = item->GetBag();
 
                     if (bag) {
@@ -2966,7 +2966,7 @@ int32_t CGGameUI::OnSpriteLeftClick(WOWGUID guid) {
             goto npc;
         }
 
-        if (object->m_obj->m_type & TYPEMASK_PLAYER) {
+        if (object->m_obj->m_type & TYPE_PLAYER) {
             if (player->IsDeadOrGhost()) {
                 CGGameUI::DisplayError(ERR_PLAYER_DEAD);
             } else if (!player->CanCooperate(static_cast<CGUnit_C*>(object))) {
@@ -2982,9 +2982,9 @@ int32_t CGGameUI::OnSpriteLeftClick(WOWGUID guid) {
     }
 
 npc:
-    if (object->m_obj->m_type & TYPEMASK_UNIT) {
+    if (object->m_obj->m_type & TYPE_UNIT) {
         if (guid == CGPetInfo::GetPet(0) && CGGameUI::m_cursorItem) {
-            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+            CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGGameUI::m_cursorItem, TYPE_ITEM, __FILE__, __LINE__));
 
             if (item && Spell_C_HandleItemDrop(item, static_cast<CGUnit_C*>(object))) {
                 CGGameUI::ClearCursor(1, 1);
@@ -2994,7 +2994,7 @@ npc:
         static_cast<CGUnit_C*>(object)->HandleNPCFeedback();
     }
 
-    if ((object->m_obj->m_type & TYPEMASK_GAMEOBJECT) && !object->CanBeTargetted()) {
+    if ((object->m_obj->m_type & TYPE_GAMEOBJECT) && !object->CanBeTargetted()) {
         WOWGUID item;
         WOWGUID container;
         uint32_t slot;
@@ -3036,7 +3036,7 @@ void CGGameUI::DisplayError(UIErrors error, ...) {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     const char* text = player ? player->GetFrameScriptText(token, -1) : FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
 
     char buffer[3000];
@@ -3436,7 +3436,7 @@ void CGGameUI::UpdateThreatWarningEnabled(int32_t value) {
 void CGGameUI::SetDeathReleaseLocation(int32_t mapId, const C3Vector& position) {
     CGGameUI::m_deathReleaseMapID = mapId;
     CGGameUI::m_deathReleaseLoc = position;
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && (mapId == player->GetNewContinentID() || mapId == -1)) {
         MinimapSetSpiritHealerPOI(position.x, position.y);
@@ -3484,7 +3484,7 @@ void OnItemPushResult(WOWGUID guid, uint8_t bag, uint32_t slot, uint32_t itemId,
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return;
@@ -3588,7 +3588,7 @@ void CGGameUI::SetCorpseLocation(int32_t mapId, const C3Vector& position, int32_
 
     C3Vector corpse = { 0.0f, 0.0f, 0.0f };
     CGGameUI::GetCorpsePosition(corpse);
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && mapId == player->GetNewContinentID()) {
         MinimapSetCorpsePOI(corpse.x, corpse.y);
@@ -3647,7 +3647,7 @@ void CGGameUI::UpdateCorpseLocation() {
         }
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && (player->m_player->m_playerFlags & 0x10) && CGBattlefieldInfo::m_instanceType != 4) {
         CDataStore msg;
@@ -3677,7 +3677,7 @@ void CGGameUI::EnterWorld() {
 
     CGGameUI::s_inWorld = 1;
     CGChat::Pause();
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     CM2Model* model = player ? player->GetObjectModel() : nullptr;
 
     if (!model) {
@@ -3968,7 +3968,7 @@ void CGGameUI::UpdateUnitHighlights() {
     bool show = CGGameUI::m_visible || (g_unitHighlightsCVar && g_unitHighlightsCVar->m_intValue);
 
     if (CGGameUI::m_currentObjectTrack) {
-        CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_currentObjectTrack, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_currentObjectTrack, TYPE_OBJECT, __FILE__, __LINE__);
 
         if (object) {
             if (show) {
@@ -3980,7 +3980,7 @@ void CGGameUI::UpdateUnitHighlights() {
     }
 
     if (CGGameUI::m_lockedTarget) {
-        CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_lockedTarget, TYPE_OBJECT, __FILE__, __LINE__);
 
         if (object) {
             if (show) {
@@ -4005,7 +4005,7 @@ void CGGameUI::SetFocusTarget(const WOWGUID& guid) {
     }
 
     if (CGGameUI::m_focusTarget) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_focusTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_focusTarget, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit) {
             unit->UnregisterScript(0x2000);
@@ -4015,7 +4015,7 @@ void CGGameUI::SetFocusTarget(const WOWGUID& guid) {
     CGGameUI::m_focusTarget = guid;
 
     if (CGGameUI::m_focusTarget) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_focusTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_focusTarget, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit) {
             unit->RegisterScript(0x2000);
@@ -4131,7 +4131,7 @@ bool CGGameUI::CanInspect(CGUnit_C* unit) {
         return false;
     }
 
-    if (!(unit->m_obj->m_type & TYPEMASK_PLAYER) || player->CanAttack(unit)) {
+    if (!(unit->m_obj->m_type & TYPE_PLAYER) || player->CanAttack(unit)) {
         return false;
     }
 
@@ -4192,7 +4192,7 @@ void CGGameUI::NewZoneFeedback(int32_t areaId, int32_t subzoneId, int32_t wmoGro
         }
 
         CGGameUI::m_realZoneText = SStrDupA(realZoneText, __FILE__, __LINE__);
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && !(player->m_unit->m_unitFieldFlags & 0x100000) && !CGGameUI::m_inCinematic && !CGPlayer_C::GetPendingMovie()) {
             CGChat::ZoneUpdate();
@@ -4347,7 +4347,7 @@ void CGGameUI::CloseInteraction() {
         CGBattlefieldInfo::SetBattlemaster(none);
     }
 
-    CGGameObject_C* object = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+    CGGameObject_C* object = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(target, TYPE_GAMEOBJECT, __FILE__, __LINE__));
 
     if (object) {
         object->CloseInteraction();
@@ -4361,9 +4361,9 @@ void CGGameUI::ClearInteractTarget(const WOWGUID& guid, int32_t a2) {
         return;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_interactTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_interactTarget, TYPE_UNIT, __FILE__, __LINE__));
 
-    if (unit && !(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (unit && !(unit->m_obj->m_type & TYPE_PLAYER)) {
         if (!a2) {
             unit->PlayNPCSound(false);
         }
@@ -4469,14 +4469,14 @@ void CGGameUI::SetInteractTarget(const WOWGUID& guid) {
         return;
     }
 
-    CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_interactTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_interactTarget, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object) {
         return;
     }
 
-    if (object->m_obj->m_type & TYPEMASK_UNIT) {
-        if (object->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (object->m_obj->m_type & TYPE_UNIT) {
+        if (object->m_obj->m_type & TYPE_PLAYER) {
             CGGameUI::m_interactMaxDistSq = s_playerInteractDistSq;
             return;
         }
@@ -4489,7 +4489,7 @@ void CGGameUI::SetInteractTarget(const WOWGUID& guid) {
             unit->PlayNPCSound(true);
             unit->UpdateBaseAnimation(0, -1);
         }
-    } else if (object->m_obj->m_type & TYPEMASK_GAMEOBJECT) {
+    } else if (object->m_obj->m_type & TYPE_GAMEOBJECT) {
         CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(object);
         gameObject->StartInteraction();
         CGGameUI::m_interactMaxDistSq = gameObject->GetInteractDistanceSquared();
@@ -4715,7 +4715,7 @@ static TSGrowableArray<NearestUnitData> s_nearestUnits;
 // VERIFY: 0f5d7c71 manual
 // OFFSET: 0x005210D0
 void CGGameUI::CastItemSpell(WOWGUID guid, int32_t confirmed) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (!item) {
         return;
@@ -4911,7 +4911,7 @@ static void UpdateClosestMatch(ClosestObjectMatchData* data, const WOWGUID& guid
 // OFFSET: 0x0051FFE0
 static int32_t ClosestObjectMatchProc(WOWGUID guid, void* param) {
     ClosestObjectMatchData* data = static_cast<ClosestObjectMatchData*>(param);
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object) {
         return 1;
@@ -4921,7 +4921,7 @@ static int32_t ClosestObjectMatchProc(WOWGUID guid, void* param) {
         return 1;
     }
 
-    if ((object->m_obj->m_type & TYPEMASK_UNIT) && !UnitMatchesTargetType(data->m_unit, static_cast<CGUnit_C*>(object), data->m_targetType)) {
+    if ((object->m_obj->m_type & TYPE_UNIT) && !UnitMatchesTargetType(data->m_unit, static_cast<CGUnit_C*>(object), data->m_targetType)) {
         return 1;
     }
 
@@ -4929,7 +4929,7 @@ static int32_t ClosestObjectMatchProc(WOWGUID guid, void* param) {
 
     if (guid == data->m_unit->m_obj->m_guid) {
         distance = 2500000000.0f;
-    } else if (object->m_obj->m_type & TYPEMASK_UNIT) {
+    } else if (object->m_obj->m_type & TYPE_UNIT) {
         CGUnit_C* unit = static_cast<CGUnit_C*>(object);
         CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
@@ -4945,7 +4945,7 @@ static int32_t ClosestObjectMatchProc(WOWGUID guid, void* param) {
     char fullName[305];
     const char* name;
 
-    if (data->m_hasRealm && (object->m_obj->m_type & TYPEMASK_UNIT)) {
+    if (data->m_hasRealm && (object->m_obj->m_type & TYPE_UNIT)) {
         const char* realm = nullptr;
         name = static_cast<CGUnit_C*>(object)->GetUnitName(&realm, 1);
 
@@ -4983,13 +4983,13 @@ WOWGUID CGGameUI::ClosestObjectMatch(const char* name, uint32_t typeMask, int32_
             return WOWGUID();
         }
 
-        CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
         if (object && !(typeMask & object->m_obj->m_type)) {
             return WOWGUID();
         }
 
-        if (typeMask != TYPEMASK_UNIT && typeMask != TYPEMASK_PLAYER) {
+        if (typeMask != TYPE_UNIT && typeMask != TYPE_PLAYER) {
             return guid;
         }
 
@@ -5015,7 +5015,7 @@ WOWGUID CGGameUI::ClosestObjectMatch(const char* name, uint32_t typeMask, int32_
         for (uint32_t i = 0; i < 4; i++) {
             WOWGUID member = GetPartyMemberGUID(i);
 
-            if (member && !ClntObjMgrObjectPtr(member, TYPEMASK_UNIT, __FILE__, __LINE__)) {
+            if (member && !ClntObjMgrObjectPtr(member, TYPE_UNIT, __FILE__, __LINE__)) {
                 WOWGUID none = WOWGUID();
                 NameCache* record = g_nameDBCache.GetRecord(member.m_guid, none, nullptr, nullptr, false);
 
@@ -5029,7 +5029,7 @@ WOWGUID CGGameUI::ClosestObjectMatch(const char* name, uint32_t typeMask, int32_
             for (uint32_t i = 0; i < CGRaidInfo::m_numMembers; i++) {
                 WOWGUID member = CGRaidInfo::m_members[i]->m_guid;
 
-                if (member && !ClntObjMgrObjectPtr(member, TYPEMASK_UNIT, __FILE__, __LINE__)) {
+                if (member && !ClntObjMgrObjectPtr(member, TYPE_UNIT, __FILE__, __LINE__)) {
                     WOWGUID none = WOWGUID();
                     NameCache* record = g_nameDBCache.GetRecord(member.m_guid, none, nullptr, nullptr, false);
 
@@ -5075,7 +5075,7 @@ int32_t UnitMatchesTargetType(CGUnit_C* unit, CGUnit_C* target, int32_t type) {
         }
 
         case 2: {
-            if (!(target->m_obj->m_type & TYPEMASK_PLAYER)) {
+            if (!(target->m_obj->m_type & TYPE_PLAYER)) {
                 return 0;
             }
 
@@ -5087,7 +5087,7 @@ int32_t UnitMatchesTargetType(CGUnit_C* unit, CGUnit_C* target, int32_t type) {
         }
 
         case 4: {
-            if (!(target->m_obj->m_type & TYPEMASK_PLAYER)) {
+            if (!(target->m_obj->m_type & TYPE_PLAYER)) {
                 return 0;
             }
 
@@ -5112,7 +5112,7 @@ int32_t UnitMatchesTargetType(CGUnit_C* unit, CGUnit_C* target, int32_t type) {
 // OFFSET: 0x00524440
 static int32_t TargetUpdateProc(WOWGUID guid, void* param) {
     CGUnit_C* searcher = static_cast<CGUnit_C*>(param);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit || unit == searcher || !UnitMatchesTargetType(searcher, unit, s_nearestType)) {
         return 1;
@@ -5142,7 +5142,7 @@ static int32_t TargetUpdateProc(WOWGUID guid, void* param) {
     if (maxDistanceSq >= distanceSq) {
         CreatureTypeRec* creatureType = g_creatureTypeDB.GetRecord(unit->GetCreatureType());
 
-        if ((!creatureType || !(creatureType->m_flags & 1)) && World::QueryObjectVisible(unit->m_worldObject) && (!(unit->m_obj->m_type & TYPEMASK_PLAYER) || !static_cast<CGPlayer_C*>(unit)->IsCommentatorUberOrInArena())) {
+        if ((!creatureType || !(creatureType->m_flags & 1)) && World::QueryObjectVisible(unit->m_worldObject) && (!(unit->m_obj->m_type & TYPE_PLAYER) || !static_cast<CGPlayer_C*>(unit)->IsCommentatorUberOrInArena())) {
             NearestUnitData* data = s_nearestUnits.New();
             data->m_distanceSq = distanceSq;
             data->m_guid = guid;
@@ -5232,7 +5232,7 @@ void TargetNearestEnemy(int32_t reverse, int32_t type) {
 
         s_nearestTargetTime = OsGetAsyncTimeMs();
         uint32_t i = s_nearestIndex;
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_nearestUnits.m_data[i].m_guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_nearestUnits.m_data[i].m_guid, TYPE_UNIT, __FILE__, __LINE__));
         bool restart = false;
 
         while (true) {
@@ -5256,7 +5256,7 @@ void TargetNearestEnemy(int32_t reverse, int32_t type) {
                 break;
             }
 
-            unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_nearestUnits.m_data[i].m_guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_nearestUnits.m_data[i].m_guid, TYPE_UNIT, __FILE__, __LINE__));
         }
 
         if (restart) {
@@ -5330,7 +5330,7 @@ uint8_t CGGameUI::THREATMAP::ComputeMaxThreatLevel(const WOWGUID& guid) {
             continue;
         }
 
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_units[i], TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_units[i], TYPE_UNIT, __FILE__, __LINE__));
 
         if (!unit) {
             this->m_units[i] = WOWGUID();
@@ -5425,7 +5425,7 @@ void CGGameUI::ThreatMapAdd(const WOWGUID& unit, const WOWGUID& target) {
     map->AddUnit(unit);
 
     if (CGGameUI::m_threatWarningEnabled && target == ClntObjMgrGetActivePlayer()) {
-        CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player->m_unit->m_unitFieldLevel >= 14) {
             CGTutorial::TriggerTutorial(53);
@@ -5489,13 +5489,13 @@ void CGGameUI::DoPowerRegen() {
         return;
     }
 
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_UNIT, __FILE__, __LINE__));
 
     if (player) {
         player->DoPowerRegen(elapsed);
     }
 
-    CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPE_UNIT, __FILE__, __LINE__));
 
     if (pet) {
         pet->DoPowerRegen(elapsed);
@@ -5581,7 +5581,7 @@ int32_t CGGameUI::StartCinematicCamera() {
 // VERIFY: 60912e63 manual
 // OFFSET: 0x005264F0
 void CGGameUI::OpenLoot(CGObject_C* object, int32_t coins, LOOT_ACQUIRE lootAcquire) {
-    if (object->m_obj->m_type & TYPEMASK_UNIT) {
+    if (object->m_obj->m_type & TYPE_UNIT) {
         CGGameUI::Target(object->m_obj->m_guid);
     }
 
@@ -5610,7 +5610,7 @@ void CGGameUI::NextCinematicInternal(void* param) {
 // VERIFY: 4b188323 manual
 // OFFSET: 0x00523640
 void CGGameUI::CloseLoot(bool a1, bool a2, bool a3) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     WOWGUID guid = CGLootInfo::m_lootObj;
 
     if (!guid) {
@@ -5625,9 +5625,9 @@ void CGGameUI::CloseLoot(bool a1, bool a2, bool a3) {
         CGGameUI::DisplayError(ERR_LOOT_NO_UI);
     }
 
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
-    if (object && (object->m_obj->m_type & TYPEMASK_ITEM)) {
+    if (object && (object->m_obj->m_type & TYPE_ITEM)) {
         if (a2) {
             return;
         }
@@ -5649,7 +5649,7 @@ void CGGameUI::CloseLoot(bool a1, bool a2, bool a3) {
 
     CGLootInfo::SetObject(nullptr, 0, LOOT_ACQUIRE_FAILED);
 
-    if (object && (object->m_obj->m_type & TYPEMASK_UNIT) && static_cast<int32_t>(static_cast<CGUnit_C*>(object)->m_unit->m_unitFieldHealth) <= 0) {
+    if (object && (object->m_obj->m_type & TYPE_UNIT) && static_cast<int32_t>(static_cast<CGUnit_C*>(object)->m_unit->m_unitFieldHealth) <= 0) {
         CGGameUI::ClearTarget(guid, 1);
     }
 
@@ -5675,7 +5675,7 @@ void CGGameUI::SetRegenEnabled(int32_t enabled) {
 // VERIFY: 4e314fe3 manual
 // OFFSET: 0x00513740
 void CGGameUI::LockItem(WOWGUID guid) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (item) {
         item->Lock();
@@ -5687,7 +5687,7 @@ void CGGameUI::LockItem(WOWGUID guid) {
 // VERIFY: f953bccb manual
 // OFFSET: 0x00520E40
 void CGGameUI::UnlockAllItems() {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player || !player->GetBag()) {
         return;
@@ -5698,7 +5698,7 @@ void CGGameUI::UnlockAllItems() {
 
     for (uint32_t i = 0; i < numSlots; i++) {
         WOWGUID guid = i < static_cast<uint32_t>(bag->m_numSlots) ? bag->m_slots[i] : WOWGUID();
-        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
         if (!item) {
             continue;
@@ -5706,14 +5706,14 @@ void CGGameUI::UnlockAllItems() {
 
         item->Unlock();
 
-        if (!(item->m_obj->m_type & TYPEMASK_CONTAINER) || !item->GetBag()) {
+        if (!(item->m_obj->m_type & TYPE_CONTAINER) || !item->GetBag()) {
             continue;
         }
 
         for (uint32_t j = 0; j < static_cast<uint32_t>(item->GetBag()->m_numSlots); j++) {
             CGBag_C* container = item->GetBag();
             WOWGUID contained = i < static_cast<uint32_t>(container->m_numSlots) ? container->m_slots[i] : WOWGUID();
-            CGItem_C* containedItem = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(contained, TYPEMASK_ITEM, __FILE__, __LINE__));
+            CGItem_C* containedItem = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(contained, TYPE_ITEM, __FILE__, __LINE__));
 
             if (containedItem) {
                 containedItem->Unlock();
@@ -5802,7 +5802,7 @@ int32_t CGGameUI::GetVirtualItemCount(int32_t id, uint32_t virtualSlot, int32_t 
 // VERIFY: 2e88ceb5 manual
 // OFFSET: 0x00520770
 void CGGameUI::SetCursorItem(WOWGUID item, WOWGUID container, uint32_t slot, int32_t a4, int32_t stackSplit, int32_t playSound) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player || (!CGGameUI::m_hasControl && !(player->m_unit->m_unitFieldFlags & 0x100000))) {
         return;
@@ -5820,7 +5820,7 @@ void CGGameUI::SetCursorItem(WOWGUID item, WOWGUID container, uint32_t slot, int
     CGGameUI::m_stackSplit = stackSplit;
     CGGameUI::m_cursorItemType = UICURSOR_ITEM;
     CursorSetHeldItem(item);
-    CGItem_C* itemObject = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* itemObject = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPE_ITEM, __FILE__, __LINE__));
 
     if (itemObject) {
         if (itemObject->CanBeUsed() || itemObject->GetInventoryType()) {
@@ -5940,7 +5940,7 @@ void CGGameUI::GetSelectionHighlightColor(const WOWGUID& guid, CImVector* color,
         return;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         bool pvp = false;
@@ -5969,7 +5969,7 @@ void CGGameUI::GetSelectionHighlightColor(const WOWGUID& guid, CImVector* color,
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     CGUnit_C* viewer = nullptr;
 
     if (player) {
@@ -6031,7 +6031,7 @@ void CGGameUI::GetSelectionHighlightColor(const WOWGUID& guid, CImVector* color,
 // VERIFY: 8e316898 manual
 // OFFSET: 0x00512B00
 void CGGameUI::UnitNameUpdate(const WOWGUID& guid) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         CGGameUI::UnitTooltipUpdate(guid);
@@ -6220,7 +6220,7 @@ void LoadAccountVariables() {
 // VERIFY: b84f77ba manual
 // OFFSET: 0x005284D0
 void CCapturePointUIManager::Update() {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     uint32_t time = OsGetAsyncTimeMs();
 
     if (!player || static_cast<int32_t>(time - this->m_nextWarningTime) < 0) {
@@ -6232,7 +6232,7 @@ void CCapturePointUIManager::Update() {
     }
 
     for (CapturePointUIManagerNode* node = this->m_nodes.Head(); node; node = this->m_nodes.Next(node)) {
-        CGObject_C* object = ClntObjMgrObjectPtr(node->m_guid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+        CGObject_C* object = ClntObjMgrObjectPtr(node->m_guid, TYPE_GAMEOBJECT, __FILE__, __LINE__);
 
         if (object && static_cast<float>(node->m_radiusSquared) > player->GetDistanceToPos(object->GetPosition())) {
             CGChat::AddChatMessage(FrameScript_GetText("PVP_REQUIRED_FOR_CAPTURE", -1, GENDER_NOT_APPLICABLE), 0, 0, 0, 0, 0, nullptr, WOWGUID(), 0, WOWGUID(), 0, 0, 0);
@@ -6255,7 +6255,7 @@ struct AutoMouseOverData {
 // VERIFY: 4cd54d7b manual
 // OFFSET: 0x00519E80
 static int32_t AutoMouseOverProc(WOWGUID guid, void* param) {
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object) {
         return 1;
@@ -6289,7 +6289,7 @@ static int32_t AutoMouseOverProc(WOWGUID guid, void* param) {
 
     uint32_t type = object->m_obj->m_type;
 
-    if (type & TYPEMASK_UNIT) {
+    if (type & TYPE_UNIT) {
         CGUnit_C* unit = static_cast<CGUnit_C*>(object);
         float rangeSq;
 
@@ -6301,7 +6301,7 @@ static int32_t AutoMouseOverProc(WOWGUID guid, void* param) {
             }
 
             rangeSq = distSq;
-        } else if ((unit->m_unit->m_unitFieldFlags & 0x4000000) && CGSpellBook::GetSkinningSpell(unit) && (!(unit->m_obj->m_type & TYPEMASK_PLAYER) || !player->CanAssist(unit, false))) {
+        } else if ((unit->m_unit->m_unitFieldFlags & 0x4000000) && CGSpellBook::GetSkinningSpell(unit) && (!(unit->m_obj->m_type & TYPE_PLAYER) || !player->CanAssist(unit, false))) {
             float minRange;
             float maxRange;
             Spell_C::GetSpellRange(player, CGSpellBook::GetSkinningSpell(unit), &minRange, &maxRange, unit);
@@ -6317,13 +6317,13 @@ static int32_t AutoMouseOverProc(WOWGUID guid, void* param) {
         if (rangeSq < distSq) {
             return 1;
         }
-    } else if (type & TYPEMASK_GAMEOBJECT) {
+    } else if (type & TYPE_GAMEOBJECT) {
         CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(object);
 
         if (player != data->m_mover || !gameObject->CanUse() || !gameObject->CanUseNow()) {
             return 1;
         }
-    } else if (type & TYPEMASK_CORPSE) {
+    } else if (type & TYPE_CORPSE) {
         if (player != data->m_mover) {
             return 1;
         }
@@ -6365,7 +6365,7 @@ void CGGameUI::AutoMouseOver() {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return;
@@ -6442,7 +6442,7 @@ int32_t CGGameUI::MessageHandler(void* param, NETMESSAGE msgId, uint32_t time, C
         case SMSG_BREAK_TARGET: {
             SmartGUID guid;
             *msg >> guid;
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
             WOWGUID target = guid;
 
             if (!CGGameUI::IsRaidMemberOrPet(target) || (unit && unit->IsDuelingWith(ClntObjMgrGetActivePlayerObj()))) {
@@ -6521,13 +6521,13 @@ int32_t CGGameUI::MessageHandler(void* param, NETMESSAGE msgId, uint32_t time, C
             WOWGUID guid;
             msg->Get(soundKitId);
             msg->Get(guid.m_guid);
-            CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+            CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
             if (!object) {
                 return 1;
             }
 
-            if (object->m_obj->m_type & TYPEMASK_UNIT) {
+            if (object->m_obj->m_type & TYPE_UNIT) {
                 static_cast<CGUnit_C*>(object)->PlayAISound(soundKitId);
             } else {
                 C3Vector position = object->GetPosition();
@@ -6827,7 +6827,7 @@ void CGGameUI::SetCorpseMapPosition(const C3Vector& position, const float& facin
 void CGGameUI::StopCinematicInternal(void* param) {
     CGCamera* camera = CGWorldFrame::GetActiveCamera();
     FrameScript_SignalEvent(SCRIPT_EVENT_CINEMATIC_STOP, nullptr);
-    CGObject_C* target = static_cast<CGObject_C*>(ClntObjMgrObjectPtr(camera->m_targetGUID, TYPEMASK_OBJECT, __FILE__, __LINE__));
+    CGObject_C* target = static_cast<CGObject_C*>(ClntObjMgrObjectPtr(camera->m_targetGUID, TYPE_OBJECT, __FILE__, __LINE__));
 
     if (target) {
         C3Vector position = target->GetPosition();
@@ -6876,7 +6876,7 @@ void CGGameUI::GetCorpsePosition(C3Vector& position) {
         return;
     }
 
-    if (ClntObjMgrObjectPtr(CGGameUI::m_corpseTransportGUID, TYPEMASK_OBJECT, __FILE__, __LINE__)) {
+    if (ClntObjMgrObjectPtr(CGGameUI::m_corpseTransportGUID, TYPE_OBJECT, __FILE__, __LINE__)) {
         C44Matrix transform;
 
         if (!MovementGetTransportMtxX(CGGameUI::m_corpseTransportGUID, &transform, ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
@@ -6927,7 +6927,7 @@ void CGGameUI::UpdateCorpseDistance() {
     int32_t inRange = 0;
 
     if (CGGameUI::m_corpseMapID >= 0) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player) {
             C3Vector corpse = { 0.0f, 0.0f, 0.0f };
@@ -6959,14 +6959,14 @@ void CGGameUI::UpdateInteractTarget() {
     }
 
     bool clear = false;
-    CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_interactTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(CGGameUI::m_interactTarget, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object || (object->m_modelFlags & 0x10000)) {
         CGGameUI::ClearInteractTarget(CGGameUI::m_interactTarget, 0);
         return;
     }
 
-    if (object->m_obj->m_type & TYPEMASK_ITEM) {
+    if (object->m_obj->m_type & TYPE_ITEM) {
         return;
     }
 
@@ -6979,7 +6979,7 @@ void CGGameUI::UpdateInteractTarget() {
 
     uint32_t type = object->m_obj->m_type;
 
-    if (type & TYPEMASK_GAMEOBJECT) {
+    if (type & TYPE_GAMEOBJECT) {
         CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(object);
 
         if (!player->CGUnit_C::CanInteract(gameObject) || !gameObject->CheckRange()) {
@@ -6989,10 +6989,10 @@ void CGGameUI::UpdateInteractTarget() {
         return;
     }
 
-    if (type & TYPEMASK_UNIT) {
+    if (type & TYPE_UNIT) {
         CGUnit_C* unit = static_cast<CGUnit_C*>(object);
 
-        if (((type & TYPEMASK_PLAYER) && player->m_obj->m_guid != object->m_obj->m_guid && !player->CanCooperate(unit)) || (!(object->m_obj->m_type & TYPEMASK_PLAYER) && !player->CanInteract(unit))) {
+        if (((type & TYPE_PLAYER) && player->m_obj->m_guid != object->m_obj->m_guid && !player->CanCooperate(unit)) || (!(object->m_obj->m_type & TYPE_PLAYER) && !player->CanInteract(unit))) {
             clear = true;
         }
     }
@@ -7006,7 +7006,7 @@ void CGGameUI::UpdateInteractTarget() {
 // OFFSET: 0x00523F80
 static int32_t AreaSpiritHealerCheck(WOWGUID guid, void* param) {
     CGUnit_C* player = static_cast<CGUnit_C*>(param);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit && (unit->m_unit->m_unitNpcFlags & 0x8000) && unit->CanAssist(player, false) && unit->GetDistanceToPos(player->GetPosition()) <= 400.0f) {
         CGGameUI::SetAreaSpiritHealer(unit->m_obj->m_guid);
@@ -7018,7 +7018,7 @@ static int32_t AreaSpiritHealerCheck(WOWGUID guid, void* param) {
 // VERIFY: 5df5fddf manual
 // OFFSET: 0x00524010
 void CGGameUI::UpdateAreaSpiritHealerDistance() {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player || !(player->m_player->m_playerFlags & 0x10)) {
         CGGameUI::SetAreaSpiritHealer(WOWGUID());
@@ -7026,7 +7026,7 @@ void CGGameUI::UpdateAreaSpiritHealerDistance() {
     }
 
     if (CGGameUI::m_areaSpiritHealerGUID) {
-        CGUnit_C* healer = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_areaSpiritHealerGUID, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* healer = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGGameUI::m_areaSpiritHealerGUID, TYPE_UNIT, __FILE__, __LINE__));
 
         if (!healer || player->GetDistanceToPos(healer->GetPosition()) > 484.00003f) {
             CGGameUI::SetAreaSpiritHealer(WOWGUID());
@@ -7124,7 +7124,7 @@ void CGGameUI::SetRaidDifficulty(uint32_t difficulty, uint32_t unk, uint32_t inG
 // VERIFY: fc4f2074 manual
 // OFFSET: 0x0057EA60
 void CGGameUI::LoadMinimapTrackingState(const char* state) {
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     uint32_t classMask = player ? 1 << player->m_unit->m_unitFieldBytes0[1] : 0;
 
     for (uint32_t i = 0; i < 15; i++) {
@@ -7487,7 +7487,7 @@ void CGGameUI::Shutdown() {
     }
 
     if (ClntObjMgrGetActivePlayer() != WOWGUID()) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player) {
             player->ClearTrackingTarget(false, true);
@@ -8078,7 +8078,7 @@ void CGGameUI::StartMovie(uint32_t movieId) {
     input->m_mouseModeFlags |= 0x40;
     input->UpdateMouseMode(0);
 
-    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__)) {
         PlayMovie();
     }
 }

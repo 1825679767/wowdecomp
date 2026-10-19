@@ -847,7 +847,7 @@ bool FriendList::AllMatchFilter(CGPlayer_C* player) {
 int32_t FriendList::DoLocalWho() {
     int32_t added = 0;
     CHARACTER_INFO* info = ClientServices::GetCharacterInfo();
-    CGPlayer_C* self = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(info->m_guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* self = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(info->m_guid, TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!self) {
         return 0;
@@ -875,7 +875,7 @@ int32_t FriendList::DoLocalWho() {
             continue;
         }
 
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(guid, TYPE_PLAYER, __FILE__, __LINE__));
 
         if (!player) {
             continue;
@@ -1664,7 +1664,7 @@ void FriendList::HandleStatus(FRIEND_RESULT status, WOWGUID guid, CDataStore* ms
             this->FriendRemoved(guid);
             CGAutoCompleteName::RemoveFlags(guid, 0x4);
             friendChange = true;
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
             if (unit) {
                 unit->UpdateUnitNameColor();
@@ -1699,7 +1699,7 @@ void FriendList::HandleStatus(FRIEND_RESULT status, WOWGUID guid, CDataStore* ms
             CGAutoCompleteName::AddFlags(guid, 0x4, 0, nullptr);
             this->SetConnected(guid, 1);
             friendChange = true;
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
             if (!unit) {
                 record = g_nameDBCache.GetRecord(guid.m_guid, guid, FriendListNameCallbackWithSort, reinterpret_cast<void*>(error), false);

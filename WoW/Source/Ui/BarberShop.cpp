@@ -333,7 +333,7 @@ void CGBarberShop::EnterWorld() {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     int32_t race = player->m_unit->m_unitFieldBytes0[0];
     int32_t sex = player->m_player->m_playerBytes3[0];
 

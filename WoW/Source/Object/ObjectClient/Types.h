@@ -758,6 +758,9 @@ enum OBJECT_TYPE_ID {
     ID_DYNAMICOBJECT = 6,
     ID_CORPSE = 7,
     NUM_CLIENT_OBJECT_TYPES = 8,
+    // ID_AIGROUP = 8,
+    // ID_AREATRIGGER = 9,
+    // NUM_OBJECT_TYPES = 10,
 };
 
 #endif

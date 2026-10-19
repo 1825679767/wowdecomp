@@ -488,7 +488,7 @@ void CGMinimapFrame::OnLayerUpdate(float elapsedSec) {
     CSimpleFrame::OnLayerUpdate(elapsedSec);
 
     CGCamera* camera = CGWorldFrame::GetActiveCamera();
-    CGObject_C* target = ClntObjMgrObjectPtr(camera->m_targetGUID, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* target = ClntObjMgrObjectPtr(camera->m_targetGUID, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (target) {
         this->UpdateRotation(target->GetFacing());
@@ -678,7 +678,7 @@ void CGMinimapFrame::InitializeGame() {
 // OFFSET: 0x0057E980
 int32_t CGMinimapFrame::CountAvailableTrackingTypes() {
     int32_t count = 0;
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     uint32_t classMask = player ? 1 << player->m_unit->m_unitFieldBytes0[1] : 0;
 
     for (uint32_t i = 0; i < sizeof(CGMinimapFrame::s_trackingTypes) / sizeof(CGMinimapFrame::s_trackingTypes[0]); i++) {
@@ -696,7 +696,7 @@ int32_t CGMinimapFrame::CountAvailableTrackingTypes() {
 // OFFSET: 0x0057EB00
 const TrackingTypeInfo* CGMinimapFrame::GetTrackingTypeByIndex(int32_t index) {
     int32_t count = 0;
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     uint32_t classMask = player ? 1 << player->m_unit->m_unitFieldBytes0[1] : 0;
 
     for (uint32_t i = 0; i < sizeof(CGMinimapFrame::s_trackingTypes) / sizeof(CGMinimapFrame::s_trackingTypes[0]); i++) {
@@ -1724,7 +1724,7 @@ void CGMinimapFrame::Render() {
     }
 
     CGCamera* camera = CGWorldFrame::GetActiveCamera();
-    CGObject_C* target = ClntObjMgrObjectPtr(camera->m_targetGUID, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* target = ClntObjMgrObjectPtr(camera->m_targetGUID, TYPE_OBJECT, __FILE__, __LINE__);
     C3Vector position = target ? target->GetPosition() : camera->m_position;
     CMapEntity* worldObject;
 
@@ -2020,7 +2020,7 @@ void CGMinimapFrame::Render() {
 
         for (uint32_t i = 0; i < CGBattlefieldInfo::m_numVehicles; i++) {
             WOWGUID vehicleGuid = i < CGBattlefieldInfo::m_numVehicles ? CGBattlefieldInfo::m_vehicleGuids[i] : WOWGUID();
-            CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(vehicleGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(vehicleGuid, TYPE_UNIT, __FILE__, __LINE__));
 
             if (!vehicle || vehicle->IsDeadOrGhost()) {
                 continue;
@@ -2227,7 +2227,7 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
 
     MINIMAPENUMPARAM* data = static_cast<MINIMAPENUMPARAM*>(param);
     CGPlayer_C* player = data->m_player;
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object) {
         return 1;
@@ -2247,7 +2247,7 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
     uint32_t type;
     uint32_t objectType = object->m_obj->m_type;
 
-    if (objectType == (TYPEMASK_GAMEOBJECT | TYPEMASK_OBJECT)) {
+    if (objectType == (TYPE_GAMEOBJECT)) {
         CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(object);
 
         if (gameObject->IsTracked() && static_cast<CGUnit_C*>(player)->CanInteract(gameObject)) {
@@ -2270,11 +2270,11 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
             }
         }
     } else {
-        if (objectType == (TYPEMASK_PLAYER | TYPEMASK_UNIT | TYPEMASK_OBJECT)) {
+        if (objectType == (TYPE_PLAYER | TYPE_UNIT | TYPE_OBJECT)) {
             if (CGGameUI::IsInParty(guid) || CGGameUI::IsPartyMember(guid)) {
                 return 1;
             }
-        } else if (objectType != (TYPEMASK_UNIT | TYPEMASK_OBJECT)) {
+        } else if (objectType != (TYPE_UNIT | TYPE_OBJECT)) {
             return 1;
         }
 
@@ -2311,7 +2311,7 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
                         return 1;
                     }
 
-                    if (unit->m_obj->m_type & TYPEMASK_PLAYER) {
+                    if (unit->m_obj->m_type & TYPE_PLAYER) {
                         if (player->CanAttack(unit)) {
                             type = 2;
                         } else {
@@ -2364,13 +2364,13 @@ static void SetMemberData(WOWGUID guid, MEMBERINFO* member, CGPlayer_C* player, 
     float dx = s_playerPosition.x;
     float dy = s_playerPosition.y;
     C3Vector position(0.0f, 0.0f, 0.0f);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         if (unit->m_vehiclePassenger && unit->m_vehiclePassenger->m_state) {
             for (uint32_t i = 0; i < CGBattlefieldInfo::m_numVehicles; i++) {
                 WOWGUID vehicleGuid = i < CGBattlefieldInfo::m_numVehicles ? CGBattlefieldInfo::m_vehicleGuids[i] : WOWGUID();
-                CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(vehicleGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+                CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(vehicleGuid, TYPE_UNIT, __FILE__, __LINE__));
 
                 if (!vehicle) {
                     continue;
@@ -2430,7 +2430,7 @@ static void SetMemberData(WOWGUID guid, MEMBERINFO* member, CGPlayer_C* player, 
         position.y = state->m_posY;
 
         for (uint32_t i = 0; i < CGBattlefieldInfo::m_numVehicles; i++) {
-            CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGBattlefieldInfo::GetVehicleGuid(i), TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGBattlefieldInfo::GetVehicleGuid(i), TYPE_UNIT, __FILE__, __LINE__));
 
             if (!vehicle) {
                 continue;
@@ -2480,7 +2480,7 @@ static void SetMemberData(WOWGUID guid, MEMBERINFO* member, CGPlayer_C* player, 
 // VERIFY: 9e41d744 manual
 // OFFSET: 0x007F4320
 static void MinimapGetPartyMembers(MEMBERINFO* members) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return;
@@ -2501,7 +2501,7 @@ static void MinimapGetPartyMembers(MEMBERINFO* members) {
 // VERIFY: 18766529 manual
 // OFFSET: 0x007F4390
 static void MinimapGetRaidMembers(MEMBERINFO* members) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return;
@@ -3257,7 +3257,7 @@ void CGMinimapFrame::RenderInside(float scale, const C2Vector* center, const CIm
 // VERIFY: 2325fb71 manual
 // OFFSET: 0x0057E020
 static int32_t UpdateObjectInteractIcon(WOWGUID guid, void* param) {
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (object && (object->m_questStatus == 2 || object->m_questStatus == 3 || object->m_questStatus == 4)) {
         object->UpdateInteractIcon();
@@ -3345,7 +3345,7 @@ int32_t CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
             }
 
             const char* name;
-            CGObject_C* object = ClntObjMgrObjectPtr(info.m_guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+            CGObject_C* object = ClntObjMgrObjectPtr(info.m_guid, TYPE_OBJECT, __FILE__, __LINE__);
 
             if (object) {
                 name = object->GetObjectName();
@@ -3495,7 +3495,7 @@ int32_t CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent& evt) {
             }
 
             const char* name;
-            CGObject_C* object = ClntObjMgrObjectPtr(s_objInfo[i][j].m_guid, TYPEMASK_OBJECT, __FILE__, __LINE__);
+            CGObject_C* object = ClntObjMgrObjectPtr(s_objInfo[i][j].m_guid, TYPE_OBJECT, __FILE__, __LINE__);
 
             if (object) {
                 name = object->GetObjectName();

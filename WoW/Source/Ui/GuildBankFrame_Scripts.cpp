@@ -88,7 +88,7 @@ static int32_t Script_GetGuildBankMoney(lua_State* L) {
 // VERIFY: faf0c262 manual
 // OFFSET: 0x005A6B20
 static int32_t Script_GetGuildBankTabCost(lua_State* L) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return 0;
@@ -108,7 +108,7 @@ static int32_t Script_GetGuildBankTabCost(lua_State* L) {
 // VERIFY: be98e965 manual
 // OFFSET: 0x005A5F60
 static int32_t Script_CanWithdrawGuildBankMoney(lua_State* L) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && player->m_player->m_playerGuildid) {
         const GuildRankInfo& rank = CGGuildInfo::m_rankInfo[player->m_player->m_playerGuildrank];
@@ -307,7 +307,7 @@ static int32_t Script_DepositGuildBankMoney(lua_State* L) {
         return 0;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     uint32_t amount = static_cast<uint32_t>(lua_tonumber(L, 1));
 
     if (player->GetCoinage() >= amount) {

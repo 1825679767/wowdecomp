@@ -90,7 +90,7 @@ static void GetViewerPosition(C3Vector* position) {
         return;
     }
 
-    CGObject_C* object = ClntObjMgrObjectPtr(camera->m_targetGUID, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(camera->m_targetGUID, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (object) {
         *position = object->GetPosition();

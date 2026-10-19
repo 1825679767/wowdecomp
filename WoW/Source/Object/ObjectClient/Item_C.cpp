@@ -61,14 +61,14 @@ static TSHashTable<ITEMBYNAME, HASHKEY_UTF8I> s_itemByName;
 // VERIFY: 1390e3e9 manual
 // OFFSET: 0x00707720
 static int32_t OnUpdateStackCount(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (item->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
         WOWGUID requester = WOWGUID();
         ItemStats_C* stats = g_itemDBCache.GetRecord(item->m_obj->m_entryID, requester, nullptr, nullptr, false);
 
         if (stats && static_cast<int32_t>(stats->m_stackable) > 1) {
-            CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+            CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
             if (player) {
                 player->m_bag.UnlockItemsOfType(item->m_obj->m_entryID, 8);
@@ -101,7 +101,7 @@ static int32_t OnUpdateStackCount(WOWGUID guid, uint32_t fieldOffset, uint32_t f
 // VERIFY: 8b8a4f8e manual
 // OFFSET: 0x00707880
 static int32_t OnUpdateSpellCharges(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (item->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
         CGActionBar::UpdateItem(item->m_obj->m_entryID);
@@ -115,7 +115,7 @@ static int32_t OnUpdateSpellCharges(WOWGUID guid, uint32_t fieldOffset, uint32_t
 // OFFSET: 0x007078E0
 static void ItemIDChangedCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
     if (success) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player) {
             int32_t slot = player->m_bag.FindItemSlot(guid);
@@ -136,7 +136,7 @@ static void ItemIDChangedCacheCallback(int32_t id, const WOWGUID& guid, void* pa
 // VERIFY: d710e893 manual
 // OFFSET: 0x00707960
 static int32_t OnUpdateItemID(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (item && item->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
         int32_t oldItemId = *static_cast<const int32_t*>(oldValue);
@@ -159,10 +159,10 @@ static int32_t OnUpdateItemID(WOWGUID guid, uint32_t fieldOffset, uint32_t field
 // VERIFY: 8b4c986d manual
 // OFFSET: 0x00707A30
 static int32_t OnUpdateDynamicFlags(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (item && ((*static_cast<const uint8_t*>(oldValue) ^ item->m_item->m_itemFieldFlags) & 0x10)) {
-        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPE_PLAYER, __FILE__, __LINE__));
 
         if (owner && owner->m_obj->m_guid == ClntObjMgrGetActivePlayer() && static_cast<uint32_t>(owner->GetBag()->FindItemSlot(item->m_obj->m_guid)) <= 18) {
             CGCharacterInfo::UpdateInventoryAlerts();
@@ -175,10 +175,10 @@ static int32_t OnUpdateDynamicFlags(WOWGUID guid, uint32_t fieldOffset, uint32_t
 // VERIFY: 0a592725 manual
 // OFFSET: 0x00707AE0
 static int32_t OnUpdateDurability(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (item) {
-        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPE_PLAYER, __FILE__, __LINE__));
 
         if (owner) {
             int32_t oldDurability = *static_cast<const int32_t*>(oldValue);
@@ -218,7 +218,7 @@ static int32_t OnUpdateDurability(WOWGUID guid, uint32_t fieldOffset, uint32_t f
 // VERIFY: fa692b57 manual
 // OFFSET: 0x00708BD0
 static int32_t OnUpdateEnchantments(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (item) {
         item->UpdateEnchantments();
@@ -230,7 +230,7 @@ static int32_t OnUpdateEnchantments(WOWGUID guid, uint32_t fieldOffset, uint32_t
 // VERIFY: d37d5a1a manual
 // OFFSET: 0x007093F0
 void CGItem_C::ConfirmBindOnUse() {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGItem_C::s_bindOnUseItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(CGItem_C::s_bindOnUseItem, TYPE_ITEM, __FILE__, __LINE__));
 
     if (item) {
         item->UseItem(&CGItem_C::s_bindOnUseTarget, 1);
@@ -266,7 +266,7 @@ void CGItem_C::Shutdown() {
 // VERIFY: 546a5abe manual
 // OFFSET: 0x0070AE90
 static void LoadItemCacheCallback(int32_t id, const WOWGUID& guid, void* param, bool success) {
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (!item || !success) {
         return;
@@ -274,7 +274,7 @@ static void LoadItemCacheCallback(int32_t id, const WOWGUID& guid, void* param, 
 
     item->PostInitWithStats();
 
-    CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(item->m_item->m_itemFieldOwner, TYPE_PLAYER, __FILE__, __LINE__));
 
     if (owner) {
         owner->m_pendingItemCacheCount--;
@@ -335,7 +335,7 @@ void CGItem_C::RequestItemCacheInfo() {
         return;
     }
 
-    CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_item->m_itemFieldOwner, TYPE_PLAYER, __FILE__, __LINE__));
 
     if (owner) {
         owner->m_pendingItemCacheCount++;
@@ -622,7 +622,7 @@ int32_t CGItem_C::GetPrismaticSocketCount() {
 // VERIFY: 74178378 manual
 // OFFSET: 0x00708200
 void CGItem_C::OnRightClick() {
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && !player->IsDeadOrGhost()) {
         CDataStore msg;
@@ -967,7 +967,7 @@ bool CGItem_C::IsPermanentlyBoundForTrade() {
     }
 
     if ((this->m_item->m_itemFieldFlags >> 8) & 1) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && (this->m_item->m_itemFieldOwner) == player->m_obj->m_guid) {
             int32_t createPlayedTime = this->m_item->m_itemFieldCreatePlayedTime;
@@ -1368,7 +1368,7 @@ int32_t CGItem_C::IsLocked(const LockRec* lock, int32_t itemLevel, int32_t* spel
                 }
             }
         } else if (type == 1) {
-            CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+            CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
             if (player) {
                 locked = 1;
@@ -1417,7 +1417,7 @@ static int32_t FindItemCallback(const CGItem_C* item, void* param) {
 // VERIFY: cb205c40 manual
 // OFFSET: 0x0060BFE0
 void CGItem_C::SignalEvent(CGItem_C* item, uint32_t event) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return;
@@ -1500,7 +1500,7 @@ WOWGUID CGItem_C::s_bindOnUseItem;
 // VERIFY: 92b5a602 manual
 // OFFSET: 0x00708C20
 int32_t CGItem_C::UseItem(WOWGUID* target, int32_t confirmed) {
-    if ((this->m_obj->m_type & TYPEMASK_CONTAINER) || (this->m_itemFlags & 1)) {
+    if ((this->m_obj->m_type & TYPE_CONTAINER) || (this->m_itemFlags & 1)) {
         return 0;
     }
 
@@ -1511,7 +1511,7 @@ int32_t CGItem_C::UseItem(WOWGUID* target, int32_t confirmed) {
         return 0;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return 0;
@@ -1534,7 +1534,7 @@ int32_t CGItem_C::UseItem(WOWGUID* target, int32_t confirmed) {
     if (player->HasVehicleTransport() && !hasSpell) {
         WOWGUID transport;
         transport.m_guid = player->GetTransportGUID();
-        CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(transport, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(transport, TYPE_UNIT, __FILE__, __LINE__));
 
         if (vehicle) {
             VehicleSeatRec* seat = vehicle->GetVehicleSeatRec(player->m_movementData.m_transportSeat);
@@ -1750,7 +1750,7 @@ void CGItem_C::PostInitWithStats() {
     if (this->m_item->m_itemFieldOwner == ClntObjMgrGetActivePlayer()) {
         WOWGUID none = WOWGUID();
         ItemStats_C* stats = g_itemDBCache.GetRecord(this->m_obj->m_entryID, none, nullptr, nullptr, false);
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (stats->m_stackable <= 1) {
             CGGameUI::UnlockItem(this->m_obj->m_guid);
@@ -1890,7 +1890,7 @@ void CGItem_C::UpdateEnchantments() {
         return;
     }
 
-    CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_item->m_itemFieldOwner, TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!owner) {
         return;
@@ -1982,7 +1982,7 @@ void CGItem_C::Disable() {
 
     if (!(this->m_itemFlags & 0x2)) {
         g_itemDBCache.CancelCallback(this->m_obj->m_entryID, &LoadItemCacheCallback, this);
-        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_item->m_itemFieldOwner, TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* owner = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_item->m_itemFieldOwner, TYPE_PLAYER, __FILE__, __LINE__));
 
         if (owner) {
             owner->m_pendingItemCacheCount--;

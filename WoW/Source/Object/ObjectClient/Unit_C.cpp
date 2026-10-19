@@ -393,10 +393,10 @@ int32_t AuraStateUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // VERIFY: 24ad9714 manual
 // OFFSET: 0x00716860
 int32_t DisplayIDUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
-        if ((unit->m_obj->m_type & TYPEMASK_PLAYER) && unit->m_shapeshiftSuppressed && unit->m_displayId == unit->m_unit->m_unitFieldNativedisplayid) {
+        if ((unit->m_obj->m_type & TYPE_PLAYER) && unit->m_shapeshiftSuppressed && unit->m_displayId == unit->m_unit->m_unitFieldNativedisplayid) {
             unit->m_displayId = 0;
         }
 
@@ -413,7 +413,7 @@ int32_t DisplayIDUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // VERIFY: 9a7c1358 manual
 // OFFSET: 0x0071C9D0
 int32_t NPCFlagsHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->NPCFlagChanged(*static_cast<const uint32_t*>(oldValue));
@@ -425,7 +425,7 @@ int32_t NPCFlagsHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, 
 // VERIFY: 1cda89af manual
 // OFFSET: 0x007234D0
 int32_t UnitPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
     POWER_TYPE powerType = static_cast<POWER_TYPE>((fieldOffset - offsetof(CGUnitData, m_unitFieldPower)) / sizeof(uint32_t));
 
     if (g_predictedPowerCVar->m_intValue && (guid == ClntObjMgrGetActivePlayer() || guid == CGPetInfo::GetPet(0))) {
@@ -450,7 +450,7 @@ int32_t UnitPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // VERIFY: 7059bc7b manual
 // OFFSET: 0x007235C0
 int32_t UnitMaxPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
     POWER_TYPE powerType = static_cast<POWER_TYPE>((fieldOffset - offsetof(CGUnitData, m_unitFieldMaxpower)) / sizeof(uint32_t));
 
     if (powerType == POWER_TYPE_HEALTH) {
@@ -466,7 +466,7 @@ int32_t UnitMaxPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t f
 // VERIFY: 7de81979 manual
 // OFFSET: 0x00723620
 int32_t UnitDisplayPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
     POWER_TYPE powerType = static_cast<POWER_TYPE>(unit->m_unit->m_unitFieldBytes0[3]);
 
     if (powerType == POWER_TYPE_HEALTH) {
@@ -482,7 +482,7 @@ int32_t UnitDisplayPowerUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32
 // VERIFY: 3ebc37c4 manual
 // OFFSET: 0x00723680
 int32_t UnitFactionUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->UpdateReaction(false);
@@ -494,7 +494,7 @@ int32_t UnitFactionUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fi
 // VERIFY: 999f5087 manual
 // OFFSET: 0x00728D20
 int32_t UnitPvPFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->OnPvPFlagChanged(*static_cast<const uint8_t*>(oldValue));
@@ -506,7 +506,7 @@ int32_t UnitPvPFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fi
 // VERIFY: 66e89ebf manual
 // OFFSET: 0x00728D60
 int32_t UnitCharmedUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         if (unit->m_nameDesc) {
@@ -536,7 +536,7 @@ int32_t UnitCharmedUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fi
 // VERIFY: 6c375ecf manual
 // OFFSET: 0x00728E20
 int32_t VirtualItemIDMirrorHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->OnVirtualItemChanged(static_cast<VIRTUAL_MONSTER_SLOT>((fieldOffset - offsetof(CGUnitData, m_unitVirtualItemSlotId)) / sizeof(uint32_t)), *static_cast<const int32_t*>(oldValue));
@@ -548,7 +548,7 @@ int32_t VirtualItemIDMirrorHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t 
 // VERIFY: ce51f301 manual
 // OFFSET: 0x0072CEB0
 int32_t UnitModeUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         return 1;
@@ -576,7 +576,7 @@ int32_t UnitModeUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t field
 // VERIFY: 0ef13f6b manual
 // OFFSET: 0x0072CF70
 int32_t PetNameChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->GetUnitName(nullptr, 1);
@@ -594,7 +594,7 @@ int32_t PetNameChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldS
 // VERIFY: d2db77ea manual
 // OFFSET: 0x0072CFF0
 int32_t PetNumberChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->GetUnitName(nullptr, 1);
@@ -614,7 +614,7 @@ int32_t PetNumberChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // VERIFY: d1d8ea1c manual
 // OFFSET: 0x0072D070
 int32_t UnitScaleUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->HandleScaleUpdate(*static_cast<const float*>(oldValue));
@@ -627,7 +627,7 @@ int32_t UnitScaleUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // OFFSET: 0x00730050
 int32_t UnitLevelUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
     uint32_t oldLevel = *static_cast<const uint32_t*>(oldValue);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit && unit->m_unit->m_unitFieldLevel != oldLevel) {
         unit->OnLevelChange();
@@ -639,7 +639,7 @@ int32_t UnitLevelUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // VERIFY: 9c8df896 manual
 // OFFSET: 0x00737AA0
 int32_t SheatheStateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         return 1;
@@ -657,7 +657,7 @@ int32_t SheatheStateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSi
 // VERIFY: 42cd1170 manual
 // OFFSET: 0x0073F270
 int32_t UnitFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->OnFlagChanged(*static_cast<const uint32_t*>(oldValue));
@@ -669,7 +669,7 @@ int32_t UnitFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t field
 // VERIFY: 2c27c5d6 manual
 // OFFSET: 0x0073F2B0
 int32_t UnitFlag2UpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->OnFlag2Changed(*static_cast<const uint32_t*>(oldValue));
@@ -681,7 +681,7 @@ int32_t UnitFlag2UpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fiel
 // VERIFY: fff011c6 manual
 // OFFSET: 0x0073F2F0
 int32_t UnitVisFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->OnVisFlagChanged(*static_cast<const uint8_t*>(oldValue));
@@ -693,7 +693,7 @@ int32_t UnitVisFlagUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fi
 // VERIFY: acc767d0 manual
 // OFFSET: 0x0073F330
 int32_t UnitHealthUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
     unit->m_predictedHealth = unit->m_unit->m_unitFieldHealth;
 
     if (!(static_cast<float>(unit->m_unit->m_unitFieldHealth) / static_cast<int32_t>(unit->m_unit->m_unitFieldMaxhealth) < 0.2f) || unit->IsDeadOrGhost()) {
@@ -737,7 +737,7 @@ int32_t UnitHealthUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fie
 // OFFSET: 0x0073F460
 int32_t StandStateUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
     if (guid != ClntObjMgrGetActivePlayer()) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit) {
             unit->UpdateClientStandState(static_cast<UNITSTANDSTATE>(unit->m_unit->m_unitFieldBytes1[0]));
@@ -750,7 +750,7 @@ int32_t StandStateUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fie
 // VERIFY: 75f11945 manual
 // OFFSET: 0x0073F4B0
 int32_t EmoteStateUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->UpdateBaseAnimation(false, -1);
@@ -762,7 +762,7 @@ int32_t EmoteStateUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fie
 // VERIFY: 749adc30 manual
 // OFFSET: 0x0073F4F0
 int32_t ChannelSpellOrObjectChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         const WOWGUID* oldObject = static_cast<const WOWGUID*>(oldValue);
@@ -777,7 +777,7 @@ int32_t ChannelSpellOrObjectChangeHandler(WOWGUID guid, uint32_t fieldOffset, ui
 // VERIFY: 1cb365b5 manual
 // OFFSET: 0x007419C0
 int32_t MountDisplayIDUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->OnMountDisplayChanged(unit->m_unit->m_unitFieldMountdisplayid);
@@ -789,7 +789,7 @@ int32_t MountDisplayIDUpdateHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t
 // VERIFY: 47275a1f manual
 // OFFSET: 0x00741A00
 int32_t DynamicFlagsChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->OnDynamicFlagsChanged(*static_cast<const uint32_t*>(oldValue));
@@ -881,7 +881,7 @@ void CGUnit_C::UpdateDisplay(uint32_t time) {
 
     World::TickObject(this->m_worldObject);
 
-    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && !(this->m_obj->m_type & TYPEMASK_PLAYER) && this->IsAutoTracking()) {
+    if (this->m_obj->m_guid == CGUnit_C::s_activeMover && !(this->m_obj->m_type & TYPE_PLAYER) && this->IsAutoTracking()) {
         this->HandleTracking(0.0f, 0.0f);
     }
 
@@ -1011,7 +1011,7 @@ void CGUnit_C::UpdateWorldObject(int32_t a2) {
 
     if (this->m_vehicle && this->m_vehicle->m_vehicleRec) {
         for (CPassenger* passenger = this->m_vehicle->m_passengers.Head(); passenger; passenger = this->m_vehicle->m_passengers.Next(passenger)) {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
             unit->UpdateWorldObject(0);
         }
     }
@@ -1362,7 +1362,7 @@ void CGUnit_C::ModelLoaded(CM2Model* model) {
     }
 
     if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state == 3) {
-        CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* vehicle = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPE_UNIT, __FILE__, __LINE__));
 
         if (vehicle) {
             if (vehicle->m_vehicle && vehicle->m_vehicle->m_vehicleRec) {
@@ -1419,7 +1419,7 @@ void CGUnit_C::PreAnimate(CGWorldFrame* frame) {
     }
 
     if (CGGameUI::m_lockedTarget == this->m_obj->m_guid) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && ((player->m_combatModeFlags & 0x2) || player->m_combat.m_attacking.m_guid) && player->CanAttack(this)) {
             uint32_t flashTime = s_attackFlashTime;
@@ -2158,7 +2158,7 @@ void CGUnit_C::UpdateDelayedSpellVisualKits() {
 // VERIFY: 3961fdbc manual
 // OFFSET: 0x00729F40
 void CGUnit_C::RefreshInteractIcon() {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return;
@@ -2317,7 +2317,7 @@ void CGUnit_C::OnCollideFallLand(uint32_t a1, int32_t a2) {
     float distance = this->m_movementData.GetDistanceFallen();
 
     if (distance >= 70.0f || (distance > 13.0f && !this->IsDeadOrGhost())) {
-        if (!(this->m_obj->m_type & TYPEMASK_PLAYER) || (!(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000) && this->m_unit->m_unitFieldHealth > 0)) {
+        if (!(this->m_obj->m_type & TYPE_PLAYER) || (!(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000) && this->m_unit->m_unitFieldHealth > 0)) {
             this->PlayUnitSound(UNITSOUNDTYPE_INJURY_FALL, 1);
         }
 
@@ -2797,7 +2797,7 @@ void CGUnit_C::ClearLockedTarget() {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && player->m_combat.m_attacking.m_guid) {
         player->SetCombatMode();
@@ -3088,7 +3088,7 @@ const char* CGUnit_C::GetVisibleUnitName(const char** realm, int32_t a2) {
 
     uint32_t high = static_cast<uint32_t>(this->m_obj->m_guid.m_guid >> 32);
 
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) || ((high & 0xF0F00000) == 0xF0500000 && this->GetControllingPlayer())) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) || ((high & 0xF0F00000) == 0xF0500000 && this->GetControllingPlayer())) {
         return this->GetUnitName(realm, a2);
     }
 
@@ -3110,11 +3110,11 @@ bool CGUnit_C::IsHatedTowards(const CGUnit_C* unit) const {
 // VERIFY: c1172a2b manual
 // OFFSET: 0x00729740
 bool CGUnit_C::CanAttack(const CGUnit_C* unit) const {
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && (static_cast<const CGPlayer_C*>(this)->m_player->m_playerFlags & 0x80000)) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && (static_cast<const CGPlayer_C*>(this)->m_player->m_playerFlags & 0x80000)) {
         return false;
     }
 
-    if ((unit->m_obj->m_type & TYPEMASK_PLAYER) && (static_cast<const CGPlayer_C*>(unit)->m_player->m_playerFlags & 0x10)) {
+    if ((unit->m_obj->m_type & TYPE_PLAYER) && (static_cast<const CGPlayer_C*>(unit)->m_player->m_playerFlags & 0x10)) {
         if (!this->m_creatureCacheEntry || !(this->m_creatureCacheEntry->m_typeFlags & 0x2)) {
             return false;
         }
@@ -3303,7 +3303,7 @@ uint64_t CGUnit_C::GetComboPointTarget() const {
 // OFFSET: 0x00735EF0
 void CGUnit_C::PropagateSmoothFacing(float facing) {
     for (CPassenger* passenger = this->m_vehicle->m_passengers.Head(); passenger; passenger = this->m_vehicle->m_passengers.Next(passenger)) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
         unit->UpdateSmoothFacing(&facing);
     }
 }
@@ -3311,7 +3311,7 @@ void CGUnit_C::PropagateSmoothFacing(float facing) {
 // VERIFY: 6d763ece manual
 // OFFSET: 0x0071F5C0
 bool CGUnit_C::IsDuelingWith(CGUnit_C* unit) {
-    if (!unit || !(unit->m_obj->m_type & TYPEMASK_UNIT)) {
+    if (!unit || !(unit->m_obj->m_type & TYPE_UNIT)) {
         return false;
     }
 
@@ -3321,8 +3321,8 @@ bool CGUnit_C::IsDuelingWith(CGUnit_C* unit) {
         return dueling;
     }
 
-    CGUnit_C* controller = (this->m_obj->m_type & TYPEMASK_PLAYER) ? this : this->GetControllingPlayer();
-    CGUnit_C* otherController = (unit->m_obj->m_type & TYPEMASK_PLAYER) ? unit : unit->GetControllingPlayer();
+    CGUnit_C* controller = (this->m_obj->m_type & TYPE_PLAYER) ? this : this->GetControllingPlayer();
+    CGUnit_C* otherController = (unit->m_obj->m_type & TYPE_PLAYER) ? unit : unit->GetControllingPlayer();
 
     if (controller && otherController) {
         CGPlayerLocalData* player = static_cast<CGPlayer_C*>(controller)->m_player;
@@ -3414,11 +3414,11 @@ void CGUnit_C::UpdateSmoothFacing(float* facingOffset) {
         if (!this->GetClientStandState() && !emoteFacing && !(data->m_unitFieldFlags & 0x40000) && !(data->m_unitFieldFlags2 & 0x8000)) {
             if (this->m_clientFlags & 0x1) {
                 facing = this->m_scriptedFacing;
-            } else if (!(data->m_unitFieldFlags & 0x1000000) && !(this->m_obj->m_type & TYPEMASK_PLAYER) && this->CanTurnWhileCasting()) {
+            } else if (!(data->m_unitFieldFlags & 0x1000000) && !(this->m_obj->m_type & TYPE_PLAYER) && this->CanTurnWhileCasting()) {
                 bool seatAllows = true;
 
                 if (this->HasVehicleTransport()) {
-                    CGUnit_C* transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_UNIT, __FILE__, __LINE__));
+                    CGUnit_C* transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPE_UNIT, __FILE__, __LINE__));
 
                     if (transport) {
                         VehicleSeatRec* seat = transport->GetVehicleSeatRec(this->m_movementData.m_transportSeat);
@@ -3460,7 +3460,7 @@ void CGUnit_C::UpdateSmoothFacing(float* facingOffset) {
                         }
                     }
 
-                    CGUnit_C* targetUnit = haveTarget ? static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_UNIT, __FILE__, __LINE__)) : nullptr;
+                    CGUnit_C* targetUnit = haveTarget ? static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPE_UNIT, __FILE__, __LINE__)) : nullptr;
 
                     if (targetUnit) {
                         C3Vector targetPosition = targetUnit->GetPosition();
@@ -3470,7 +3470,7 @@ void CGUnit_C::UpdateSmoothFacing(float* facingOffset) {
                         if (facingOffset) {
                             facing = CMath::normalizeangle0to2pi_(angle - *facingOffset);
                         } else if (this->HasVehicleTransport()) {
-                            CGUnit_C* transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_UNIT, __FILE__, __LINE__));
+                            CGUnit_C* transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPE_UNIT, __FILE__, __LINE__));
 
                             if (transport) {
                                 facing = CMath::normalizeangle0to2pi_(angle - transport->GetSmoothFacing());
@@ -3499,7 +3499,7 @@ void CGUnit_C::UpdateSmoothFacing(float* facingOffset) {
 
         this->m_smoothTarget.Chase(&facing, movementInfo->m_smoothFacingChaseRate, CGWorldFrame::s_currentWorldFrame->m_elapsedSec);
         this->m_smoothTarget.m_value = CMath::normalizeangle0to2pi_(this->m_smoothTarget.m_value);
-    } else if ((this->m_unit->m_unitFieldFlags & 0x8) && !(this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    } else if ((this->m_unit->m_unitFieldFlags & 0x8) && !(this->m_obj->m_type & TYPE_PLAYER)) {
         if (facing + 3.1415927f < this->m_smoothTarget.m_value) {
             facing = facing + 6.2831855f;
         } else if (facing - 3.1415927f > this->m_smoothTarget.m_value) {
@@ -4241,7 +4241,7 @@ int32_t CGUnit_C::ShouldSplitTorsoAnimation(uint32_t animId, uint32_t currentAni
     int32_t casting = (!this->m_unit->m_unitChannelSpell && (this->m_animationState & 0x400)) ? 1 : 0;
     int32_t split = 0;
 
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         split = static_cast<CGPlayer_C*>(this)->m_dance != 0;
     }
 
@@ -4709,12 +4709,12 @@ void CGUnit_C::PlayBaseAnimation(uint32_t animId, int32_t flags) {
 // VERIFY: 3458f5db manual
 // OFFSET: 0x00729C70
 int32_t CGUnit_C::ShouldRenderObjectName(uint32_t flags) const {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     const WOWGUID* controllerGuid = this->m_unit->m_unitFieldCharmedby.m_guid ? &this->m_unit->m_unitFieldCharmedby : &this->m_unit->m_unitFieldCreatedby;
     CGUnit_C* controller = nullptr;
 
     if (controllerGuid->m_guid) {
-        controller = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controllerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        controller = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controllerGuid, TYPE_UNIT, __FILE__, __LINE__));
     }
 
     if (!this->CanBeTargetted() || (CGGameUI::m_visible && (this->m_namePlateFrame || this->m_chatBubble))) {
@@ -4729,7 +4729,7 @@ int32_t CGUnit_C::ShouldRenderObjectName(uint32_t flags) const {
         return 1;
     }
 
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         if (player->CanCooperate(this)) {
             return (flags >> 7) & 0x1;
         }
@@ -4741,7 +4741,7 @@ int32_t CGUnit_C::ShouldRenderObjectName(uint32_t flags) const {
         return 0;
     }
 
-    if (controller && (controller->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (controller && (controller->m_obj->m_type & TYPE_PLAYER)) {
         bool friendly = !player->CanAttack(this);
 
         if (!friendly && (this->m_unit->m_unitFieldBytes1[2] & 0x2)) {
@@ -4760,7 +4760,7 @@ int32_t CGUnit_C::ShouldRenderObjectName(uint32_t flags) const {
             return (flags >> 12) & 0x1;
         }
 
-        CGUnit_C* charmer = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCharmedby, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* charmer = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCharmedby, TYPE_UNIT, __FILE__, __LINE__));
 
         if (player->CanCooperate(this)) {
             return (flags >> 8) & 0x1;
@@ -4803,7 +4803,7 @@ int32_t CGUnit_C::IsLowPrioritySelection(uint32_t time) {
         return 1;
     }
 
-    if (this->m_obj->m_type != (TYPEMASK_OBJECT | TYPEMASK_UNIT) || this->m_unit->m_unitFieldHealth > 0) {
+    if (this->m_obj->m_type != HEIR_TYPE_UNIT || this->m_unit->m_unitFieldHealth > 0) {
         return 0;
     }
 
@@ -4888,7 +4888,7 @@ int32_t CGUnit_C::IsInPartyOrRaid() const {
 // VERIFY: 64b57fd6 manual
 // OFFSET: 0x00723050
 bool CGUnit_C::CanBeSpellClickedByLocalPlayer(const CGPlayer_C* player) const {
-    if (!(this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (!(this->m_obj->m_type & TYPE_PLAYER)) {
         return false;
     }
 
@@ -4953,7 +4953,7 @@ bool CGUnit_C::CanInteractNow(const CGUnit_C* unit) const {
 // VERIFY: 2220328b manual
 // OFFSET: 0x00731260
 void CGUnit_C::OnRightClick() {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player || (player->m_unit->m_unitFieldHealth <= 0 && !player->GetPossessedUnit())) {
         return;
@@ -4985,7 +4985,7 @@ void CGUnit_C::OnRightClick() {
                     return;
                 }
 
-                if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+                if (this->m_obj->m_type & TYPE_PLAYER) {
                     if (!player->CanAssist(this, false)) {
                         player->HandleSkinning(this, player->CanAutoInteract(), true);
                     }
@@ -5043,7 +5043,7 @@ void CGUnit_C::OnRightClick() {
 
         target = this->m_obj->m_guid;
         player->CombatModeEnter(target, 0, player->CanAutoInteract());
-        CGPlayer_C* mover = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGPlayer_C* mover = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPE_UNIT, __FILE__, __LINE__));
 
         if (mover && mover->m_obj->m_guid == player->m_obj->m_guid && !mover->IsInVehicle()) {
             mover->CTMAttackUnit(this);
@@ -6273,7 +6273,7 @@ void CGUnit_C::SetPredictedHealth(int32_t health) {
 float CGUnit_C::GetMaxCameraHeight() const {
     float height = this->m_movementData.m_collisionHeight;
 
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) || height <= 2.0277777f) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) || height <= 2.0277777f) {
         return height - 0.16666667f;
     }
 
@@ -6308,7 +6308,7 @@ int32_t CGUnit_C::IsDeepInLiquid() const {
 // VERIFY: b255f639 manual
 // OFFSET: 0x00718A90
 bool CGUnit_C::DoNotLogDeath() const {
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         return false;
     }
 
@@ -6340,18 +6340,18 @@ CGUnit_C* CGUnit_C::GetControllingPlayer() {
 
     if (*controller) {
         controller = this->GetCharmerOrCreatorGuid();
-        unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controller, TYPEMASK_UNIT, __FILE__, __LINE__));
+        unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controller, TYPE_UNIT, __FILE__, __LINE__));
     }
 
     if (!unit) {
         return nullptr;
     }
 
-    if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (!(unit->m_obj->m_type & TYPE_PLAYER)) {
         controller = unit->GetCharmerOrCreatorGuid();
-        unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controller, TYPEMASK_UNIT, __FILE__, __LINE__));
+        unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controller, TYPE_UNIT, __FILE__, __LINE__));
 
-        if (!unit || !(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+        if (!unit || !(unit->m_obj->m_type & TYPE_PLAYER)) {
             return nullptr;
         }
     }
@@ -6513,7 +6513,7 @@ UNITSTANDSTATE CGUnit_C::GetClientStandState() const {
 // VERIFY: 232c855f manual
 // OFFSET: 0x0071A430
 int32_t CGUnit_C::HasBakedNpcTexture() const {
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && this->m_modelData && (this->m_modelData->m_flags & 0x4) && this->m_displayInfoExtra && (this->m_displayInfoExtra->m_flags & 0x1)) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && this->m_modelData && (this->m_modelData->m_flags & 0x4) && this->m_displayInfoExtra && (this->m_displayInfoExtra->m_flags & 0x1)) {
         return 1;
     }
 
@@ -6670,7 +6670,7 @@ bool CGUnit_C::CanGainXP() const {
         return false;
     }
 
-    CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(unit->m_unitFieldCreatedby, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(unit->m_unitFieldCreatedby, TYPE_PLAYER, __FILE__, __LINE__));
     return owner && owner->m_unit->m_unitFieldBytes0[1] == 3;
 }
 
@@ -6691,7 +6691,7 @@ int32_t CGUnit_C::IsPVPLeader() const {
 // VERIFY: 931b5cd6 manual
 // OFFSET: 0x0071B740
 void CGUnit_C::GetRangedAttackSkillRank(int32_t& rank, int32_t& bonus) {
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         static_cast<CGPlayer_C*>(this)->GetRangedAttackSkillRank(rank, bonus);
         return;
     }
@@ -6762,16 +6762,16 @@ bool CGUnit_C::IsClientControlled() const {
 
     if (flags & 0x1000000) {
         const WOWGUID* controller = this->GetCharmerOrCreatorGuid();
-        CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controller, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*controller, TYPE_UNIT, __FILE__, __LINE__));
 
-        if (!owner || !(owner->m_obj->m_type & TYPEMASK_PLAYER)) {
+        if (!owner || !(owner->m_obj->m_type & TYPE_PLAYER)) {
             return false;
         }
 
         return !(owner->m_unit->m_unitFieldFlags & 0x1);
     }
 
-    if (!(this->m_obj->m_type & TYPEMASK_PLAYER) || unit->m_unitFieldCharmedby) {
+    if (!(this->m_obj->m_type & TYPE_PLAYER) || unit->m_unitFieldCharmedby) {
         return false;
     }
 
@@ -7090,11 +7090,11 @@ int32_t CGUnit_C::UsesNpcBakedTexture() const {
         return 0;
     }
 
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && this->m_modelData && (this->m_modelData->m_flags & 0x4) && this->m_displayInfoExtra && (this->m_displayInfoExtra->m_flags & 0x1)) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && this->m_modelData && (this->m_modelData->m_flags & 0x4) && this->m_displayInfoExtra && (this->m_displayInfoExtra->m_flags & 0x1)) {
         return 1;
     }
 
-    if (!this->m_displayInfoExtra && (this->m_obj->m_type & TYPEMASK_PLAYER) && (this->m_modelData->m_flags & 0x4)) {
+    if (!this->m_displayInfoExtra && (this->m_obj->m_type & TYPE_PLAYER) && (this->m_modelData->m_flags & 0x4)) {
         return 1;
     }
 
@@ -7104,7 +7104,7 @@ int32_t CGUnit_C::UsesNpcBakedTexture() const {
 // VERIFY: 97e6d037 manual
 // OFFSET: 0x0071C600
 int32_t __stdcall CGUnit_C::MaybeDeferTeleport(const WOWGUID* transport) {
-    return *transport && !ClntObjMgrObjectPtr(*transport, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    return *transport && !ClntObjMgrObjectPtr(*transport, TYPE_OBJECT, __FILE__, __LINE__);
 }
 
 // VERIFY: 013dc073 auto
@@ -7158,7 +7158,7 @@ PetPersonalityRec* CGUnit_C::GetPetPersonality() const {
         return nullptr;
     }
 
-    CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(unit->m_unitFieldCreatedby, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(unit->m_unitFieldCreatedby, TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!owner || owner->m_unit->m_unitFieldBytes0[1] != 3) {
         return nullptr;
@@ -7198,7 +7198,7 @@ int32_t CGUnit_C::IsControlledByViewer() const {
 // VERIFY: e21be286 manual
 // OFFSET: 0x007202C0
 int32_t CGUnit_C::CanEquipItemsInThisForm() const {
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && this->m_modelData && (this->m_modelData->m_flags & 0x4) && this->m_displayInfoExtra && (this->m_displayInfoExtra->m_flags & 0x1)) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && this->m_modelData && (this->m_modelData->m_flags & 0x4) && this->m_displayInfoExtra && (this->m_displayInfoExtra->m_flags & 0x1)) {
         return 1;
     }
 
@@ -7222,7 +7222,7 @@ uint32_t CGUnit_C::GetVoiceSex() const {
         return this->m_displayInfoExtra->m_displaySexID;
     }
 
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         return static_cast<const CGPlayer_C*>(this)->m_player->m_playerBytes3[0];
     }
 
@@ -7248,7 +7248,7 @@ bool CGUnit_C::IsShapeShifted() const {
 // VERIFY: ea61250a manual
 // OFFSET: 0x00721CF0
 void CGUnit_C::PreemptivelyCancelShapeshift() {
-    if (!(this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (!(this->m_obj->m_type & TYPE_PLAYER)) {
         return;
     }
 
@@ -7356,7 +7356,7 @@ C44Matrix CGUnit_C::GetMatrix() const {
     matrix.RotateAroundZ(this->GetRawFacing());
 
     if (this->GetTransportGUID()) {
-        CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPE_OBJECT, __FILE__, __LINE__);
         matrix *= transport->GetMatrix();
     }
 
@@ -7428,7 +7428,7 @@ float CopySign(float value, float sign) {
 // VERIFY: d2d3074a manual
 // OFFSET: 0x007167C0
 int32_t AnimTierChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         int32_t tier = unit->m_unit->m_unitFieldBytes1[3];
@@ -7444,7 +7444,7 @@ int32_t AnimTierChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t field
 // VERIFY: f5f87576 manual
 // OFFSET: 0x00716900
 int32_t TargetChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->m_targetChangeTime = OsGetAsyncTimeMs();
@@ -7532,12 +7532,12 @@ void CGUnit_C::BuildSmoothMatrix(C44Matrix& matrix) const {
     matrix.d1 = position.y;
     matrix.d2 = position.z;
 
-    CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (transport) {
         C44Matrix transportMatrix;
 
-        if (transport->m_obj->m_type & TYPEMASK_UNIT) {
+        if (transport->m_obj->m_type & TYPE_UNIT) {
             static_cast<CGUnit_C*>(transport)->BuildSmoothMatrix(transportMatrix);
         } else {
             transportMatrix = transport->GetMatrix();
@@ -7639,7 +7639,7 @@ uint64_t CGUnit_C::GetCameraRelativeTo() const {
 // VERIFY: 2b2bc1ef manual
 // OFFSET: 0x0071CA10
 int32_t HoverHeightChangeHandler(WOWGUID guid, uint32_t fieldOffset, uint32_t fieldSize, const void* oldValue, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->m_movementData.m_hoverHeight = unit->m_unit->m_unitFieldHoverheight;
@@ -7793,7 +7793,7 @@ void CGUnit_C::GetAttackSkillRank(int32_t hand, int32_t& rank, int32_t& bonus) c
 void CGUnit_C::SetMaxAlpha(float alpha) {
     CGUnit_C* transport;
 
-    if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state == 3 && (transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_UNIT, __FILE__, __LINE__)))) {
+    if (this->m_vehiclePassenger && this->m_vehiclePassenger->m_state == 3 && (transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPE_UNIT, __FILE__, __LINE__)))) {
         CM2Model* model = this->GetObjectModel();
 
         if (model && model->m_attachParent == transport->GetObjectModel()) {
@@ -7809,7 +7809,7 @@ void CGUnit_C::SetMaxAlpha(float alpha) {
 
     if (vehicle && vehicle->m_vehicleRec) {
         for (CPassenger* passenger = vehicle->m_passengers.Head(); passenger; passenger = vehicle->m_passengers.Next(passenger)) {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
 
             if (unit) {
                 unit->SetMaxAlpha(alpha);
@@ -7837,7 +7837,7 @@ int32_t CGUnit_C::ShouldFadeIn() const {
         return 1;
     }
 
-    CGUnit_C* transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* transport = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!transport) {
         return 0;
@@ -7944,12 +7944,12 @@ int32_t CGUnit_C::GetModelFileName(const char** name) const {
 // OFFSET: 0x00717FC0
 C3Vector CGUnit_C::BuildSmoothPosition() const {
     C3Vector position = this->GetRawPosition();
-    CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (transport) {
         C44Matrix transportMatrix;
 
-        if (transport->m_obj->m_type & TYPEMASK_UNIT) {
+        if (transport->m_obj->m_type & TYPE_UNIT) {
             static_cast<CGUnit_C*>(transport)->BuildSmoothMatrix(transportMatrix);
         } else {
             transportMatrix = transport->GetMatrix();
@@ -8027,7 +8027,7 @@ bool CGUnit_C::AnimSuppressesMovement() const {
 int32_t Packet_SMSG_MOUNTSPECIAL_ANIM(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     WOWGUID guid;
     msg->Get(guid.m_guid);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit && !unit->IsDeepInLiquid() && guid != ClntObjMgrGetActivePlayer()) {
         unit->OnSpecialMountAnim();
@@ -8214,7 +8214,7 @@ bool CGUnit_C::DoNotPlayWoundAnim() const {
 // VERIFY: 54fb09a7 manual
 // OFFSET: 0x007221D0
 void CGUnit_C::CreateFishingLineEffect() {
-    CGObject_C* bobber = ClntObjMgrObjectPtr(this->m_unit->m_unitFieldChannelObject, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+    CGObject_C* bobber = ClntObjMgrObjectPtr(this->m_unit->m_unitFieldChannelObject, TYPE_GAMEOBJECT, __FILE__, __LINE__);
 
     if (!bobber || !this->m_unit->m_unitChannelSpell || static_cast<CGGameObject_C*>(bobber)->m_gameObject->m_typeID != 17) {
         return;
@@ -8319,7 +8319,7 @@ bool CGUnit_C::IsPetBarUsed() const {
         return false;
     }
 
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player || player->GetTransportGUID() != this->m_obj->m_guid.m_guid || !this->m_vehicle) {
         return true;
@@ -8366,7 +8366,7 @@ float CGUnit_C::GetSmoothFacing() const {
             break;
         }
 
-        unit = static_cast<const CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ unit->GetTransportGUID() }, TYPEMASK_UNIT, __FILE__, __LINE__));
+        unit = static_cast<const CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ unit->GetTransportGUID() }, TYPE_UNIT, __FILE__, __LINE__));
     }
 
     return unit->m_movement->GetFacing(facing);
@@ -8489,13 +8489,13 @@ CreatureSoundDataRec* CGUnit_C::GetSoundData() const {
 // VERIFY: 0a47e594 manual
 // OFFSET: 0x00720860
 void CGUnit_C::PlayNPCSound(bool greeting) {
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         return;
     }
 
     CGUnit_C::s_lastNPCSoundGUID = WOWGUID();
 
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player || player->IsDeadOrGhost() || SI2::IsPlaying(&this->m_npcInteractSound)) {
         return;
@@ -8688,7 +8688,7 @@ void CGUnit_C::ApplyGuildTabard(int32_t guildId, const WOWGUID& guid, void* para
         return;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         return;
@@ -9049,21 +9049,21 @@ bool CGUnit_C::ShouldKneelForLoot() const {
     }
 
     const WOWGUID& lootTarget = static_cast<const CGPlayer_C*>(this)->m_lootTarget;
-    CGObject_C* target = ClntObjMgrObjectPtr(lootTarget, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* target = ClntObjMgrObjectPtr(lootTarget, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!target) {
         return false;
     }
 
-    if ((target->m_obj->m_type & TYPEMASK_GAMEOBJECT) && static_cast<CGGameObject_C*>(target)->m_gameObject->m_typeID == 17) {
+    if ((target->m_obj->m_type & TYPE_GAMEOBJECT) && static_cast<CGGameObject_C*>(target)->m_gameObject->m_typeID == 17) {
         return false;
     }
 
-    if ((target->m_obj->m_type & TYPEMASK_UNIT) && static_cast<CGUnit_C*>(target)->m_unit->m_unitFieldHealth > 0) {
+    if ((target->m_obj->m_type & TYPE_UNIT) && static_cast<CGUnit_C*>(target)->m_unit->m_unitFieldHealth > 0) {
         return false;
     }
 
-    return !(target->m_obj->m_type & TYPEMASK_ITEM);
+    return !(target->m_obj->m_type & TYPE_ITEM);
 }
 
 // VERIFY: 1fe5076b manual
@@ -9190,7 +9190,7 @@ int32_t CGUnit_C::ChooseLootAnim(uint32_t flags, uint32_t* animId) {
 // VERIFY: ecaae3a5 auto
 // OFFSET: 0x0071BCE0
 int32_t CGUnit_C::IsInFrontOfTargetWithGuid(const WOWGUID& guid) const {
-    CGObject_C* target = ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__);
+    CGObject_C* target = ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__);
     return target && this->IsMovingToward(target);
 }
 
@@ -9236,7 +9236,7 @@ void CGUnit_C::SetKeyBoneSequenceSpeed(CM2Model* model, uint32_t boneId, float s
     }
 
     for (CPassenger* passenger = vehicle->m_passengers.Head(); passenger; passenger = vehicle->m_passengers.Next(passenger)) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit && unit->m_vehiclePassenger && unit->m_vehiclePassenger->OverridesModelAnimation()) {
             unit->SetKeyBoneSequenceSpeed(unit->GetObjectModel(), boneId, speed, 1);
@@ -9305,7 +9305,7 @@ void CGUnit_C::SetKeyBoneSequence(CM2Model* model, uint32_t boneId, uint32_t seq
     }
 
     for (CPassenger* passenger = this->m_vehicle->m_passengers.Head(); passenger; passenger = this->m_vehicle->m_passengers.Next(passenger)) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit && unit->m_vehiclePassenger && unit->m_vehiclePassenger->OverridesModelAnimation()) {
             CM2Model* unitModel = unit->GetObjectModel();
@@ -9342,7 +9342,7 @@ int32_t CGUnit_C::UnsetKeyBoneSequence(CM2Model* model, uint32_t boneId, int32_t
 
     if (vehicle && vehicle->m_vehicleRec && vehicle->IsMirroringAnimsToPassengers() && model == this->GetObjectModel()) {
         for (CPassenger* passenger = this->m_vehicle->m_passengers.Head(); passenger; passenger = this->m_vehicle->m_passengers.Next(passenger)) {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
 
             if (unit && unit->m_vehiclePassenger && unit->m_vehiclePassenger->OverridesModelAnimation()) {
                 unit->UnsetKeyBoneSequence(unit->GetObjectModel(), boneId, blend, primary, 1);
@@ -9373,7 +9373,7 @@ void CGUnit_C::SetBoneSequenceTimeRecursive(CM2Model* model, uint32_t boneId, ui
     }
 
     for (CPassenger* passenger = this->m_vehicle->m_passengers.Head(); passenger; passenger = this->m_vehicle->m_passengers.Next(passenger)) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit && unit->m_vehiclePassenger && unit->m_vehiclePassenger->OverridesModelAnimation()) {
             unit->SetBoneSequenceTimeRecursive(unit->GetObjectModel(), boneId, time, 1);
@@ -9406,7 +9406,7 @@ void CGUnit_C::UpdateBoneSequenceFlags(CM2Model* model, int32_t freeze, int32_t 
     }
 
     for (CPassenger* passenger = this->m_vehicle->m_passengers.Head(); passenger; passenger = this->m_vehicle->m_passengers.Next(passenger)) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit && unit->m_vehiclePassenger && unit->m_vehiclePassenger->OverridesModelAnimation()) {
             unit->UpdateBoneSequenceFlags(unit->GetObjectModel(), freeze, 1);
@@ -9432,7 +9432,7 @@ void CGUnit_C::ResetKeyBoneSequences() {
 
                 if (vehicle && vehicle->m_vehicleRec && vehicle->IsMirroringAnimsToPassengers() && model == this->GetObjectModel()) {
                     for (CPassenger* passenger = this->m_vehicle->m_passengers.Head(); passenger; passenger = this->m_vehicle->m_passengers.Next(passenger)) {
-                        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+                        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*passenger->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
 
                         if (unit && unit->m_vehiclePassenger && unit->m_vehiclePassenger->OverridesModelAnimation()) {
                             unit->UnsetKeyBoneSequence(unit->GetObjectModel(), torsoBone, 1, 1, 1);
@@ -9774,7 +9774,7 @@ void CGUnit_C::RefreshDataPointers() {
         }
     }
 
-    if (this->m_obj->m_type == (TYPEMASK_UNIT | TYPEMASK_OBJECT)) {
+    if (this->m_obj->m_type == (TYPE_UNIT | TYPE_OBJECT)) {
         this->m_creatureCacheEntry = g_creatureDBCache.GetRecord(this->m_obj->m_entryID, this->m_obj->m_guid, &CreatureQueryCallback, nullptr, false);
     }
 
@@ -9822,7 +9822,7 @@ void CGUnit_C::PostInit(uint32_t time, const CClientObjCreate& create, bool reen
     this->m_movementData.UpdateTransportStatus(create);
     this->m_modelScale = this->GetModelScale(this->m_unit->m_unitFieldDisplayid);
 
-    if (!(this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (!(this->m_obj->m_type & TYPE_PLAYER)) {
         this->OnMoveUpdate(time, 1, 1);
     }
 
@@ -9922,7 +9922,7 @@ void CGUnit_C::PostInit(uint32_t time, const CClientObjCreate& create, bool reen
     this->m_movementData.m_hoverHeight = this->m_unit->m_unitFieldHoverheight;
     this->CreateOrDestroyObjectEffectManager();
 
-    if (reenable && !(this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (reenable && !(this->m_obj->m_type & TYPE_PLAYER)) {
         this->m_animStandState = UNIT_NUMSTANDSTATES;
     }
 
@@ -9984,7 +9984,7 @@ void CGUnit_C::PostInit(uint32_t time, const CClientObjCreate& create, bool reen
 
     CMissileCollision::MaybeAddUnitToSystem(this);
 
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (CGBattlefieldInfo::m_instanceType == 4 && this->m_unit->m_unitFieldPetnumber && player && player->UnitReaction(this) <= UNIT_REACTION_HOSTILE) {
         WOWGUID petGuid = this->m_obj->m_guid;
@@ -10205,7 +10205,7 @@ void CGUnit_C::PostReenable() {
     this->m_floodsafeTurnPitch[2] = 0;
     this->m_floodsafeTurnPitch[3] = 0;
 
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (CGBattlefieldInfo::m_instanceType == 4 && this->m_unit->m_unitFieldPetnumber && player && player->UnitReaction(this) <= UNIT_REACTION_HOSTILE) {
         WOWGUID petGuid = this->m_obj->m_guid;
@@ -10229,7 +10229,7 @@ void CGUnit_C::SetStorage(uint32_t* storage, uint32_t* saved) {
 // VERIFY: 3ba2c3ae manual
 // OFFSET: 0x00729220
 void CGUnit_C::OnDeath() {
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         static_cast<CGPlayer_C*>(this)->OnDeath();
     }
 
@@ -10295,7 +10295,7 @@ void CGUnit_C::ClearTrackingTarget(bool a2, bool a3) {
     uint32_t time = OsGetAsyncTimeMs();
 
     if (a2) {
-        CGObject_C* target = ClntObjMgrObjectPtr(CGUnit_C::s_trackingGUID, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* target = ClntObjMgrObjectPtr(CGUnit_C::s_trackingGUID, TYPE_OBJECT, __FILE__, __LINE__);
 
         if (target) {
             C3Vector targetPosition = target->GetPosition();
@@ -10492,7 +10492,7 @@ void CGUnit_C::Disable() {
 
     WOWGUID guid = this->m_obj->m_guid;
 
-    if (!CGGameUI::IsRaidMemberOrPet(guid) || this->IsDuelingWith(static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)))) {
+    if (!CGGameUI::IsRaidMemberOrPet(guid) || this->IsDuelingWith(static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__)))) {
         CGGameUI::BreakTarget(this->m_obj->m_guid);
     }
 
@@ -10668,7 +10668,7 @@ void CGUnit_C::Disable() {
 
     this->m_clientFlags &= ~0x1000000;
 
-    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (this->GetControllingPlayer() == player) {
         Spell_C_RemovePeriodicClientTrigger(this->m_obj->m_guid, 0);
@@ -10694,7 +10694,7 @@ void CGUnit_C::OnSetRawFacingLocal(uint32_t eventTime, float facing) {
 
     this->m_movementData.OnSetRawFacingLocal(eventTime, facing);
 
-    if (this->GetClientStandState() == UNIT_SLEEPING && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (this->GetClientStandState() == UNIT_SLEEPING && (this->m_obj->m_type & TYPE_PLAYER)) {
         static_cast<CGPlayer_C*>(this)->ChangeStandState(UNIT_STANDING);
     }
 }
@@ -10707,7 +10707,7 @@ void CGUnit_C::OnSetPitchLocal(uint32_t eventTime, float pitch) {
     }
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && player->IsLooting()) {
             CGGameUI::CloseLoot(true, true, false);
@@ -10752,7 +10752,7 @@ void CGUnit_C::OnTurnToAngleLocal(uint32_t eventTime, float facing) {
 
     this->m_movementData.OnTurnToAngleLocal(eventTime, facing);
 
-    if (this->GetClientStandState() == UNIT_SLEEPING && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (this->GetClientStandState() == UNIT_SLEEPING && (this->m_obj->m_type & TYPE_PLAYER)) {
         static_cast<CGPlayer_C*>(this)->ChangeStandState(UNIT_STANDING);
     }
 }
@@ -10766,7 +10766,7 @@ void CGUnit_C::OnPitchToAngleLocal(uint32_t eventTime, float pitch) {
 
     this->m_movementData.OnPitchToAngleLocal(eventTime, pitch);
 
-    if (this->GetClientStandState() == UNIT_SLEEPING && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (this->GetClientStandState() == UNIT_SLEEPING && (this->m_obj->m_type & TYPE_PLAYER)) {
         static_cast<CGPlayer_C*>(this)->ChangeStandState(UNIT_STANDING);
     }
 }
@@ -10780,7 +10780,7 @@ void CGUnit_C::OnFallLocal(uint32_t eventTime) {
 // VERIFY: c6dbcf00 manual
 // OFFSET: 0x0071A360
 void CGUnit_C::ChangeStandState(UNITSTANDSTATE standState) {
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         static_cast<CGPlayer_C*>(this)->ChangeStandState(standState);
     }
 }
@@ -10817,7 +10817,7 @@ void CGUnit_C::OnMoveStartLocal(uint32_t eventTime, int32_t forward) {
     }
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && player->IsLooting()) {
             CGGameUI::CloseLoot(true, true, false);
@@ -10835,7 +10835,7 @@ void CGUnit_C::OnStrafeStartLocal(uint32_t eventTime, int32_t left) {
     }
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && player->IsLooting()) {
             CGGameUI::CloseLoot(true, true, false);
@@ -10853,7 +10853,7 @@ void CGUnit_C::OnAscendDescendStartLocal(uint32_t eventTime, int32_t ascend) {
     }
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && player->IsLooting()) {
             CGGameUI::CloseLoot(true, true, false);
@@ -10877,7 +10877,7 @@ void CGUnit_C::OnTurnStartLocal(uint32_t eventTime, int32_t left) {
     }
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && player->IsLooting()) {
             CGGameUI::CloseLoot(true, true, false);
@@ -10895,7 +10895,7 @@ void CGUnit_C::OnPitchStartLocal(uint32_t eventTime, int32_t up) {
     }
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && player->IsLooting()) {
             CGGameUI::CloseLoot(true, true, false);
@@ -10913,7 +10913,7 @@ void CGUnit_C::OnPitchStopLocal(uint32_t eventTime) {
     }
 
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && player->IsLooting()) {
             CGGameUI::CloseLoot(true, true, false);
@@ -10927,7 +10927,7 @@ void CGUnit_C::OnPitchStopLocal(uint32_t eventTime) {
 // OFFSET: 0x0072EB80
 void CGUnit_C::TryJumpOrAscend(uint32_t eventTime) {
     if (this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && player->IsLooting()) {
             CGGameUI::CloseLoot(true, true, false);
@@ -11626,7 +11626,7 @@ bool CGUnit_C::IsCastNotInterruptible() const {
         return false;
     }
 
-    bool isPlayer = (this->m_obj->m_type & TYPEMASK_PLAYER) != 0;
+    bool isPlayer = (this->m_obj->m_type & TYPE_PLAYER) != 0;
     uint32_t interruptSpecial = isPlayer ? 0 : CGSpellBook::m_interruptSpecialSchoolMask;
     uint32_t silenceSpecial = isPlayer ? 0 : CGSpellBook::m_silenceSpecialSchoolMask;
 
@@ -11699,8 +11699,8 @@ bool CGUnit_C::ProcessCastNotInterruptible(const SpellRec* spell) {
         return false;
     }
 
-    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__) && spell->m_preventionType == 1) {
-        bool isPlayer = (this->m_obj->m_type & TYPEMASK_PLAYER) != 0;
+    if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__) && spell->m_preventionType == 1) {
+        bool isPlayer = (this->m_obj->m_type & TYPE_PLAYER) != 0;
         uint32_t interrupt = CGSpellBook::m_interruptSchoolMask;
         uint32_t silence = CGSpellBook::m_silenceSchoolMask;
         uint32_t interruptSpecial = isPlayer ? 0 : CGSpellBook::m_interruptSpecialSchoolMask;
@@ -11865,7 +11865,7 @@ bool CGUnit_C::CanAttackNow(const CGUnit_C* unit) const {
             return false;
         }
 
-        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (!player || !player->GetPossessedUnit()) {
             return false;
@@ -11907,7 +11907,7 @@ bool CGUnit_C::CanCooperate(const CGUnit_C* unit) const {
 // VERIFY: 3e3b824a manual
 // OFFSET: 0x0072A680
 void CGUnit_C::HandleNPCFeedback() {
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         return;
     }
 
@@ -11915,7 +11915,7 @@ void CGUnit_C::HandleNPCFeedback() {
         return;
     }
 
-    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!mover || !this->IsNotHostileTo(mover) || !mover->IsNotHostileTo(this)) {
         return;
@@ -11988,7 +11988,7 @@ bool CGUnit_C::IgnoresAuraState(const SpellRec* spell) const {
     const CGUnit_C* unit = this;
 
     while (unit->m_unit->m_unitFieldCreatedby) {
-        const CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(unit->m_unit->m_unitFieldCreatedby, TYPEMASK_UNIT, __FILE__, __LINE__));
+        const CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(unit->m_unit->m_unitFieldCreatedby, TYPE_UNIT, __FILE__, __LINE__));
 
         if (!creator) {
             break;
@@ -12026,7 +12026,7 @@ const char* CGUnit_C::GetUnitName(const char** realm, int32_t followOverride) {
 
             for (uint32_t j = 0; j < sizeof(spell.m_effectAura) / sizeof(spell.m_effectAura[0]); j++) {
                 if (spell.m_effectAura[j] == 279 && ((1 << j) & aura->m_flags)) {
-                    CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(aura->m_creator, TYPEMASK_UNIT, __FILE__, __LINE__));
+                    CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(aura->m_creator, TYPE_UNIT, __FILE__, __LINE__));
 
                     if (creator) {
                         return creator->GetUnitName(realm, 0);
@@ -12038,7 +12038,7 @@ const char* CGUnit_C::GetUnitName(const char** realm, int32_t followOverride) {
         }
     }
 
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         WOWGUID requester = this->m_obj->m_guid;
         NameCache* name = g_nameDBCache.GetRecord(this->m_obj->m_guid.m_guid, requester, NameQueryCallback, nullptr, true);
 
@@ -12083,7 +12083,7 @@ char* CGUnit_C::GetUnitChosenTitle(char* buffer, uint32_t size, int32_t showTitl
         *lines = 1;
     }
 
-    if (!(this->m_obj->m_type & TYPEMASK_PLAYER) || !showTitle || static_cast<int32_t>(static_cast<CGPlayer_C*>(this)->m_player->m_playerChosenTitle) <= 0) {
+    if (!(this->m_obj->m_type & TYPE_PLAYER) || !showTitle || static_cast<int32_t>(static_cast<CGPlayer_C*>(this)->m_player->m_playerChosenTitle) <= 0) {
         SStrCopy(buffer, this->GetUnitName(nullptr, 1), size);
         return buffer;
     }
@@ -12201,7 +12201,7 @@ void CGUnit_C::SetHandItemSpellEffectsVisible(int32_t visible) {
 int32_t CGUnit_C::HandleMovementPacket(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         return unit->OnMoveEvent(msgId, time, msg);
@@ -12216,7 +12216,7 @@ int32_t CGUnit_C::HandleMovementPacket(void* param, NETMESSAGE msgId, uint32_t t
 int32_t CGUnit_C::HandleSpeedChangePacket(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         return unit->OnSpeedChangeEvent(msgId, time, msg);
@@ -12231,7 +12231,7 @@ int32_t CGUnit_C::HandleSpeedChangePacket(void* param, NETMESSAGE msgId, uint32_
 int32_t Packet_MoveMode(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         return unit->OnMoveModePacket(time, msgId, msg);
@@ -12245,7 +12245,7 @@ int32_t Packet_MoveMode(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
 int32_t Packet_SplineMoveEffect(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         return unit->OnSplineMoveEffectPacket(msgId);
@@ -12262,7 +12262,7 @@ int32_t Packet_SplineSpeedChange(void* param, NETMESSAGE msgId, uint32_t time, C
     *msg >> guid;
     float value;
     msg->Get(value);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         return unit->OnSplineSpeedChange(msgId, value);
@@ -12277,7 +12277,7 @@ int32_t Packet_SplineSpeedChange(void* param, NETMESSAGE msgId, uint32_t time, C
 int32_t Packet_MSG_MOVE_TIME_SKIPPED(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         msg->m_read = msg->m_size;
@@ -12906,7 +12906,7 @@ C3Vector* ComputeTransportRelativeMovement(const C3Vector& position, C3Vector* p
 // VERIFY: 6f9ef4df manual
 // OFFSET: 0x00718930
 void CGUnit_C::FaceTarget(const WOWGUID& target, int32_t flush) {
-    CGObject_C* object = ClntObjMgrObjectPtr(target, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(target, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (object) {
         C3Vector targetPosition = object->GetPosition();
@@ -12920,7 +12920,7 @@ void CGUnit_C::FaceTarget(const WOWGUID& target, int32_t flush) {
 int32_t CGUnit_C::HandleMonsterMovePacket(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         msg->m_read = msg->m_size;
@@ -13214,7 +13214,7 @@ void CGUnit_C::OnMonsterMove(CDataStore* msg, NETMESSAGE msgId, uint64_t transpo
         this->m_vehicle->UpdateWorldMatrix();
     }
 
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         static_cast<CGPlayer_C*>(this)->ChangeStandState(UNIT_STANDING);
     }
 
@@ -13242,7 +13242,7 @@ void CGUnit_C::SetActiveMover(uint64_t guid) {
     }
 
     uint32_t now = OsGetAsyncTimeMs();
-    CGUnit_C* oldMover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* oldMover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPE_UNIT, __FILE__, __LINE__));
 
     if (oldMover) {
         if (oldMover->m_obj->m_guid == CGUnit_C::s_activeMover && CGUnit_C::s_trackingType != TRACKTYPE_NONE) {
@@ -13274,11 +13274,11 @@ void CGUnit_C::SetActiveMover(uint64_t guid) {
         ClientServices::Send2(&msg);
     }
 
-    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPE_UNIT, __FILE__, __LINE__));
 
     if (mover) {
         if (CGUnit_C::s_activeMover != ClntObjMgrGetActivePlayer()) {
-            CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+            CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
             if (player->m_movement->m_flags & 0x200) {
                 mover->m_movementData.m_flags |= 0x200;
@@ -13300,7 +13300,7 @@ void CGUnit_C::OnMovementInitiated(bool clearTracking, bool keepLoot) {
     }
 
     if (!keepLoot && this->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGUnit_C* player = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
         if (player && player->IsLooting()) {
             CGGameUI::CloseLoot(true, true, false);
@@ -13438,7 +13438,7 @@ void CGUnit_C::PlayAttackerRound(const ATTACKROUNDINFO& info) {
 int32_t Packet_AuraUpdate(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         msg->m_read = msg->m_size;
@@ -13703,7 +13703,7 @@ void CGUnit_C::SetSheatheState(uint32_t showWeapons, int32_t instant, int32_t no
         showWeapons = CGUnit_C::ResolveSheathState(showWeapons, this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false), this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, false));
     }
 
-    if (showWeapons == WEAPONMODE_RANGEDMODE && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (showWeapons == WEAPONMODE_RANGEDMODE && (this->m_obj->m_type & TYPE_PLAYER)) {
         ChrClassesRec* classRec = g_chrClassesDB.GetRecord(this->m_unit->m_unitFieldBytes0[1]);
 
         if (!classRec || (classRec->m_flags & 0x8)) {
@@ -13796,7 +13796,7 @@ void CGUnit_C::InitActiveMover(const WOWGUID& guid) {
 
     uint32_t time = OsGetAsyncTimeMs();
     CGInputControl::GetActive()->UpdatePlayer(time, 1);
-    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPE_UNIT, __FILE__, __LINE__));
 
     if (mover->m_movement->m_flags & 0xC0100F) {
         mover->m_movementData.UpdateHeartbeatTimerA(time);
@@ -13805,7 +13805,7 @@ void CGUnit_C::InitActiveMover(const WOWGUID& guid) {
     WOWGUID transportGuid = WOWGUID{ mover->GetTransportGUID() };
 
     if (transportGuid) {
-        CGGameObject_C* transport = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(transportGuid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+        CGGameObject_C* transport = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(transportGuid, TYPE_GAMEOBJECT, __FILE__, __LINE__));
 
         if (transport) {
             MovementSetTransportUpdateTime(transport->m_typeData->GetTransportUpdateTime());
@@ -13943,11 +13943,11 @@ int32_t CGUnit_C::InitializeComponent() {
         if (!result) {
             return result;
         }
-    } else if ((this->m_obj->m_type & TYPEMASK_PLAYER) && (this->m_modelData->m_flags & 0x4)) {
+    } else if ((this->m_obj->m_type & TYPE_PLAYER) && (this->m_modelData->m_flags & 0x4)) {
         this->InitializeExtendedDisplay(static_cast<CGPlayer_C*>(this), 0);
     }
 
-    if (!(this->m_obj->m_type & TYPEMASK_PLAYER) || !static_cast<CGPlayer_C*>(this)->RefreshVisibleItems()) {
+    if (!(this->m_obj->m_type & TYPE_PLAYER) || !static_cast<CGPlayer_C*>(this)->RefreshVisibleItems()) {
         if ((!CGPlayer_C::IsXRayVisionActive() || !this->UsesNpcBakedTexture()) && this->m_characterComponent && this->m_displayInfoExtra) {
             for (uint32_t i = 0; i < 11; i++) {
                 int32_t displayId = this->m_displayInfoExtra->m_npcitemDisplay[i];
@@ -14049,7 +14049,7 @@ int32_t CGUnit_C::ShowRangedWeapon(bool sheathed, bool* rightHand) {
         }
     }
 
-    if (this->m_characterComponent && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (this->m_characterComponent && (this->m_obj->m_type & TYPE_PLAYER)) {
         if (sheathed) {
             this->m_characterComponent->RemoveItem(ITEMSLOT_11);
         } else if (!isRightHand) {
@@ -14201,7 +14201,7 @@ void CGUnit_C::SetSheatheStateInstant() {
             } else if (this->m_previousSheatheState == WEAPONMODE_RANGEDMODE) {
                 this->m_worldModel->DetachAllChildrenById(35);
 
-                if (this->m_characterComponent && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+                if (this->m_characterComponent && (this->m_obj->m_type & TYPE_PLAYER)) {
                     this->m_characterComponent->RemoveItem(ITEMSLOT_11);
                 }
 
@@ -14369,7 +14369,7 @@ void CGUnit_C::SetSheatheStateAnimate() {
         case WEAPONMODE_RANGEDMODE: {
             this->m_worldModel->DetachAllChildrenById(35);
 
-            if (this->m_characterComponent && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+            if (this->m_characterComponent && (this->m_obj->m_type & TYPE_PLAYER)) {
                 this->m_characterComponent->RemoveItem(ITEMSLOT_11);
             }
 
@@ -14434,7 +14434,7 @@ void CGUnit_C::SetSheatheStateAnimate() {
 // VERIFY: 8939b08f manual
 // OFFSET: 0x0073C090
 void CGUnit_C::AnimEndCallback(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         if (!unit->m_mountModel && unit->m_vehicle && unit->m_vehicle->m_vehicleRec && unit->m_vehicle->IsBoneAnimPlaying(boneId)) {
@@ -14565,7 +14565,7 @@ void CGUnit_C::AnimEndHandler(CM2Model* model, uint32_t boneId, uint32_t sequenc
 
     this->m_animationState = (this->m_animationState & ~0x30) | 0x40;
 
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(this)->m_dance) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && static_cast<CGPlayer_C*>(this)->m_dance) {
         static_cast<CGPlayer_C*>(this)->DanceMoveAnimComplete();
         return;
     }
@@ -14929,7 +14929,7 @@ void CGUnit_C::OnKeyBoneAnimEnd(CM2Model* model, uint32_t boneId, uint32_t seque
 
         if (vehicle && vehicle->m_vehicleRec && vehicle->IsMirroringAnimsToPassengers() && model == this->GetObjectModel()) {
             for (CPassenger* rider = vehicle->m_passengers.Head(); rider; rider = vehicle->m_passengers.Next(rider)) {
-                CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*rider->m_ownerGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+                CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*rider->m_ownerGuid, TYPE_UNIT, __FILE__, __LINE__));
 
                 if (unit && unit->m_vehiclePassenger && unit->m_vehiclePassenger->OverridesModelAnimation()) {
                     unit->UnsetKeyBoneSequence(unit->GetObjectModel(), boneId, 1, 1, 1);
@@ -15000,9 +15000,9 @@ int32_t CGUnit_C::GetPrecastStartAnim() {
 // OFFSET: 0x007395C0
 static int32_t UpdateAllSmoothFacingCallback(WOWGUID guid, void* param) {
     CGCamera* camera = static_cast<CGCamera*>(param);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__));
 
-    if (unit && (unit->m_obj->m_type & TYPEMASK_UNIT) && unit->m_obj->m_guid != camera->m_targetGUID && !unit->HasVehicleTransport()) {
+    if (unit && (unit->m_obj->m_type & TYPE_UNIT) && unit->m_obj->m_guid != camera->m_targetGUID && !unit->HasVehicleTransport()) {
         unit->UpdateSmoothFacing(nullptr);
     }
 
@@ -15027,13 +15027,13 @@ static bool IsOwnedByActivePlayer(const WOWGUID& guid, bool* isPlayer) {
         return true;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit || !unit->GetCharmerOrCreatorGuid()->m_guid) {
         return false;
     }
 
-    CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*unit->GetCharmerOrCreatorGuid(), TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*unit->GetCharmerOrCreatorGuid(), TYPE_UNIT, __FILE__, __LINE__));
 
     if (*unit->GetCharmerOrCreatorGuid() == ClntObjMgrGetActivePlayer() || (owner && *owner->GetCharmerOrCreatorGuid() == ClntObjMgrGetActivePlayer())) {
         *isPlayer = false;
@@ -15177,7 +15177,7 @@ int32_t CGUnit_C::IsSeatedInVehicle() const {
 int32_t Packet_SMSG_FORCE_DISPLAY_UPDATE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->UpdateDisplayInfo(1);
@@ -15191,7 +15191,7 @@ int32_t Packet_SMSG_FORCE_DISPLAY_UPDATE(void* param, NETMESSAGE msgId, uint32_t
 int32_t Packet_SMSG_STANDSTATE_UPDATE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     uint8_t standState = 0;
     msg->Get(standState);
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player) {
         player->UpdateClientStandState(static_cast<UNITSTANDSTATE>(standState));
@@ -15207,7 +15207,7 @@ int32_t Packet_SMSG_FLIGHT_SPLINE_SYNC(void* param, NETMESSAGE msgId, uint32_t t
     SmartGUID guid;
     msg->Get(progress);
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->m_movementData.ComputeSplineDurationModifier(progress);
@@ -15223,7 +15223,7 @@ int32_t Packet_SMSG_HEALTH_UPDATE(void* param, NETMESSAGE msgId, uint32_t time, 
     uint32_t health;
     *msg >> guid;
     msg->Get(health);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->m_predictedHealth = health;
@@ -15241,7 +15241,7 @@ int32_t Packet_SMSG_POWER_UPDATE(void* param, NETMESSAGE msgId, uint32_t time, C
     *msg >> guid;
     msg->Get(powerType);
     msg->Get(value);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->SetPredictedPower(static_cast<POWER_TYPE>(powerType), value);
@@ -15308,9 +15308,9 @@ void CGUnit_C::ExecuteClientControlUpdate(WOWGUID guid, uint8_t state) {
             CGUnit_C::SetActiveMover(0);
         }
     } else if (this->m_obj->m_guid == CGUnit_C::s_activeMover && !(this->m_clientFlags & 0x400)) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_OBJECT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPE_OBJECT, __FILE__, __LINE__));
 
-        if (unit && (unit->m_obj->m_type & TYPEMASK_UNIT) && (unit->m_clientFlags & 0x400)) {
+        if (unit && (unit->m_obj->m_type & TYPE_UNIT) && (unit->m_clientFlags & 0x400)) {
             CGUnit_C::SetActiveMover(target.m_guid);
             return;
         }
@@ -15440,7 +15440,7 @@ const char* CGUnit_C::GetDisplayRaceName(const CGUnit_C* unit, const NameCache* 
 // OFFSET: 0x0071A540
 int32_t CGUnit_C::GetDisplayRaceGender(const CGUnit_C* unit, const NameCache* name) {
     if (unit) {
-        if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+        if (!(unit->m_obj->m_type & TYPE_PLAYER)) {
             return unit->m_unit->m_unitFieldBytes0[2];
         }
     } else if (!name) {
@@ -15489,7 +15489,7 @@ const char* CGUnit_C::GetDisplayClassName(const CGUnit_C* unit, const NameCache*
 // OFFSET: 0x0071A620
 int32_t CGUnit_C::GetDisplayClassGender(const CGUnit_C* unit, const NameCache* name) {
     if (unit) {
-        if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+        if (!(unit->m_obj->m_type & TYPE_PLAYER)) {
             return unit->m_unit->m_unitFieldBytes0[2];
         }
     } else if (!name) {
@@ -15607,7 +15607,7 @@ void CGUnit_C::PlayEmotes(const QUESTGIVEREMOTEQUEUE& emotes) {
 // OFFSET: 0x0072AA70
 const char* CGUnit_C::GetDisplayRaceName(const CGUnit_C* unit, const NameCache* name) {
     if (unit) {
-        if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+        if (!(unit->m_obj->m_type & TYPE_PLAYER)) {
             return const_cast<CGUnit_C*>(unit)->GetUnitName(nullptr, 1);
         }
     } else if (!name) {
@@ -15621,7 +15621,7 @@ const char* CGUnit_C::GetDisplayRaceName(const CGUnit_C* unit, const NameCache* 
 // OFFSET: 0x0072AAB0
 const char* CGUnit_C::GetDisplayClassName(const CGUnit_C* unit, const NameCache* name) {
     if (unit) {
-        if (!(unit->m_obj->m_type & TYPEMASK_PLAYER)) {
+        if (!(unit->m_obj->m_type & TYPE_PLAYER)) {
             return const_cast<CGUnit_C*>(unit)->GetUnitName(nullptr, 1);
         }
     } else if (!name) {
@@ -15975,7 +15975,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
                     pet = &this->m_unit->m_unitFieldSummon;
                 }
 
-                CGUnit_C* petUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*pet, TYPEMASK_UNIT, __FILE__, __LINE__));
+                CGUnit_C* petUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*pet, TYPE_UNIT, __FILE__, __LINE__));
 
                 if (petUnit) {
                     int32_t learn = spell->m_effectTriggerSpell[i];
@@ -15999,7 +15999,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     int32_t reason;
 
     if (this->m_unit->m_unitFieldHealth > 0) {
-        if ((this->m_obj->m_type & TYPEMASK_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFieldBytes[0] & 0x4)) {
+        if ((this->m_obj->m_type & TYPE_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFieldBytes[0] & 0x4)) {
             Spell_C_SpellFailed(cast, spell, 105, -1, -1, false);
             return false;
         }
@@ -16215,7 +16215,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
         return false;
     }
 
-    if ((spell->m_attributesExB & 0x10000) && (this->m_obj->m_type & TYPEMASK_PLAYER) && (this->GetActivePlayerFieldBytes0() & 0x1)) {
+    if ((spell->m_attributesExB & 0x10000) && (this->m_obj->m_type & TYPE_PLAYER) && (this->GetActivePlayerFieldBytes0() & 0x1)) {
         Spell_C_PetTameFailure(2);
         Spell_C_SpellFailed(cast, spell, 27, -1, -1, false);
         return false;
@@ -17168,7 +17168,7 @@ int32_t CGUnit_C::VerifyAttackIconPressed(WOWGUID* target, int32_t useGiven, int
             return 0;
         }
     } else {
-        if ((this->m_obj->m_type & TYPEMASK_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x1000000)) {
+        if ((this->m_obj->m_type & TYPE_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x1000000)) {
             if (showErrors) {
                 CGGameUI::DisplayError(ERR_CLIENT_LOCKED_OUT);
             }
@@ -17277,7 +17277,7 @@ int32_t CGUnit_C::VerifyAttackIconPressed(WOWGUID* target, int32_t useGiven, int
         }
 
         if (haveTarget) {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*target, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*target, TYPE_UNIT, __FILE__, __LINE__));
 
             if (unit && this->IsFriendly(unit)) {
                 *target = WOWGUID();
@@ -17308,7 +17308,7 @@ checkTarget:
         CGGameUI::Target(*target);
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*target, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*target, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         return 0;
@@ -17381,8 +17381,8 @@ int32_t CGUnit_C::OnAttackIconPressed(WOWGUID target, int32_t a3) {
         }
 
         if (petAttack) {
-            CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPEMASK_UNIT, __FILE__, __LINE__));
-            CGUnit_C* victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGPetInfo::GetPet(0), TYPE_UNIT, __FILE__, __LINE__));
+            CGUnit_C* victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPE_UNIT, __FILE__, __LINE__));
 
             if (!pet || !victim || !pet->CanAttackNow(victim)) {
                 petAttack = 0;
@@ -17398,7 +17398,7 @@ int32_t CGUnit_C::OnAttackIconPressed(WOWGUID target, int32_t a3) {
         CGPetInfo::PetAttackTarget(target, a3);
 
         if (CGPetInfo::GetPet(0) == CGUnit_C::s_activeMover) {
-            CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* mover = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPE_UNIT, __FILE__, __LINE__));
 
             if (mover && mover->HasVehicleTransport()) {
                 mover->CheckVehicleExitOnCast();
@@ -17525,7 +17525,7 @@ bool CGUnit_C::CalculateThreat(const WOWGUID& guid, uint8_t* status, uint8_t* ra
         if (guid == this->m_highestThreatGuid) {
             *percent = 100.0f;
         } else {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
             float range;
 
             if (unit && (range = this->GetMeleeRange(unit), range * range >= this->GetDistanceToPos(unit->GetPosition()))) {
@@ -17799,7 +17799,7 @@ void CGUnit_C::RemoveThreat(const WOWGUID& guid) {
 int32_t Packet_ThreatUpdate(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->UpdateThreat(msg, msgId == SMSG_HIGHEST_THREAT_UPDATE);
@@ -17815,7 +17815,7 @@ int32_t Packet_ThreatUpdate(void* param, NETMESSAGE msgId, uint32_t time, CDataS
 int32_t Packet_SMSG_THREAT_REMOVE(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         *msg >> guid;
@@ -17833,7 +17833,7 @@ int32_t Packet_SMSG_THREAT_REMOVE(void* param, NETMESSAGE msgId, uint32_t time, 
 int32_t Packet_SMSG_THREAT_CLEAR(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->ClearThreatList();
@@ -17849,7 +17849,7 @@ int32_t Packet_SMSG_AI_REACTION(void* param, NETMESSAGE msgId, uint32_t time, CD
     msg->Get(guid.m_guid);
     uint32_t reaction;
     msg->Get(reaction);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         if (reaction == AI_REACT_ALERT) {
@@ -17869,7 +17869,7 @@ int32_t Packet_SMSG_PET_ACTION_SOUND(void* param, NETMESSAGE msgId, uint32_t tim
     msg->Get(guid.m_guid);
     uint32_t action;
     msg->Get(action);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         if (!action) {
@@ -17997,7 +17997,7 @@ void CGUnit_C::OnLevelChange() {
     effect->m_flags |= 0x20;
     effect->Release();
 
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         static_cast<CGPlayer_C*>(this)->OnLevelChange();
     } else {
         this->UpdateModelScale(nullptr);
@@ -18043,7 +18043,7 @@ void CGUnit_C::ReadLootList(CDataStore* msg) {
 int32_t Packet_SMSG_LOOT_LIST(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     WOWGUID guid;
     msg->Get(guid.m_guid);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->ReadLootList(msg);
@@ -18124,7 +18124,7 @@ void CGUnit_C::OnDynamicFlagsChanged(uint32_t oldFlags) {
 // VERIFY: 7f96f710 manual
 // OFFSET: 0x00718F00
 static int32_t PetColorUpdateProc(WOWGUID guid, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         return 1;
@@ -18184,7 +18184,7 @@ void CGUnit_C::CompleteMountTransition() {
 // VERIFY: 845aa7ca manual
 // OFFSET: 0x00723730
 void CGUnit_C::RefreshComponentItem(int32_t itemSlot) {
-    if (this->CanEquipItemsInThisForm() && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (this->CanEquipItemsInThisForm() && (this->m_obj->m_type & TYPE_PLAYER)) {
         if (!this->GetBag()) {
             return;
         }
@@ -18230,7 +18230,7 @@ void CGUnit_C::ClearCastingSpell(int32_t spellId, bool clearChannel, bool a4) {
 
     if (clearChannel) {
         if (this->IsAutoTracking() && !CGUnit_C::s_trackingType) {
-            CGObject_C* target = ClntObjMgrObjectPtr(CGUnit_C::s_trackingGUID, TYPEMASK_OBJECT, __FILE__, __LINE__);
+            CGObject_C* target = ClntObjMgrObjectPtr(CGUnit_C::s_trackingGUID, TYPE_OBJECT, __FILE__, __LINE__);
 
             if (target) {
                 C3Vector targetPosition = target->GetPosition();
@@ -18376,7 +18376,7 @@ void CGUnit_C::ReleaseMissiles(const C3Vector& position) {
 // VERIFY: 402547fa manual
 // OFFSET: 0x0073A520
 void CGUnit_C::OnChannelObjectChanged(WOWGUID oldObject, int32_t oldSpell) {
-    CGObject_C* object = ClntObjMgrObjectPtr(oldObject, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(oldObject, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (object && oldSpell) {
         object->ClearEffectKit(oldSpell, 2, 0, 0, 0);
@@ -18390,7 +18390,7 @@ void CGUnit_C::OnChannelObjectChanged(WOWGUID oldObject, int32_t oldSpell) {
         this->m_fishingLineEffect = nullptr;
     }
 
-    CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldChannelObject, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+    CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldChannelObject, TYPE_GAMEOBJECT, __FILE__, __LINE__));
 
     if (gameObject && this->m_unit->m_unitChannelSpell && gameObject->m_gameObject->m_typeID == 17) {
         if (this->m_sheatheState == WEAPONMODE_NORMALMODE) {
@@ -18402,7 +18402,7 @@ void CGUnit_C::OnChannelObjectChanged(WOWGUID oldObject, int32_t oldSpell) {
         return;
     }
 
-    if (!ClntObjMgrObjectPtr(this->m_unit->m_unitFieldChannelObject, TYPEMASK_UNIT, __FILE__, __LINE__)) {
+    if (!ClntObjMgrObjectPtr(this->m_unit->m_unitFieldChannelObject, TYPE_UNIT, __FILE__, __LINE__)) {
         return;
     }
 
@@ -18461,13 +18461,13 @@ void CGUnit_C::UpdateChannelEffects() {
 // VERIFY: 66625199 manual
 // OFFSET: 0x0071F8B0
 bool CGUnit_C::CanInteract(const CGGameObject_C* gameObject) const {
-    return (!(this->m_obj->m_type & TYPEMASK_PLAYER) || !(static_cast<const CGPlayer_C*>(this)->m_player->m_playerFlags & 0x10)) && gameObject->ObjectReaction(this) >= UNIT_REACTION_NEUTRAL;
+    return (!(this->m_obj->m_type & TYPE_PLAYER) || !(static_cast<const CGPlayer_C*>(this)->m_player->m_playerFlags & 0x10)) && gameObject->ObjectReaction(this) >= UNIT_REACTION_NEUTRAL;
 }
 
 // VERIFY: a3dabf99 manual
 // OFFSET: 0x00718E50
 static int32_t UnitColorUpdateProc(WOWGUID guid, void* param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit || unit->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         return 1;
@@ -18612,7 +18612,7 @@ void CGUnit_C::OnFlagChanged(uint32_t oldFlags) {
 // VERIFY: a4d452c0 manual
 // OFFSET: 0x00734A40
 void CGUnit_C::AnimEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         return;
@@ -18757,7 +18757,7 @@ void CGUnit_C::HandleAnimEvent(uint32_t boneId, uint32_t eventId, uint32_t data,
 
             int32_t type;
 
-            if ((this->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(this)->GetDrunknessTurnValue() >= 0.5f) {
+            if ((this->m_obj->m_type & TYPE_PLAYER) && static_cast<CGPlayer_C*>(this)->GetDrunknessTurnValue() >= 0.5f) {
                 type = 7;
             } else if (this->m_clientFlags & 0x20) {
                 type = 2;
@@ -18809,7 +18809,7 @@ void CGUnit_C::HandleAnimEvent(uint32_t boneId, uint32_t eventId, uint32_t data,
             return;
 
         case 0x44525424:
-            if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+            if (this->m_obj->m_type & TYPE_PLAYER) {
                 static_cast<CGPlayer_C*>(this)->HandleSpellEventSound();
             }
             return;
@@ -19050,7 +19050,7 @@ void CGUnit_C::CreateMissile(const WOWGUID* target, PendingSpellCastData* data, 
     if (*target) {
         missile->m_attachmentID = attachment;
         missile->m_attachOffset = offset;
-        CGObject_C* object = ClntObjMgrObjectPtr(*target, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* object = ClntObjMgrObjectPtr(*target, TYPE_OBJECT, __FILE__, __LINE__);
 
         if (object) {
             missile->m_impactPos = object->GetPosition();
@@ -19075,7 +19075,7 @@ void CGUnit_C::CreateMissile(const WOWGUID* target, PendingSpellCastData* data, 
             missile->m_targetGuid = targets->m_data[0];
             missile->m_attachmentID = attachment;
             missile->m_attachOffset = offset;
-            CGObject_C* object = ClntObjMgrObjectPtr(targets->m_data[0], TYPEMASK_OBJECT, __FILE__, __LINE__);
+            CGObject_C* object = ClntObjMgrObjectPtr(targets->m_data[0], TYPE_OBJECT, __FILE__, __LINE__);
 
             if (object) {
                 missile->m_impactPos = object->GetPosition();
@@ -19715,7 +19715,7 @@ void CGUnit_C::AddHandItem(int32_t hand) {
 
         const CGUnitVirtualItem* mainItem;
 
-        if (!(this->m_obj->m_type & TYPEMASK_PLAYER) && (mainItem = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false)) && mainItem->m_classID == 2) {
+        if (!(this->m_obj->m_type & TYPE_PLAYER) && (mainItem = this->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false)) && mainItem->m_classID == 2) {
             uint8_t subclass = mainItem->m_subclassID;
 
             if (subclass == 1 || subclass == 5 || subclass == 8 || subclass == 10 || subclass == 12 || subclass == 6 || subclass == 17 || subclass == 20) {
@@ -19758,7 +19758,7 @@ void CGUnit_C::AddHandItem(int32_t hand) {
         this->m_characterComponent->SetItemSlotUsingAttachSlot(static_cast<ITEM_SLOT>(-1), link);
     }
 
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         GEOCOMPONENTLINKS visualLink = sheathed ? CCharacterComponent::GetSheatheLink(static_cast<SHEATHE_TYPE>(item->m_sheatheType), mainHand) : static_cast<GEOCOMPONENTLINKS>(attachId);
         static_cast<CGPlayer_C*>(this)->UpdateHandItemVisual(visualLink, hand);
     }
@@ -19793,7 +19793,7 @@ float CGUnit_C::GetMeleeChanceToCrit() const {
 // OFFSET: 0x0071B8D0
 double CGUnit_C::GetHealthModifier() {
     if (this->m_unit->m_unitFieldPetnumber) {
-        CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCreatedby, TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCreatedby, TYPE_PLAYER, __FILE__, __LINE__));
 
         if (owner && owner->m_unit->m_unitFieldBytes0[1] == 3) {
             return 1.0;
@@ -19814,7 +19814,7 @@ double CGUnit_C::GetHealthModifier() {
 // OFFSET: 0x0071B960
 double CGUnit_C::GetPowerModifier() {
     if (this->m_unit->m_unitFieldPetnumber) {
-        CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCreatedby, TYPEMASK_PLAYER, __FILE__, __LINE__));
+        CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_unit->m_unitFieldCreatedby, TYPE_PLAYER, __FILE__, __LINE__));
 
         if (owner && owner->m_unit->m_unitFieldBytes0[1] == 3) {
             return 1.0;
@@ -19870,7 +19870,7 @@ void NameQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool succes
         return;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         return;
@@ -19905,7 +19905,7 @@ int32_t CGUnit_C::UpdateObjectNameStringForUnit(CGUnit_C* unit, int32_t flags, c
                     continue;
                 }
 
-                CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(aura->m_creator, TYPEMASK_UNIT, __FILE__, __LINE__));
+                CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(aura->m_creator, TYPE_UNIT, __FILE__, __LINE__));
 
                 if (creator) {
                     return CGUnit_C::UpdateObjectNameStringForUnit(creator, flags, buffer, size, 0);
@@ -19932,7 +19932,7 @@ int32_t CGUnit_C::UpdateObjectNameStringForUnit(CGUnit_C* unit, int32_t flags, c
     int32_t lines = 0;
     unit->GetUnitChosenTitle(titleText, sizeof(titleText), (flags & 8) != 0, &lines);
 
-    if (unit->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (unit->m_obj->m_type & TYPE_PLAYER) {
         if (flags & 4) {
             const char* guildName = static_cast<CGPlayer_C*>(unit)->GetPlayerGuildNameText();
 
@@ -20001,7 +20001,7 @@ const char* GetObjectNameFromGuid(const WOWGUID& guid) {
         uint32_t type = high & 0xF0F00000;
 
         if (type == 0xF0300000 || type == 0xF0500000) {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
             if (unit) {
                 name = unit->GetUnitName(nullptr, 1);
@@ -20262,7 +20262,7 @@ void CGUnit_C::NamePlateClearAll() {
 
     while (frame) {
         CGNamePlateFrame* next = s_namePlates.Next(frame);
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(frame->m_guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(frame->m_guid, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit && unit->m_namePlateFrame) {
             if (CGUnit_C::s_namePlateFocus == unit->m_namePlateFrame) {
@@ -20342,7 +20342,7 @@ int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* positi
         return 0;
     }
 
-    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(camera->m_targetGUID, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(camera->m_targetGUID, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!target || target == this) {
         return 0;
@@ -20356,7 +20356,7 @@ int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* positi
 
     bool friendly;
 
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         friendly = player->CanCooperate(this);
     } else {
         friendly = !player->CanAttack(this);
@@ -20394,9 +20394,9 @@ int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* positi
         }
     }
 
-    CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*this->GetCharmerOrCreatorGuid(), TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* owner = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(*this->GetCharmerOrCreatorGuid(), TYPE_UNIT, __FILE__, __LINE__));
 
-    if (owner && (owner->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (owner && (owner->m_obj->m_type & TYPE_PLAYER)) {
         if (this->HasCreator() && !this->HasSummoner() && (this->m_unit->m_unitFieldFlags & 0x200)) {
             return 0;
         }
@@ -20414,7 +20414,7 @@ int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* positi
         }
     }
 
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && !friendly && !player->CanAttack(this)) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && !friendly && !player->CanAttack(this)) {
         return 0;
     }
 
@@ -20652,7 +20652,7 @@ void CGUnit_C::UpdateFlightStatus(uint32_t time) {
         }
     }
 
-    if (time - CGUnit_C::s_flightStatusTime > 2000 && this->m_obj->m_guid == CGUnit_C::s_activeMover && this->GetHeightAboveGround() < 1.5f && (!(this->m_obj->m_type & TYPEMASK_PLAYER) || !static_cast<CGPlayer_C*>(this)->IsCommentatorUberOrInArena())) {
+    if (time - CGUnit_C::s_flightStatusTime > 2000 && this->m_obj->m_guid == CGUnit_C::s_activeMover && this->GetHeightAboveGround() < 1.5f && (!(this->m_obj->m_type & TYPE_PLAYER) || !static_cast<CGPlayer_C*>(this)->IsCommentatorUberOrInArena())) {
         this->m_movementData.OnFlightLocal(time, 0);
     }
 }
@@ -20706,7 +20706,7 @@ float CGUnit_C::GetScaledModelScale(const CreatureDisplayInfoRec* displayInfo, c
 // VERIFY: 1dce3fba manual
 // OFFSET: 0x00725F50
 int32_t CGUnit_C::UpdateUnitCollisionBox(int32_t a2, int32_t a3) {
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         return static_cast<CGPlayer_C*>(this)->UpdateUnitCollisionBox(a2, a3);
     }
 
@@ -20798,7 +20798,7 @@ static int32_t IsArenaOpponent(const WOWGUID& guid) {
 // VERIFY: 52d446aa manual
 // OFFSET: 0x00720960
 void CGUnit_C::UpdateScriptRegistration() {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     uint32_t flags = 0;
 
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
@@ -20971,7 +20971,7 @@ void CGUnit_C::CreateProceduralEffect(const SpellRec* spell, const SpellVisualRe
                 uint32_t count;
 
                 if ((flags & 0x1000) && guid && guid != this->m_obj->m_guid) {
-                    target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+                    target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
                     if (!target) {
                         break;
@@ -21150,7 +21150,7 @@ int32_t CGUnit_C::IsHostileCritter() {
         return 1;
     }
 
-    if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+    if (this->m_obj->m_type & TYPE_PLAYER) {
         CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
         if (!player || player->IsHatedTowards(this)) {
@@ -21175,7 +21175,7 @@ void CGUnit_C::UpdateCritterDisplay() {
     }
 
     if (!GetVisibleAuraEffectDisplay() || GetVisibleAuraEffectDisplay() == this->m_critterDisplayCreatureId) {
-        ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__);
+        ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__);
 
         if (!GetVisibleAuraEffectDisplay() && this->m_critterDisplayCreatureId) {
             this->m_critterDisplayCreatureId = 0;
@@ -21251,7 +21251,7 @@ void CGUnit_C::DropTargetOnDeath() {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && player->m_combat.m_attacking) {
         player->SetCombatMode();
@@ -21274,13 +21274,13 @@ void CGUnit_C::DropTargetOnDeath() {
 // OFFSET: 0x0071B1E0
 void CGUnit_C::HandlePendingTrackEvents() {
     if (s_pendingAttackTarget) {
-        if (ClntObjMgrObjectPtr(s_pendingAttackTarget, TYPEMASK_UNIT, __FILE__, __LINE__) && this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
+        if (ClntObjMgrObjectPtr(s_pendingAttackTarget, TYPE_UNIT, __FILE__, __LINE__) && this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
             static_cast<CGPlayer_C*>(this)->CombatModeEnter(s_pendingAttackTarget, 0, 0);
         }
 
         s_pendingAttackTarget = WOWGUID();
     } else if (s_pendingLootTarget) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_pendingLootTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_pendingLootTarget, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit && this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
             static_cast<CGPlayer_C*>(this)->LootUnit(unit, false);
@@ -21288,7 +21288,7 @@ void CGUnit_C::HandlePendingTrackEvents() {
 
         s_pendingLootTarget = WOWGUID();
     } else if (s_pendingUseObject) {
-        CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(s_pendingUseObject, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__));
+        CGGameObject_C* gameObject = static_cast<CGGameObject_C*>(ClntObjMgrObjectPtr(s_pendingUseObject, TYPE_GAMEOBJECT, __FILE__, __LINE__));
 
         if (gameObject) {
             gameObject->UseObject();
@@ -21296,7 +21296,7 @@ void CGUnit_C::HandlePendingTrackEvents() {
 
         s_pendingUseObject = WOWGUID();
     } else if (s_pendingSkinTarget) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_pendingSkinTarget, TYPEMASK_OBJECT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_pendingSkinTarget, TYPE_OBJECT, __FILE__, __LINE__));
 
         if (unit && this->IsActivePlayer()) {
             static_cast<CGPlayer_C*>(this)->HandleSkinning(unit, false, false);
@@ -21304,7 +21304,7 @@ void CGUnit_C::HandlePendingTrackEvents() {
 
         s_pendingSkinTarget = WOWGUID();
     } else if (s_pendingInteractTarget) {
-        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_pendingInteractTarget, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(s_pendingInteractTarget, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit && this->IsActivePlayer()) {
             static_cast<CGPlayer_C*>(this)->HandleOnRightClick(unit, false);
@@ -21429,7 +21429,7 @@ void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
         this->m_worldModel->m_emissiveTintG = 0.0f;
         this->m_worldModel->m_emissiveTintB = 0.0f;
 
-        if ((this->m_obj->m_type & TYPEMASK_PLAYER) && a3 && !static_cast<CGPlayer_C*>(this)->UpdateMountedCollisionBox(modelData->m_mountHeight, a2)) {
+        if ((this->m_obj->m_type & TYPE_PLAYER) && a3 && !static_cast<CGPlayer_C*>(this)->UpdateMountedCollisionBox(modelData->m_mountHeight, a2)) {
             this->Dismount();
         }
     }
@@ -21453,7 +21453,7 @@ void CGUnit_C::CreateUnitMount(int32_t a2, int32_t a3) {
 // VERIFY: e8fc52d0 manual
 // OFFSET: 0x0073C140
 void CGUnit_C::MountAnimEndCallback(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit) {
         return;
@@ -21523,7 +21523,7 @@ void CGUnit_C::FootstepAnimEventHit(const C3Vector* position, int32_t left) {
         return;
     }
 
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x10)) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x10)) {
         return;
     }
 
@@ -21643,7 +21643,7 @@ void CreatureQueryCallback(int32_t id, const WOWGUID& guid, void* param, bool su
         return;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->DestroyNamePlate();
@@ -22270,7 +22270,7 @@ void CGUnit_C::Dismount() {
 int32_t Packet_SMSG_DISMOUNT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!unit || !unit->m_mountDisplayId) {
         return 1;
@@ -22307,7 +22307,7 @@ int32_t Packet_SMSG_CLIENT_CONTROL_UPDATE(void* param, NETMESSAGE msgId, uint32_
     uint8_t state;
     *msg >> guid;
     msg->Get(state);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->ExecuteClientControlUpdate(guid, state);
@@ -22323,7 +22323,7 @@ int32_t Packet_SMSG_CLIENT_CONTROL_UPDATE(void* param, NETMESSAGE msgId, uint32_
 int32_t Packet_SMSG_CANCEL_AUTO_REPEAT(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     SmartGUID guid;
     *msg >> guid;
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         if (unit->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
@@ -22455,7 +22455,7 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
             return true;
 
         case TRACKTYPE_INTERACT: {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
             if (unit) {
                 float range = unit->m_unit->m_unitFieldCombatreach * 0.5f + 2.0f;
@@ -22469,7 +22469,7 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
 
         case TRACKTYPE_LOOT:
         case TRACKTYPE_ATTACK: {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
             float range = unit ? this->CGUnit::GetMeleeRange(unit) - 1.3333334f : 5.0f;
             *distance = range * range;
             return true;
@@ -22480,7 +22480,7 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
             return true;
 
         case TRACKTYPE_SKIN: {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_OBJECT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_OBJECT, __FILE__, __LINE__));
 
             if (!unit) {
                 return false;
@@ -22497,7 +22497,7 @@ bool CGUnit_C::GetInteractDistanceOfAction(int32_t action, const WOWGUID& guid, 
         }
 
         case TRACKTYPE_RANGED_ATTACK: {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
             if (!unit) {
                 return false;
@@ -22551,7 +22551,7 @@ bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* 
         s_forcedRunSpeed = this->m_movementData.m_runSpeed;
     }
 
-    if (this->GetClientStandState() && (this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (this->GetClientStandState() && (this->m_obj->m_type & TYPE_PLAYER)) {
         this->ChangeStandState(UNIT_STANDING);
     }
 
@@ -22561,7 +22561,7 @@ bool CGPlayer_C::ClickToMove(int32_t type, const WOWGUID* guid, const C3Vector* 
 // VERIFY: ba7cd01f manual
 // OFFSET: 0x00729BD0
 bool CGUnit_C::IsValidFollowTarget(CGUnit_C* unit) {
-    if (unit == this || !(unit->m_obj->m_type & TYPEMASK_PLAYER) || unit->m_unit->m_unitFieldCharmedby) {
+    if (unit == this || !(unit->m_obj->m_type & TYPE_PLAYER) || unit->m_unit->m_unitFieldCharmedby) {
         return false;
     }
 
@@ -22622,7 +22622,7 @@ bool CGUnit_C::SetTrackingTarget(const WOWGUID& target, int32_t type) {
         return false;
     }
 
-    CGObject_C* object = ClntObjMgrObjectPtr(target, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(target, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (!object) {
         return false;
@@ -22634,7 +22634,7 @@ bool CGUnit_C::SetTrackingTarget(const WOWGUID& target, int32_t type) {
         case TRACKTYPE_SPELLPRECAST:
         case TRACKTYPE_SPELLCHANNEL:
         case TRACKTYPE_INTERACT:
-            if (!(object->m_obj->m_type & TYPEMASK_UNIT)) {
+            if (!(object->m_obj->m_type & TYPE_UNIT)) {
                 return false;
             }
 
@@ -22665,7 +22665,7 @@ bool CGUnit_C::SetTrackingTarget(const WOWGUID& target, int32_t type) {
 
         case TRACKTYPE_LOOT:
         case TRACKTYPE_SKIN:
-            if (!(object->m_obj->m_type & TYPEMASK_CORPSE) && (!(object->m_obj->m_type & TYPEMASK_UNIT) || unit->m_unit->m_unitFieldHealth > 0)) {
+            if (!(object->m_obj->m_type & TYPE_CORPSE) && (!(object->m_obj->m_type & TYPE_UNIT) || unit->m_unit->m_unitFieldHealth > 0)) {
                 return false;
             }
 
@@ -22722,7 +22722,7 @@ bool CGPlayer_C::CTMInteractGO(const WOWGUID& guid, float range) {
         return false;
     }
 
-    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(guid, TYPE_GAMEOBJECT, __FILE__, __LINE__);
 
     if (!object) {
         return false;
@@ -22959,14 +22959,14 @@ void CGUnit_C::HandleTracking(float drunkness, float turnOffset) {
             break;
 
         default: {
-            CGObject_C* object = ClntObjMgrObjectPtr(CGUnit_C::s_trackingGUID, TYPEMASK_OBJECT, __FILE__, __LINE__);
+            CGObject_C* object = ClntObjMgrObjectPtr(CGUnit_C::s_trackingGUID, TYPE_OBJECT, __FILE__, __LINE__);
 
             if (!object) {
                 this->ClearTrackingTarget(false, true);
                 return;
             }
 
-            if (object->m_obj->m_type & TYPEMASK_UNIT) {
+            if (object->m_obj->m_type & TYPE_UNIT) {
                 CGUnit_C* unit = static_cast<CGUnit_C*>(object);
 
                 if ((unit->m_unit->m_unitFieldFlags & 0x100000) || (unit->m_unit->m_unitFieldHealth <= 0 && CGUnit_C::s_trackingType != TRACKTYPE_SKIN && CGUnit_C::s_trackingType != TRACKTYPE_LOOT)) {
@@ -23240,7 +23240,7 @@ void CGUnit_C::RenderTargetSelection() const {
 void CGUnit_C::RenderPetTargetSelection() const {
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
     const WOWGUID& petGuid = player->m_unit->m_unitFieldCharm ? player->m_unit->m_unitFieldCharm : player->m_unit->m_unitFieldSummon;
-    CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(petGuid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* pet = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(petGuid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!pet) {
         return;
@@ -23448,7 +23448,7 @@ int32_t Packet_SMSG_PLAYER_VEHICLE_DATA(void* param, NETMESSAGE msgId, uint32_t 
     uint32_t vehicleId;
     msg->Get(vehicleId);
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         if (vehicleId) {
@@ -23615,7 +23615,7 @@ void CGUnit_C::HandleScaleUpdate(float scale) {
     int32_t mountDisplayId = this->m_unit->m_unitFieldMountdisplayid;
     int32_t updated = 0;
 
-    if (mountDisplayId <= 0 || !(this->m_obj->m_type & TYPEMASK_PLAYER)) {
+    if (mountDisplayId <= 0 || !(this->m_obj->m_type & TYPE_PLAYER)) {
         updated = this->UpdateUnitCollisionBox(growing, 0);
     } else {
         CreatureDisplayInfoRec* displayRec = g_creatureDisplayInfoDB.GetRecord(mountDisplayId);
@@ -23858,7 +23858,7 @@ CM2Model* CGUnit_C::CreateItemModel(uint32_t hand, float* scale) {
 int32_t Packet_SMSG_MIRRORIMAGE_DATA(void* param, NETMESSAGE msgId, uint32_t time, CDataStore* msg) {
     WOWGUID guid;
     msg->Get(guid.m_guid);
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(guid, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         unit->OnReceiveMirrorImageDataFromServer(msg);

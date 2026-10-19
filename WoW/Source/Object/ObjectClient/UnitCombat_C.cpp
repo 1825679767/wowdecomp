@@ -240,7 +240,7 @@ void CGUnit_C::OnDeathAnimate() {
 
     this->PlayDeathAnimation(0);
 
-    if (!(this->m_obj->m_type & TYPEMASK_PLAYER) || !(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000)) {
+    if (!(this->m_obj->m_type & TYPE_PLAYER) || !(static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x4000)) {
         this->OnAiReaction(4);
     }
 
@@ -261,7 +261,7 @@ void CGUnit_C::ShowBloodSpurt(const WOWGUID& attacker, int32_t large) {
     }
 
     GEOCOMPONENTLINKS attachType = ATTACH_TORSOBLOODFRONT;
-    CGUnit_C* attackerUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* attackerUnit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPE_UNIT, __FILE__, __LINE__));
 
     if (attackerUnit) {
         C3Vector position = this->GetPosition();
@@ -364,7 +364,7 @@ void ATTACKROUNDINFO::Unpack(CDataStore& msg) {
         msg.Get(this->unk_008C[0]);
     }
 
-    if (ClntObjMgrObjectPtr(this->m_target, TYPEMASK_UNIT, __FILE__, __LINE__) && !this->m_damage && this->m_blocked) {
+    if (ClntObjMgrObjectPtr(this->m_target, TYPE_UNIT, __FILE__, __LINE__) && !this->m_damage && this->m_blocked) {
         this->m_victimState = VS_BLOCK;
     }
 }
@@ -376,7 +376,7 @@ void CGUnit_C::PlayCombatSpellMissEffects(uint32_t reason, const WOWGUID& source
         return;
     }
 
-    CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(source, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(source, TYPE_UNIT, __FILE__, __LINE__));
     const CGUnitVirtualItem* weapon = nullptr;
 
     if (attacker && attacker->m_sheatheState) {
@@ -451,7 +451,7 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
 
     if (victimState == VS_DODGE) {
         if (info.m_attacker.m_guid) {
-            CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPE_UNIT, __FILE__, __LINE__));
 
             if (attacker) {
                 bool oneHand = !CGUnit_C::IsTwoHanded(attacker->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false));
@@ -486,11 +486,11 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
         CGUnit_C* attacker = nullptr;
 
         if (info.m_attacker.m_guid) {
-            attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+            attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPE_UNIT, __FILE__, __LINE__));
         }
 
         if (info.m_target.m_guid) {
-            victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
+            victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPE_UNIT, __FILE__, __LINE__));
         }
 
         if (attacker && victim) {
@@ -519,7 +519,7 @@ void CGUnit_C::PlayVictimWorldFeedback(const ATTACKROUNDINFO& info) {
     }
 
     if (info.m_attacker.m_guid) {
-        CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+        CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPE_UNIT, __FILE__, __LINE__));
 
         if (attacker) {
             bool oneHand = !CGUnit_C::IsTwoHanded(attacker->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, false));
@@ -541,7 +541,7 @@ void CGUnit_C::ClearAttackRound() {
         return;
     }
 
-    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_target, TYPE_UNIT, __FILE__, __LINE__));
 
     if (target) {
         target->PlayVictimWorldFeedback(this->m_lastAttackRound);
@@ -557,11 +557,11 @@ void CGUnit_C::HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Ve
     CGUnit_C* target = nullptr;
 
     if (this->m_lastAttackRound.m_attacker) {
-        attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+        attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_attacker, TYPE_UNIT, __FILE__, __LINE__));
     }
 
     if (this->m_lastAttackRound.m_target) {
-        target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
+        target = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(this->m_lastAttackRound.m_target, TYPE_UNIT, __FILE__, __LINE__));
     }
 
     switch (eventId) {
@@ -603,7 +603,7 @@ void CGUnit_C::HandleCombatAnimEvent(uint32_t eventId, uint32_t data, const C3Ve
                     attacker->SetKeyBoneSequenceSpeed(attacker->m_worldModel, 0xFFFFFFFF, 0.5f, 0);
                 }
             } else if (!target) {
-                if (this->m_obj->m_type & TYPEMASK_PLAYER) {
+                if (this->m_obj->m_type & TYPE_PLAYER) {
                     static_cast<CGPlayer_C*>(this)->HandleSpellEventSound();
                 } else {
                     CreatureSoundDataRec* soundData = this->GetSoundData();
@@ -724,7 +724,7 @@ void CGUnit_C::OnAttackStop(uint64_t target, int32_t faceTarget) {
         return;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ target }, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ target }, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit) {
         this->m_clientFlags |= 0x1;
@@ -743,7 +743,7 @@ int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
             WOWGUID victim;
             msg->Get(attacker.m_guid);
             msg->Get(victim.m_guid);
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPE_UNIT, __FILE__, __LINE__));
 
             if (!unit) {
                 return 0;
@@ -768,7 +768,7 @@ int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
             *msg >> victim;
             uint32_t faceTarget;
             msg->Get(faceTarget);
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(attacker, TYPE_UNIT, __FILE__, __LINE__));
 
             if (unit) {
                 unit->OnAttackStop(victim.m_guid, faceTarget);
@@ -801,7 +801,7 @@ int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
         case SMSG_ATTACKER_STATE_UPDATE: {
             ATTACKROUNDINFO info;
             info.Unpack(*msg);
-            CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_attacker, TYPE_UNIT, __FILE__, __LINE__));
 
             if (attacker) {
                 if (attacker->m_sheatheState != WEAPONMODE_NORMALMODE) {
@@ -811,7 +811,7 @@ int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
                 attacker->m_combat.m_attackSent = 0;
                 attacker->ClearAttackRound();
                 attacker->m_lastAttackRound = info;
-                CGUnit_C* victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
+                CGUnit_C* victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPE_UNIT, __FILE__, __LINE__));
 
                 if (attacker->IsActivePlayer() && victim) {
                     static_cast<CGPlayer_C*>(attacker)->UpdateAttackPosition(victim);
@@ -828,7 +828,7 @@ int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
                     attacker->ClearTrackingTarget(true, true);
                 }
             } else {
-                CGUnit_C* victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPEMASK_UNIT, __FILE__, __LINE__));
+                CGUnit_C* victim = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info.m_target, TYPE_UNIT, __FILE__, __LINE__));
 
                 if (victim) {
                     victim->PlayVictimRound(info);
@@ -849,7 +849,7 @@ int32_t Packet_Group_29(void* param, NETMESSAGE msgId, uint32_t time, CDataStore
             msg->Get(absorbed);
             uint32_t resisted = 0;
             msg->Get(resisted);
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ guid }, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ guid }, TYPE_UNIT, __FILE__, __LINE__));
 
             if (unit) {
                 unit->HandleEnvironmentDamage(type, damage, absorbed, resisted);

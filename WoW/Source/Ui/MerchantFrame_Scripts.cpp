@@ -50,7 +50,7 @@ static int32_t Script_GetNumBuybackItems(lua_State* L) {
 // VERIFY: c986aee1 manual
 // OFFSET: 0x005849F0
 static int32_t Script_CanMerchantRepair(lua_State* L) {
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit && (unit->m_unit->m_unitNpcFlags & 0x1000)) {
         lua_pushnumber(L, 1.0);
@@ -259,7 +259,7 @@ static int32_t Script_ShowRepairCursor(lua_State* L) {
         return 0;
     }
 
-    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPE_UNIT, __FILE__, __LINE__));
 
     if (unit && (unit->m_unit->m_unitNpcFlags & 0x1000)) {
         CGGameUI::ClearCursor(1, 1);
@@ -307,7 +307,7 @@ static int32_t Script_GetMerchantItemInfo(lua_State* L) {
     lua_pushnumber(L, item->m_buyCount);
     lua_pushnumber(L, item->m_maxCount);
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     ItemExtendedCostRec* cost = g_itemExtendedCostDB.GetRecord(item->m_extendedCostID);
     bool affordable = false;
 
@@ -339,7 +339,7 @@ static int32_t Script_GetBuybackItemInfo(lua_State* L) {
         return luaL_error(L, "Usage: GetBuybackItemInfo(slot)");
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     uint32_t index = static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1)) - 1);
     uint32_t slot = index < CGMerchantInfo::m_numBuybackItems ? CGMerchantInfo::m_buybackSlots[index] : 0;
     CGItem_C* item;
@@ -383,7 +383,7 @@ static int32_t Script_GetBuybackItemLink(lua_State* L) {
         return luaL_error(L, "Usage: GetBuybackItemLink(slot)");
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
     uint32_t slot = index < CGMerchantInfo::m_numBuybackItems ? CGMerchantInfo::m_buybackSlots[index] : 0;
 
@@ -404,14 +404,14 @@ static int32_t Script_GetBuybackItemLink(lua_State* L) {
 // VERIFY: 3a995819 manual
 // OFFSET: 0x005853A0
 static int32_t Script_PickupMerchantItem(lua_State* L) {
-    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__)) {
         return 0;
     }
 
     WOWGUID cursorItem = CGGameUI::GetCursorItem();
 
     if (cursorItem) {
-        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(cursorItem, TYPEMASK_ITEM, __FILE__, __LINE__));
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(cursorItem, TYPE_ITEM, __FILE__, __LINE__));
 
         if (!item || !CGGameUI::m_stackSplit || item->m_item->m_itemFieldStackCount == CGGameUI::m_stackSplit) {
             CGPlayer_C::SellItem(CGMerchantInfo::m_merchant, cursorItem, CGGameUI::m_stackSplit);
@@ -447,7 +447,7 @@ static int32_t Script_BuyMerchantItem(lua_State* L) {
         return luaL_error(L, "Usage: BuyMerchantItem(index)");
     }
 
-    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)) {
+    if (!ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__)) {
         return 0;
     }
 
@@ -491,7 +491,7 @@ static int32_t Script_BuybackItem(lua_State* L) {
 
     uint32_t index = static_cast<uint32_t>(static_cast<int64_t>(lua_tonumber(L, 1)) - 1);
     uint32_t slot = index < CGMerchantInfo::m_numBuybackItems ? CGMerchantInfo::m_buybackSlots[index] : 0;
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && slot && player->m_bag.GetItemGuid(slot)) {
         CDataStore msg;
@@ -587,7 +587,7 @@ static int32_t Script_ShowBuybackSellCursor(lua_State* L) {
 
     uint32_t index = static_cast<uint32_t>(lua_tonumber(L, 1)) - 1;
     uint32_t slot = index < CGMerchantInfo::m_numBuybackItems ? CGMerchantInfo::m_buybackSlots[index] : 0;
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && slot && player->m_bag.GetItemGuid(slot)) {
         uint32_t price = player->GetBuybackPrice(slot - 74);
@@ -606,10 +606,10 @@ static int32_t Script_ShowBuybackSellCursor(lua_State* L) {
 // VERIFY: 207bdc12 manual
 // OFFSET: 0x00585990
 static int32_t Script_GetRepairAllCost(lua_State* L) {
-    CGUnit_C* merchant = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* merchant = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPE_UNIT, __FILE__, __LINE__));
     CGPlayer_C* player;
 
-    if (!merchant || !(merchant->m_unit->m_unitNpcFlags & 0x1000) || !(player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__)))) {
+    if (!merchant || !(merchant->m_unit->m_unitNpcFlags & 0x1000) || !(player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__)))) {
         lua_pushnumber(L, 0.0);
         return 1;
     }
@@ -621,7 +621,7 @@ static int32_t Script_GetRepairAllCost(lua_State* L) {
     for (uint32_t i = 0; i <= 18; i++) {
         CGItem_C* item = bag->GetItemPointer(i);
 
-        if (item && (item->m_obj->m_type & TYPEMASK_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
+        if (item && (item->m_obj->m_type & TYPE_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
             cost += CGMerchantInfo::GetRepairCost(item);
             uint32_t durability = (item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) ? 0 : item->m_item->m_itemFieldDurability;
 
@@ -634,7 +634,7 @@ static int32_t Script_GetRepairAllCost(lua_State* L) {
     for (uint32_t i = 23; i <= 38; i++) {
         CGItem_C* item = bag->GetItemPointer(i);
 
-        if (item && (item->m_obj->m_type & TYPEMASK_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
+        if (item && (item->m_obj->m_type & TYPE_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
             cost += CGMerchantInfo::GetRepairCost(item);
             uint32_t durability = (item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) ? 0 : item->m_item->m_itemFieldDurability;
 
@@ -656,7 +656,7 @@ static int32_t Script_GetRepairAllCost(lua_State* L) {
         for (uint32_t j = 0; j < static_cast<uint32_t>(containerBag->m_numSlots); j++) {
             CGItem_C* item = containerBag->GetItemPointer(j);
 
-            if (item && (item->m_obj->m_type & TYPEMASK_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
+            if (item && (item->m_obj->m_type & TYPE_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
                 cost += CGMerchantInfo::GetRepairCost(item);
                 uint32_t durability = (item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) ? 0 : item->m_item->m_itemFieldDurability;
 
@@ -681,13 +681,13 @@ static int32_t Script_GetRepairAllCost(lua_State* L) {
 // VERIFY: a91c8774 manual
 // OFFSET: 0x00585C90
 static int32_t Script_RepairAllItems(lua_State* L) {
-    CGUnit_C* merchant = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* merchant = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(CGMerchantInfo::m_merchant, TYPE_UNIT, __FILE__, __LINE__));
 
     if (!merchant || !(merchant->m_unit->m_unitNpcFlags & 0x1000)) {
         return 0;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (!player) {
         return 0;
@@ -700,7 +700,7 @@ static int32_t Script_RepairAllItems(lua_State* L) {
     for (uint32_t i = 0; i <= 18; i++) {
         CGItem_C* item = bag->GetItemPointer(i);
 
-        if (item && (item->m_obj->m_type & TYPEMASK_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
+        if (item && (item->m_obj->m_type & TYPE_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
             cost += CGMerchantInfo::GetRepairCost(item);
         }
     }
@@ -708,7 +708,7 @@ static int32_t Script_RepairAllItems(lua_State* L) {
     for (uint32_t i = 23; i <= 38; i++) {
         CGItem_C* item = bag->GetItemPointer(i);
 
-        if (item && (item->m_obj->m_type & TYPEMASK_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
+        if (item && (item->m_obj->m_type & TYPE_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
             cost += CGMerchantInfo::GetRepairCost(item);
         }
     }
@@ -725,7 +725,7 @@ static int32_t Script_RepairAllItems(lua_State* L) {
         for (uint32_t j = 0; j < static_cast<uint32_t>(containerBag->m_numSlots); j++) {
             CGItem_C* item = containerBag->GetItemPointer(j);
 
-            if (item && (item->m_obj->m_type & TYPEMASK_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
+            if (item && (item->m_obj->m_type & TYPE_ITEM) && !(item->m_item->m_itemFieldFlags & ITEM_DFLAG_WRAPPED) && item->m_item->m_itemFieldMaxdurability) {
                 cost += CGMerchantInfo::GetRepairCost(item);
             }
         }

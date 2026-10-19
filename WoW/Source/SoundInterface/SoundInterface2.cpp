@@ -1412,10 +1412,10 @@ void SI2::PlaySpellFizzleSound(uint32_t spellId, const void* object) {
 // VERIFY: d94cc51b manual
 // OFFSET: 0x004C6710
 void SI2::ForceUpdateZoneSounds() {
-    CGObject_C* unit = ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPEMASK_UNIT, __FILE__, __LINE__);
+    CGObject_C* unit = ClntObjMgrObjectPtr(CGUnit_C::s_activeMover, TYPE_UNIT, __FILE__, __LINE__);
 
     if (!unit) {
-        unit = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__);
+        unit = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__);
 
         if (!unit) {
             return;
@@ -1456,7 +1456,7 @@ void SI2::ForceUpdateZoneSounds() {
 // VERIFY: 34fea195 manual
 // OFFSET: 0x004C5D60
 bool SI2::GetObjectPosition(uint64_t guid, C3Vector* position) {
-    CGObject_C* object = ClntObjMgrObjectPtr(WOWGUID{ guid }, TYPEMASK_OBJECT, __FILE__, __LINE__);
+    CGObject_C* object = ClntObjMgrObjectPtr(WOWGUID{ guid }, TYPE_OBJECT, __FILE__, __LINE__);
 
     if (object) {
         *position = object->GetPosition();
@@ -1469,7 +1469,7 @@ bool SI2::GetObjectPosition(uint64_t guid, C3Vector* position) {
 // OFFSET: 0x004C6810
 int32_t SI2::GetChunkLocation(int32_t* mapId, int32_t* chunkX, int32_t* chunkY, int32_t* subchunkX, int32_t* subchunkY) {
     *mapId = World::QueryMapId();
-    CGObject_C* player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__);
+    CGObject_C* player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__);
 
     if (!player) {
         return 0;

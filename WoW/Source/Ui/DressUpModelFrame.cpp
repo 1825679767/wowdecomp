@@ -353,7 +353,7 @@ void CGDressUpModelFrame::TryOnWithVisual(int32_t itemId, int32_t visual, int32_
             ItemDisplayInfoRec display;
 
             if (g_itemDisplayInfoDB.GetRecord(stats->m_displayId, &display) && (display.m_flags & 0x1)) {
-                CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+                CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPE_PLAYER, __FILE__, __LINE__));
 
                 if (player) {
                     int32_t emblemStyle;
@@ -510,7 +510,7 @@ void CGDressUpModelFrame::SetModel(CM2Model* model) {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player) {
         this->m_component = CCharacterComponent::AllocComponent();

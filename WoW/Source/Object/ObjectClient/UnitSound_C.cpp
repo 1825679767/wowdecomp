@@ -62,7 +62,7 @@ static void UnitSoundLoadDeathThuds() {
 // VERIFY: d5edf73b manual
 // OFFSET: 0x00746540
 void CGUnit_C::SetImpactKitEffect(bool offhand, const ATTACKROUNDINFO* info, const C3Vector* position) {
-    CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info->m_attacker, TYPEMASK_UNIT, __FILE__, __LINE__));
+    CGUnit_C* attacker = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(info->m_attacker, TYPE_UNIT, __FILE__, __LINE__));
     const CGUnitVirtualItem* weapon = attacker ? attacker->GetAttackingWeapon(static_cast<COMBATHAND>((info->m_hitInfo >> 2) & 1), false) : nullptr;
     const CGUnitVirtualItem* parry = this->GetParryingItem(offhand);
 
@@ -249,7 +249,7 @@ void CGUnit_C::HandleFootfallAnimEvent(const C3Vector& position) {
         return;
     }
 
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x10)) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFlags & 0x10)) {
         return;
     }
 
@@ -602,7 +602,7 @@ int32_t CGUnit_C::GetUnitSoundKitIndex(UNITSOUNDTYPE soundType) const {
 // VERIFY: bae0a2ba manual
 // OFFSET: 0x00746D60
 void CGUnit_C::PlayEmoteSound(int32_t soundKitId, bool checkCVars, int32_t fileIndex) {
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && this->m_unit->m_unitFieldHealth <= 0) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && this->m_unit->m_unitFieldHealth <= 0) {
         return;
     }
 
@@ -633,7 +633,7 @@ void CGUnit_C::PlayEmoteSound(int32_t soundKitId, bool checkCVars, int32_t fileI
         atCharacter = listenerAtCharacter ? 1 : 0;
     }
 
-    if ((this->m_obj->m_type & TYPEMASK_PLAYER) && static_cast<CGPlayer_C*>(this)->m_dance) {
+    if ((this->m_obj->m_type & TYPE_PLAYER) && static_cast<CGPlayer_C*>(this)->m_dance) {
         return;
     }
 

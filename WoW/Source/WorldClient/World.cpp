@@ -735,7 +735,7 @@ void CWorld::UpdateTextureCacheBudget() {
 // VERIFY: 27c4601b manual
 // OFFSET: 0x0077FB90
 int32_t World::QueryCameraFog(SMOFog* fog, CMapObjDef** mapObjDef, uint8_t* found, TSGrowableArray<uint32_t>** groups, float* distance) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && (player->m_player->m_playerFlags & 0x10)) {
         return 0;
@@ -1569,7 +1569,7 @@ void CWorld::Update(C3Vector* camPos, C3Vector* camTarget, C3Vector* position) {
 
     World::s_weather->Update();
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && !s_disableAreaAmbient) {
         uint32_t areaId;
@@ -4405,7 +4405,7 @@ void CWorldScene::RenderEntitys() {
         CM2Model* model = entity->m_model;
 
         if (model && model->IsLoaded(0, 0) && !(entity->m_staticFlags & 0x4)) {
-            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ entity->m_funcParam64 }, TYPEMASK_UNIT, __FILE__, __LINE__));
+            CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(WOWGUID{ entity->m_funcParam64 }, TYPE_UNIT, __FILE__, __LINE__));
 
             if (!unit) {
                 if (entity->m_staticFlags & 0x800) {
@@ -5041,7 +5041,7 @@ void World::UpdateObjectFadeouts() {
 
         if (elapsed <= 2000 && model->CanUpdateNonReadyTextures()) {
             if (fadeout->m_transportGuid) {
-                CGObject_C* transport = ClntObjMgrObjectPtr(fadeout->m_transportGuid, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+                CGObject_C* transport = ClntObjMgrObjectPtr(fadeout->m_transportGuid, TYPE_GAMEOBJECT, __FILE__, __LINE__);
 
                 if (transport) {
                     model->SetWorldTransform(fadeout->m_localTransform * transport->GetMatrix());
@@ -5155,7 +5155,7 @@ void CGObject_C::PrepareToFadeInt(CMapEntity* entity, float alpha, uint64_t tran
     fadeout->m_alpha = alpha;
 
     if (transportGuid) {
-        CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ transportGuid }, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+        CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ transportGuid }, TYPE_GAMEOBJECT, __FILE__, __LINE__);
 
         if (transport) {
             fadeout->m_transportGuid.m_guid = transportGuid;

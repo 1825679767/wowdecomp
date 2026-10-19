@@ -166,9 +166,9 @@ void Trade_C_CancelTrade() {
 // VERIFY: 805652c0 manual
 // OFFSET: 0x007040B0
 bool Trade_C_AddItem(WOWGUID item, WOWGUID bag, uint8_t slot, uint8_t tradeSlot) {
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
-    if (!player || !ClntObjMgrObjectPtr(item, TYPEMASK_ITEM, __FILE__, __LINE__)) {
+    if (!player || !ClntObjMgrObjectPtr(item, TYPE_ITEM, __FILE__, __LINE__)) {
         return false;
     }
 

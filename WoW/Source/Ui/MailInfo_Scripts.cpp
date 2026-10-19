@@ -389,7 +389,7 @@ static int32_t Script_GetSendMailItemLink(lua_State* L) {
         return 0;
     }
 
-    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+    CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
     if (!item) {
         return 0;
@@ -893,7 +893,7 @@ static int32_t Script_GetSendMailItem(lua_State* L) {
     }
 
     WOWGUID guid = CGMailInfo::m_sendItems[index].m_guid;
-    CGItem_C* item = guid ? static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__)) : nullptr;
+    CGItem_C* item = guid ? static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__)) : nullptr;
     ItemStats_C* stats = nullptr;
 
     if (item) {
@@ -968,7 +968,7 @@ static int32_t Script_SendMail(lua_State* L) {
         }
 
         count++;
-        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPEMASK_ITEM, __FILE__, __LINE__));
+        CGItem_C* item = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(guid, TYPE_ITEM, __FILE__, __LINE__));
 
         if (!item || item->m_item->m_itemFieldOwner != ClntObjMgrGetActivePlayer()) {
             CGGameUI::DisplayError(static_cast<UIErrors>(GetDisplayErrorByInventoryError(BAG_ITEM_NOT_FOUND)));

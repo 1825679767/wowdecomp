@@ -350,7 +350,7 @@ bool WORLDTEXTSTRING::Update(uint32_t time) {
     CGCamera* camera = CGWorldFrame::GetActiveCamera();
 
     if (camera) {
-        CGObject_C* transport = ClntObjMgrObjectPtr(camera->m_relativeTo, TYPEMASK_GAMEOBJECT, __FILE__, __LINE__);
+        CGObject_C* transport = ClntObjMgrObjectPtr(camera->m_relativeTo, TYPE_GAMEOBJECT, __FILE__, __LINE__);
 
         if (transport) {
             position = position * transport->GetMatrix();

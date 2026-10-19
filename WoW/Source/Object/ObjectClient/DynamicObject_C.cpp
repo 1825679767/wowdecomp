@@ -18,7 +18,7 @@
 // VERIFY: 711b9f81 manual
 // OFFSET: 0x00704F20
 static void AnimEventCallback(CM2Model* model, uint32_t boneId, uint32_t eventId, uint32_t data, const C3Vector* position, uint32_t time, uint64_t param) {
-    CGDynamicObject_C* object = static_cast<CGDynamicObject_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPEMASK_DYNAMICOBJECT, __FILE__, __LINE__));
+    CGDynamicObject_C* object = static_cast<CGDynamicObject_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPE_DYNAMICOBJECT, __FILE__, __LINE__));
 
     if (object) {
         object->HandleAnimEvent(eventId, data, position, time);
@@ -32,7 +32,7 @@ static void AnimFinishedCallback(CM2Model* model, uint32_t boneId, uint32_t sequ
         return;
     }
 
-    CGDynamicObject_C* object = static_cast<CGDynamicObject_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPEMASK_DYNAMICOBJECT, __FILE__, __LINE__));
+    CGDynamicObject_C* object = static_cast<CGDynamicObject_C*>(ClntObjMgrObjectPtr(WOWGUID{ param }, TYPE_DYNAMICOBJECT, __FILE__, __LINE__));
 
     if (!object) {
         return;
@@ -92,7 +92,7 @@ void CGDynamicObject_C::PostInit(uint32_t time, const CClientObjCreate& create, 
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player && this->m_obj->m_guid.m_guid == player->GetFarSightGuid()) {
         player->SetFarSightFocus(this);
@@ -115,7 +115,7 @@ C44Matrix CGDynamicObject_C::GetMatrix() const {
     matrix.RotateAroundZ(this->GetRawFacing());
 
     if (this->GetTransportGUID()) {
-        CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPEMASK_OBJECT, __FILE__, __LINE__);
+        CGObject_C* transport = ClntObjMgrObjectPtr(WOWGUID{ this->GetTransportGUID() }, TYPE_OBJECT, __FILE__, __LINE__);
 
         if (transport) {
             matrix *= transport->GetMatrix();
