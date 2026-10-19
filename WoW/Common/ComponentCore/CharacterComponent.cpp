@@ -1884,9 +1884,9 @@ void CCharacterComponent::SetBeardStyle(int32_t facialHairID, bool loadVariation
         this->m_data.m_geosets[CHARGEOSET_BEARD] = styleRec->m_geoset[0] + 100;
         this->m_data.m_geosets[CHARGEOSET_MOUSTACHE] = styleRec->m_geoset[1] + 300;
         this->m_data.m_geosets[CHARGEOSET_SIDEBURN] = styleRec->m_geoset[2] + 200;
-        this->m_data.m_geosets[16] = styleRec->m_geoset[3] + 1600;
+        this->m_data.m_geosets[CHARGEOSET_FACIALJEWELRY] = styleRec->m_geoset[3] + 1600;
         this->m_flags |= 0x4;
-        this->m_data.m_geosets[17] = styleRec->m_geoset[4] + 1700;
+        this->m_data.m_geosets[CHARGEOSET_EYEEFFECTS] = styleRec->m_geoset[4] + 1700;
 
         if ((styleRec->m_geoset[0] || styleRec->m_geoset[1] || styleRec->m_geoset[2]) && (!this->m_baseVariation[VARIATION_HAIR].m_texture[1] || !this->m_baseVariation[VARIATION_HAIR].m_texture[2])) {
             this->ReplaceHairTexture(1, debug);
@@ -3439,8 +3439,8 @@ void CCharacterComponent::GeosRenderPrep() {
     model->SetGeometryVisible(0, 2000, 0);
     model->SetGeometryVisible(0, 0, 1);
 
-    for (int32_t i = 0; i < 19; i++) {
-        if (i == 17 && eyeGlow) {
+    for (int32_t i = 0; i < NUM_CHARGEOSETS; i++) {
+        if (i == CHARGEOSET_EYEEFFECTS && eyeGlow) {
             this->m_data.m_model->SetGeometryVisible(1703, 1703, 1);
         } else {
             this->m_data.m_model->SetGeometryVisible(this->m_data.m_geosets[i], this->m_data.m_geosets[i], 1);
@@ -3711,9 +3711,9 @@ void CCharacterComponent::RemoveItem(ITEM_SLOT itemSlot) {
                 this->m_data.m_geosets[CHARGEOSET_BEARD] = styleRec->m_geoset[0] + 100;
                 this->m_data.m_geosets[CHARGEOSET_MOUSTACHE] = styleRec->m_geoset[1] + 300;
                 this->m_data.m_geosets[CHARGEOSET_SIDEBURN] = styleRec->m_geoset[2] + 200;
-                this->m_data.m_geosets[7] = 702;
-                this->m_data.m_geosets[16] = styleRec->m_geoset[3] + 1600;
-                this->m_data.m_geosets[17] = styleRec->m_geoset[4] + 1700;
+                this->m_data.m_geosets[CHARGEOSET_EAR] = 702;
+                this->m_data.m_geosets[CHARGEOSET_FACIALJEWELRY] = styleRec->m_geoset[3] + 1600;
+                this->m_data.m_geosets[CHARGEOSET_EYEEFFECTS] = styleRec->m_geoset[4] + 1700;
             }
 
             this->m_itemDisplayID[itemSlot] = 0;
@@ -3736,12 +3736,12 @@ void CCharacterComponent::RemoveItem(ITEM_SLOT itemSlot) {
                 return;
             }
 
-            this->m_data.m_geosets[15] = 1501;
+            this->m_data.m_geosets[CHARGEOSET_CAPE] = 1501;
             this->ClearGuildTexture(4);
             break;
 
         case ITEMSLOT_CAPE:
-            this->m_data.m_geosets[15] = 1501;
+            this->m_data.m_geosets[CHARGEOSET_CAPE] = 1501;
             this->m_itemDisplayID[itemSlot] = 0;
             return;
 
@@ -3880,15 +3880,15 @@ void CCharacterComponent::AddHelm(int32_t itemVisual) {
     }
 
     if (raceMask & visRec->m_hideGeoset[4]) {
-        this->m_data.m_geosets[7] = 701;
+        this->m_data.m_geosets[CHARGEOSET_EAR] = 701;
     }
 
     if (raceMask & visRec->m_hideGeoset[5]) {
-        this->m_data.m_geosets[16] = 1601;
+        this->m_data.m_geosets[CHARGEOSET_FACIALJEWELRY] = 1601;
     }
 
     if (raceMask & visRec->m_hideGeoset[6]) {
-        this->m_data.m_geosets[17] = 1701;
+        this->m_data.m_geosets[CHARGEOSET_EYEEFFECTS] = 1701;
     }
 }
 
