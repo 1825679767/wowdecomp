@@ -1,4 +1,5 @@
 #include "MapRenderChunk.h"
+#include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cmath>
 #include <cstring>
 #include "Engine/Source/Gx/CGxBuf.h"
@@ -590,7 +591,7 @@ void CMapRenderChunk::UpdatePools() {
     CMap::ClearAllRenderChunks();
     CMapRenderChunk::Destroy();
 
-    int32_t radius = 1 - static_cast<int32_t>(World::s_farClip * -0.03f);
+    int32_t radius = 1 - static_cast<int32_t>(World::s_farClip * -OO_COORD_TO_CHUNK);
     uint32_t count = (2 * radius * radius + 1) & ~1u;
 
     CMapRenderChunk::s_pnEstimateVertex = 145 * count;

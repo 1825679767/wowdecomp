@@ -1,4 +1,5 @@
 #include "World.h"
+#include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cstdlib>
 #include <new>
 #include <algorithm>
@@ -1206,9 +1207,9 @@ void World::PrepareAreaOfInterest(const C3Vector& position) {
     CWorld::s_objectAreaOfInterest.b = C3Vector(position.x - farClip, position.y - farClip, position.z - farClip);
     CWorld::s_objectAreaOfInterest.t = C3Vector(position.x + farClip, position.y + farClip, position.z + farClip);
 
-    int32_t radius = 1 - static_cast<int32_t>(streamDistance * -0.03f);
-    int32_t chunkX = static_cast<int32_t>(-(position.x - 17066.666f) * 0.03f);
-    int32_t chunkY = static_cast<int32_t>(-(position.y - 17066.666f) * 0.03f);
+    int32_t radius = 1 - static_cast<int32_t>(streamDistance * -OO_COORD_TO_CHUNK);
+    int32_t chunkX = static_cast<int32_t>(-(position.x - 17066.666f) * OO_COORD_TO_CHUNK);
+    int32_t chunkY = static_cast<int32_t>(-(position.y - 17066.666f) * OO_COORD_TO_CHUNK);
 
     if (SFile::IsTrial()) {
         StreamingSetAreaOfInterest(chunkY, chunkX);
@@ -2209,7 +2210,7 @@ void CWorldScene::AddMapObjDefGroup(CMapObjDef* mapObjDef, CMapObjDefGroup* mapO
     int32_t bucket = 0;
 
     if (dist > 0.0f) {
-        bucket = CMath::fint_(dist * 0.03f - 0.5f);
+        bucket = CMath::fint_(dist * CBDIVISOR - 0.5f);
 
         if (bucket >= 64) {
             return;
@@ -2237,7 +2238,7 @@ void CWorldScene::ComputeExteriorSortDistances() {
         float dist = x * CWorldScene::camPlaneXY.n.x + y * CWorldScene::camPlaneXY.n.y + z * CWorldScene::camPlaneXY.n.z + CWorldScene::camPlaneXY.d;
 
         if (dist > 0.0f) {
-            bucket = CMath::fint_(dist * 0.03f - 0.5f);
+            bucket = CMath::fint_(dist * CBDIVISOR - 0.5f);
 
             if (bucket >= 64) {
                 return;
@@ -2255,7 +2256,7 @@ void CWorldScene::AddMapChunkToRenderList(CMapChunk* mapChunk, C3Vector* pos) {
     int32_t bucket = 0;
     float distance = pos->y * CWorldScene::camPlaneXY.n.y + pos->z * CWorldScene::camPlaneXY.n.z + pos->x * CWorldScene::camPlaneXY.n.x + CWorldScene::camPlaneXY.d;
 
-    if (distance <= 0.0f || (bucket = CMath::fint_(distance * 0.029999999f - 0.5f)) < 64) {
+    if (distance <= 0.0f || (bucket = CMath::fint_(distance * CBDIVISOR - 0.5f)) < 64) {
         CWorldScene::sortTable.m_table[bucket].m_mapChunkList.LinkToTail(mapChunk);
     }
 }
@@ -2267,7 +2268,7 @@ void CWorldScene::AddToDistanceBucket(CChunkLiquid* liquid, const C3Vector& pos)
     float distance = pos.y * CWorldScene::camPlaneXY.n.y + pos.z * CWorldScene::camPlaneXY.n.z + pos.x * CWorldScene::camPlaneXY.n.x + CWorldScene::camPlaneXY.d;
 
     if (distance > 0.0f) {
-        float scaled = distance * 0.03f;
+        float scaled = distance * CBDIVISOR;
         bucket = CMath::fint_(scaled - 0.5f);
 
         if (bucket >= 64) {
@@ -2842,10 +2843,10 @@ void CWorldScene::Update(C3Vector* camPos, C3Vector* camTarget) {
     CWorldScene::s_viewProjW.w = CWorldScene::s_viewProjMatrix.d3;
 
     CWorldScene::boundingBox = CAaBox::Bounding(CWorldScene::s_frustumCorners, 8);
-    CWorldScene::s_frustumChunkRect.minX = CMath::fint_(-(CWorldScene::boundingBox.t.y - 17066.666f) * 0.029999999f - 0.5f);
-    CWorldScene::s_frustumChunkRect.minY = CMath::fint_(-(CWorldScene::boundingBox.t.x - 17066.666f) * 0.029999999f - 0.5f);
-    CWorldScene::s_frustumChunkRect.maxX = CMath::fint_(-(CWorldScene::boundingBox.b.y - 17066.666f) * 0.029999999f - 0.5f);
-    CWorldScene::s_frustumChunkRect.maxY = CMath::fint_(-(CWorldScene::boundingBox.b.x - 17066.666f) * 0.029999999f - 0.5f);
+    CWorldScene::s_frustumChunkRect.minX = CMath::fint_(-(CWorldScene::boundingBox.t.y - 17066.666f) * OO_COORD_TO_CHUNK - 0.5f);
+    CWorldScene::s_frustumChunkRect.minY = CMath::fint_(-(CWorldScene::boundingBox.t.x - 17066.666f) * OO_COORD_TO_CHUNK - 0.5f);
+    CWorldScene::s_frustumChunkRect.maxX = CMath::fint_(-(CWorldScene::boundingBox.b.y - 17066.666f) * OO_COORD_TO_CHUNK - 0.5f);
+    CWorldScene::s_frustumChunkRect.maxY = CMath::fint_(-(CWorldScene::boundingBox.b.x - 17066.666f) * OO_COORD_TO_CHUNK - 0.5f);
 
     CWorldScene::frustumIndex = 0;
     CWorldScene::frustumStack[0].CalcPlanesFromCorners(CWorldScene::s_frustumCorners);
@@ -3835,7 +3836,7 @@ void CWorldScene::AddDoodadDefs(TSList<CMapBaseObjLink, TSGetExplicitLink<CMapBa
         float dist = doodadDef->m_sphere.c.y * CWorldScene::camPlaneXY.n.y + doodadDef->m_sphere.c.z * CWorldScene::camPlaneXY.n.z + doodadDef->m_sphere.c.x * CWorldScene::camPlaneXY.n.x + CWorldScene::camPlaneXY.d;
 
         if (dist > 0.0f) {
-            bucket = CMath::fint_(dist * 0.03f - 0.5f);
+            bucket = CMath::fint_(dist * CBDIVISOR - 0.5f);
 
             if (bucket >= 64) {
                 continue;
@@ -3998,7 +3999,7 @@ void CWorldScene::CullChunks(CSortEntry* entry, uint32_t index) {
                         int32_t bucket = 0;
                         float distance = CWorldScene::DistanceToCamPlaneXY(&corner);
 
-                        if (distance <= 0.0f || (bucket = CMath::fint_(distance * 0.029999999f - 0.5f)) < 64) {
+                        if (distance <= 0.0f || (bucket = CMath::fint_(distance * CBDIVISOR - 0.5f)) < 64) {
                             CWorldScene::sortTable.m_table[bucket].m_holedChunkList.LinkToTail(chunk);
                         }
                     }
@@ -4267,7 +4268,7 @@ void CWorldScene::AddEntityToSortTable(CMapEntity* entity) {
     float distance = corner.y * CWorldScene::camPlaneXY.n.y + corner.z * CWorldScene::camPlaneXY.n.z + corner.x * CWorldScene::camPlaneXY.n.x + CWorldScene::camPlaneXY.d;
 
     if (distance > 0.0f) {
-        bucket = static_cast<int32_t>(distance * 0.029999999f);
+        bucket = static_cast<int32_t>(distance * CBDIVISOR);
 
         if (bucket >= 64) {
             return;

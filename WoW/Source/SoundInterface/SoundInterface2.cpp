@@ -1,4 +1,5 @@
 #include <cstddef>
+#include "WoW/Source/WorldClient/WorldConstants.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -1477,9 +1478,9 @@ int32_t SI2::GetChunkLocation(int32_t* mapId, int32_t* chunkX, int32_t* chunkY, 
 
     C3Vector position = player->GetPosition();
     float x = -(position.x - 17066.666f);
-    float y = -(position.y - 17066.666f) * 0.029999999f;
+    float y = -(position.y - 17066.666f) * OO_COORD_TO_CHUNK;
     *subchunkX = CMath::fint_(y - s_subchunkRound);
-    x *= 0.029999999f;
+    x *= OO_COORD_TO_CHUNK;
     *subchunkY = CMath::fint_(x - s_subchunkRound);
     *chunkX = (*subchunkX >> 4) & 0x3F;
     *chunkY = (*subchunkY >> 4) & 0x3F;
