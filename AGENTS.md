@@ -2,6 +2,8 @@
 
 ## 构建要求
 
+- 所有编译临时文件和 CMake 构建目录必须放在 `E:\CBY\build`；严禁在仓库内创建或使用 `build` 目录。
+- 发布构建的完整可发布文件必须放在 `E:\CBY\release`。
 - 编译时**必须**开启 `WOWDECOMP_DISABLE_SIGNATURE_CHECKS` 选项，以禁用 MPQ 文件签名验证。
   - 这允许客户端加载第三方/私服补丁而不进行签名检查。
 - 全新 CMake 配置默认开启 `WOWDECOMP_DISABLE_ITEM_CACHE`，使物品资料使用服务器查询结果，并且不读写持久化的物品 WDB 缓存。
