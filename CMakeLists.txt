@@ -57,6 +57,13 @@ if (WOWDECOMP_DISABLE_SIGNATURE_CHECKS)
     add_compile_definitions(DISABLE_SIGNATURE_CHECKS=1)
 endif ()
 
+# Off by default: item metadata is loaded from and saved to the original WDB cache files. ON keeps item metadata
+# session-only so every item absent from memory is queried from the server.
+option(WOWDECOMP_DISABLE_ITEM_CACHE "Ignore persisted item metadata and use server item query responses" OFF)
+if (WOWDECOMP_DISABLE_ITEM_CACHE)
+    add_compile_definitions(DISABLE_ITEM_CACHE=1)
+endif ()
+
 # Third-party code is linked, not decompiled, for now.
 option(WXL_ENABLE_DX11 "Build the separate native x64 D3D11 backend" OFF)
 set(WXL_DX11_WDK_ROOT "" CACHE PATH "Pinned WDK Include/version directory for the shader converter")
