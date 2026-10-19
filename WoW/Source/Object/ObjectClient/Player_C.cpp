@@ -4733,7 +4733,7 @@ int16_t CGPlayer_C::GetSkillModifier(int32_t index) {
 // OFFSET: 0x006E7B00
 void CGPlayer_C::AddKnownSpell(int32_t spellId, int32_t a2, int32_t a3, int32_t a4) {
     if (spellId > g_spellDB.m_maxID) {
-        SysMsgPrintf(STATUS_ERROR, 2, "NOSPELLIDFOUND|%d", spellId);
+        SysMsgPrintf(SYSMSG_ERROR, 2, "NOSPELLIDFOUND|%d", spellId);
         return;
     }
 
@@ -7941,7 +7941,7 @@ int32_t OnUpdatePlayerAuraVision(WOWGUID guid, uint32_t offset, uint32_t count, 
 // OFFSET: 0x006E71D0
 void CGPlayer_C::DelKnownSpell(int32_t spellId, int32_t silent) {
     if (spellId > g_spellDB.m_maxID) {
-        SysMsgPrintf(STATUS_ERROR, 2, "NOSPELLIDFOUND|%d", spellId);
+        SysMsgPrintf(SYSMSG_ERROR, 2, "NOSPELLIDFOUND|%d", spellId);
         return;
     }
 
@@ -11075,17 +11075,17 @@ int32_t CGPlayer_C::UpdateUnitCollisionBox(int32_t a2, int32_t a3) {
     float scale = this->GetScaledModelScale(displayInfo, modelData, &modelScale);
 
     if (fabsf(modelData->m_collisionWidth) < 0.00000095367432f || fabsf(modelData->m_collisionHeight) < 0.00000095367432f) {
-        SysMsgPrintf(STATUS_ERROR, 0x10, "NOCOLLISIONBOX|%s", modelData->m_modelName);
+        SysMsgPrintf(SYSMSG_ERROR, 0x10, "NOCOLLISIONBOX|%s", modelData->m_modelName);
         return 1;
     }
 
     if (CMath::fequal(scale, 0.0f)) {
-        SysMsgPrintf(STATUS_ERROR, 2, "ZEROSCALEUNIT|%d|%s", this->m_obj->m_entryID, this->GetUnitName(nullptr, 1));
+        SysMsgPrintf(SYSMSG_ERROR, 2, "ZEROSCALEUNIT|%d|%s", this->m_obj->m_entryID, this->GetUnitName(nullptr, 1));
         return 1;
     }
 
     if (modelData->m_collisionWidth + 0.00000011920929f < 0.4167f) {
-        SysMsgPrintf(STATUS_ERROR, 2, "CreatureModelData record %d (%s) collision width is too small.", displayInfo->m_modelID, modelData->m_modelName);
+        SysMsgPrintf(SYSMSG_ERROR, 2, "CreatureModelData record %d (%s) collision width is too small.", displayInfo->m_modelID, modelData->m_modelName);
     }
 
     if (!a2 && this->IsActivePlayer() && this->m_movementData.CollisionBoxDoesntFit(modelData->m_collisionWidth, modelData->m_collisionHeight, scale)) {

@@ -422,14 +422,14 @@ int32_t CGCorpse_C::GetModelFileName(const char** name) const {
     CreatureDisplayInfoRec* display = g_creatureDisplayInfoDB.GetRecord(displayId);
 
     if (!display) {
-        SysMsgPrintf(STATUS_WARNING, 16, "INVALIDPLAYERDISPLAYID|%d|%d|%d", displayId, this->m_corpse->m_corpseFieldBytes1[1], this->m_corpse->m_corpseFieldBytes1[2]);
+        SysMsgPrintf(SYSMSG_WARNING, 16, "INVALIDPLAYERDISPLAYID|%d|%d|%d", displayId, this->m_corpse->m_corpseFieldBytes1[1], this->m_corpse->m_corpseFieldBytes1[2]);
         return 0;
     }
 
     CreatureModelDataRec* model = g_creatureModelDataDB.GetRecord(display->m_modelID);
 
     if (!model) {
-        SysMsgPrintf(STATUS_WARNING, 16, "INVALIDPLAYERMODELRECORD|%d|%d|%d", display->m_modelID, this->m_corpse->m_corpseFieldBytes1[1], this->m_corpse->m_corpseFieldBytes1[2]);
+        SysMsgPrintf(SYSMSG_WARNING, 16, "INVALIDPLAYERMODELRECORD|%d|%d|%d", display->m_modelID, this->m_corpse->m_corpseFieldBytes1[1], this->m_corpse->m_corpseFieldBytes1[2]);
         return 0;
     }
 

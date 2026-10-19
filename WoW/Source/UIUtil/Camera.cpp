@@ -1002,7 +1002,7 @@ void CGCamera::SetModeFreeLook() {
     }
 
     this->m_state |= 0x1;
-    SysMsgAdd("Camera FREELOOK", STATUS_INFO);
+    SysMsgAdd("Camera FREELOOK", SYSMSG_INFO);
     this->IncIgnoreFacing();
 
     if (this->m_groundTiltRefs++ == 0) {
@@ -1044,7 +1044,7 @@ void CGCamera::SetModeNormal() {
         this->ClampPitchToLimits(-this->m_groundTilt);
     }
 
-    SysMsgAdd("Camera NORMAL", STATUS_INFO);
+    SysMsgAdd("Camera NORMAL", SYSMSG_INFO);
     this->m_state &= ~0x4000;
 }
 
@@ -3049,7 +3049,7 @@ void CGCamera::SetView(int32_t view, int32_t blendStyle, int32_t transition) {
         blendStyle = 2;
     }
 
-    SysMsgPrintf(STATUS_INFO, 4, "Camera view %s", s_cameraViewModeNames[view]);
+    SysMsgPrintf(SYSMSG_INFO, 4, "Camera view %s", s_cameraViewModeNames[view]);
     uint32_t time = OsGetAsyncTimeMs();
 
     if (this->m_viewIndex != view) {

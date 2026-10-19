@@ -1601,7 +1601,7 @@ void CGWorldFrame::UpdateDayNight(float deltaSec) {
         info->m_day = 0.0f;
 
         if (info->m_dayProgression < 0.0f || info->m_dayProgression > 1.0f) {
-            SysMsgPrintf(STATUS_ERROR, "Invalid time of day override in Map ID %d. TOD = %d.", World::QueryMapId(), map->m_timeOfDayOverride);
+            SysMsgPrintf(SYSMSG_ERROR, "Invalid time of day override in Map ID %d. TOD = %d.", World::QueryMapId(), map->m_timeOfDayOverride);
             info->m_dayProgression = 0.5f;
         }
     }
