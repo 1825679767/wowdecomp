@@ -18004,7 +18004,7 @@ void CGUnit_C::OnLevelChange() {
     void* memory = SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0);
     CEffect* effect = memory ? new (memory) CEffect() : nullptr;
     WOWGUID guid = this->m_obj->m_guid;
-    effect->AddSpecialEffect(5, guid, CGObject_C::EffectOnceHandler);
+    effect->AddSpecialEffect(SPECIALEFFECT_LEVELUP, guid, CGObject_C::EffectOnceHandler);
     effect->m_flags |= 0x20;
     effect->Release();
 
@@ -18769,11 +18769,11 @@ void CGUnit_C::HandleAnimEvent(uint32_t boneId, uint32_t eventId, uint32_t data,
             int32_t type;
 
             if ((this->m_obj->m_type & TYPE_PLAYER) && static_cast<CGPlayer_C*>(this)->GetDrunknessTurnValue() >= 0.5f) {
-                type = 7;
+                type = SPECIALEFFECT_INEBRIATEDBUBBLES;
             } else if (this->m_clientFlags & 0x20) {
-                type = 2;
+                type = SPECIALEFFECT_UNDERWATERBUBBLES;
             } else if (this->m_clientFlags & 0x40) {
-                type = 3;
+                type = SPECIALEFFECT_COLDBREATH;
             } else {
                 return;
             }
@@ -21592,6 +21592,7 @@ void CGUnit_C::FootstepAnimEventHit(const C3Vector* position, int32_t left) {
         splash.z = depth + position->z;
         CEffect* effect = new (SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0)) CEffect();
         WOWGUID owner = this->m_obj->m_guid;
+        // The boolean selects water run (0) or water walk (1).
         effect->AddSpecialByPosition(!this->IsRunning(), splash, &owner, 0x220, CGObject_C::EffectOnceHandler);
         effect->Release();
         return;
@@ -22234,7 +22235,7 @@ void CGUnit_C::OnMountDisplayChanged(int32_t displayId) {
             void* memory = SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0);
             CEffect* effect = memory ? new (memory) CEffect() : nullptr;
             WOWGUID guid = this->m_obj->m_guid;
-            effect->AddSpecialEffect(6, guid, CGObject_C::EffectOnceHandler);
+            effect->AddSpecialEffect(SPECIALEFFECT_MOUNTPOOF, guid, CGObject_C::EffectOnceHandler);
             effect->m_flags |= 0x20;
             effect->Release();
         }

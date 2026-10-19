@@ -1448,7 +1448,7 @@ void CGGameObject_C::ShowLootEffect() {
         return;
     }
 
-    const SpellVisualEffectNameRec* rec = GetSpecialSpellVisualEffectNameRec(4);
+    const SpellVisualEffectNameRec* rec = GetSpecialSpellVisualEffectNameRec(SPECIALEFFECT_LOOTART);
     this->m_lootEffect = this->m_worldModel->m_scene->CreateModel(rec->m_fileName, 0);
 
     if (!this->m_lootEffect) {

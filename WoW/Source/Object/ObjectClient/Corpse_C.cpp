@@ -174,7 +174,7 @@ void CGCorpse_C::PostInit(uint32_t time, const CClientObjCreate& create, bool a3
     }
 
     if ((this->m_corpse->m_corpseFieldDynamicFlags & 0x1) && !this->m_lootEffect) {
-        const SpellVisualEffectNameRec* effect = GetSpecialSpellVisualEffectNameRec(4);
+        const SpellVisualEffectNameRec* effect = GetSpecialSpellVisualEffectNameRec(SPECIALEFFECT_LOOTART);
         this->m_lootEffect = this->m_worldModel->m_scene->CreateModel(effect->m_fileName, 0);
 
         if (this->m_lootEffect) {
@@ -280,7 +280,7 @@ void CGCorpse_C::ShowLootEffect() {
         return;
     }
 
-    const SpellVisualEffectNameRec* effect = GetSpecialSpellVisualEffectNameRec(4);
+    const SpellVisualEffectNameRec* effect = GetSpecialSpellVisualEffectNameRec(SPECIALEFFECT_LOOTART);
     this->m_lootEffect = this->m_worldModel->m_scene->CreateModel(effect->m_fileName, 0);
 
     if (this->m_lootEffect) {

@@ -984,7 +984,7 @@ int32_t Packet_SMSG_SET_FACTION_STANDING(void* param, NETMESSAGE msgId, uint32_t
         void* memory = SMemAlloc(sizeof(CEffect), __FILE__, __LINE__, 0);
         CEffect* effect = memory ? new (memory) CEffect() : nullptr;
         WOWGUID guid = player->m_obj->m_guid;
-        effect->AddSpecialEffect(9, guid, CGObject_C::EffectOnceHandler);
+        effect->AddSpecialEffect(SPECIALEFFECT_REPUTATION, guid, CGObject_C::EffectOnceHandler);
         effect->m_flags |= 0x20;
         effect->Release();
     }

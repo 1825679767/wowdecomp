@@ -557,7 +557,7 @@ void CEffect::ReleaseLightningRef() {
 void CEffect::AddSpecialEffect(int32_t type, const WOWGUID& target, void (*callback)(CM2Model* model, uint32_t boneId, uint32_t sequenceId, int32_t interrupted, uint32_t time, uint64_t param)) {
     CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(target, TYPE_UNIT, __FILE__, __LINE__));
 
-    if (!unit || static_cast<uint32_t>(type) >= 12) {
+    if (!unit || static_cast<uint32_t>(type) >= NUM_UNITEFFECTSPECIALS) {
         return;
     }
 
@@ -877,7 +877,7 @@ void CEffect::AddLootEffect(CGUnit_C* unit, void (*callback)(CM2Model* model, ui
     this->m_sourceGuid = unit->m_obj->m_guid;
     this->m_flags = 0x8;
     this->m_attachmentId = 19;
-    const SpellVisualEffectNameRec* effectName = GetSpecialSpellVisualEffectNameRec(4);
+    const SpellVisualEffectNameRec* effectName = GetSpecialSpellVisualEffectNameRec(SPECIALEFFECT_LOOTART);
     this->m_effectNameRec = effectName;
     this->m_model = World::s_m2Scene->CreateModel(effectName->m_fileName, 0);
 
