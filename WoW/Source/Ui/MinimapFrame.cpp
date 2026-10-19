@@ -161,8 +161,30 @@ static C2Vector s_blipTexCoords[32][4];
 static int32_t s_inWorld;
 
 enum MINIMAP_OBJECT_TYPES : uint32_t {
+    // Current native subdivisions of the five-type reference domain.
+    MINIMAP_RAID = 0,
+    MINIMAP_PARTY = 1,
+    MINIMAP_PLAYER_HOSTILE = 2,
+    MINIMAP_PLAYER_OTHER_FACTION = 3,
+    MINIMAP_PLAYER_SAME_FACTION = 4,
+    MINIMAP_MONSTER_HOSTILE = 5,
+    MINIMAP_MONSTER_NEUTRAL = 6,
+    MINIMAP_MONSTER_FRIENDLY = 7,
     MINIMAP_OBJECT = 8,
+    MINIMAP_QUEST_AVAILABLE = 9,
+    MINIMAP_QUEST_COMPLETE = 10,
+    MINIMAP_QUEST_REPEATABLE = 11,
+    MINIMAP_UNUSED_12 = 12, // No producer in the current native paths.
+    MINIMAP_FLIGHTMASTER = 13,
+    MINIMAP_UNUSED_14 = 14, // No producer in the current native paths.
     MINIMAP_PET = 15,
+    MINIMAP_VEHICLE_GROUND_UNOCCUPIED = 16,
+    MINIMAP_VEHICLE_GROUND_OCCUPIED = 17,
+    MINIMAP_VEHICLE_AIR_UNOCCUPIED = 18,
+    MINIMAP_VEHICLE_AIR_OCCUPIED = 19,
+    MINIMAP_VEHICLE_UNUSED = 20, // No producer in the current native paths.
+    MINIMAP_VEHICLE_AIR_HORDE = 21,
+    MINIMAP_VEHICLE_AIR_ALLIANCE = 22,
     MINIMAP_NUM_TYPES = 23,
 };
 
@@ -2062,19 +2084,19 @@ void CGMinimapFrame::Render() {
 
             switch (vehicleRec->m_uiLocomotionType) {
                 case 0:
-                    list = (vehicle->m_unit->m_unitFieldFlags & 0x1000000) ? &s_objInfo[17] : &s_objInfo[16];
+                    list = (vehicle->m_unit->m_unitFieldFlags & 0x1000000) ? &s_objInfo[MINIMAP_VEHICLE_GROUND_OCCUPIED] : &s_objInfo[MINIMAP_VEHICLE_GROUND_UNOCCUPIED];
                     break;
 
                 case 1:
-                    list = (vehicle->m_unit->m_unitFieldFlags & 0x1000000) ? &s_objInfo[19] : &s_objInfo[18];
+                    list = (vehicle->m_unit->m_unitFieldFlags & 0x1000000) ? &s_objInfo[MINIMAP_VEHICLE_AIR_OCCUPIED] : &s_objInfo[MINIMAP_VEHICLE_AIR_UNOCCUPIED];
                     break;
 
                 case 3:
-                    list = &s_objInfo[21];
+                    list = &s_objInfo[MINIMAP_VEHICLE_AIR_HORDE];
                     break;
 
                 case 4:
-                    list = &s_objInfo[22];
+                    list = &s_objInfo[MINIMAP_VEHICLE_AIR_ALLIANCE];
                     break;
 
                 default:
@@ -2104,7 +2126,7 @@ void CGMinimapFrame::Render() {
                 continue;
             }
 
-            OBJINFO* info2 = s_objInfo[1].New();
+            OBJINFO* info2 = s_objInfo[MINIMAP_PARTY].New();
             info2->m_guid = s_partyMembers[i].m_guid;
             info2->m_otherFloor = 0;
             float radius = param.m_radius;
@@ -2124,7 +2146,7 @@ void CGMinimapFrame::Render() {
                 continue;
             }
 
-            OBJINFO* info2 = s_objInfo[0].New();
+            OBJINFO* info2 = s_objInfo[MINIMAP_RAID].New();
             info2->m_guid = s_raidMembers[i].m_guid;
             info2->m_otherFloor = 0;
             float radius = param.m_radius;
@@ -2260,11 +2282,11 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
             uint32_t status = gameObject->m_questStatus;
 
             if (status == 10) {
-                type = 10;
+                type = MINIMAP_QUEST_COMPLETE;
             } else if (status == 8 || (status == 2 && CGMinimapFrame::IsTrackingTrivialQuests())) {
-                type = 9;
+                type = MINIMAP_QUEST_AVAILABLE;
             } else if (status == 7 || (status == 4 && CGMinimapFrame::IsTrackingTrivialQuests())) {
-                type = 11;
+                type = MINIMAP_QUEST_REPEATABLE;
             } else {
                 if (!player->CanTrackObject(gameObject)) {
                     return 1;
@@ -2302,14 +2324,14 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
                 uint32_t status = unit->m_questStatus;
 
                 if (status == 10) {
-                    type = 10;
+                    type = MINIMAP_QUEST_COMPLETE;
                 } else if (status == 8 || (status == 2 && CGMinimapFrame::IsTrackingTrivialQuests())) {
-                    type = 9;
+                    type = MINIMAP_QUEST_AVAILABLE;
                 } else if (status == 7 || (status == 4 && CGMinimapFrame::IsTrackingTrivialQuests())) {
-                    type = 11;
+                    type = MINIMAP_QUEST_REPEATABLE;
                 } else if (unit->m_interactIconType) {
-                    type = 13;
-                    questGiver = 1;
+                    type = MINIMAP_FLIGHTMASTER;
+                    questGiver = 1; // The native tooltip flag identifies a flight master.
                 } else {
                     if (!player->CanTrackUnit(unit)) {
                         return 1;
@@ -2317,18 +2339,18 @@ int32_t CGMinimapFrame::ObjectEnumProc(WOWGUID guid, void* param) {
 
                     if (unit->m_obj->m_type & TYPE_PLAYER) {
                         if (player->CanAttack(unit)) {
-                            type = 2;
+                            type = MINIMAP_PLAYER_HOSTILE;
                         } else {
                             int32_t faction = static_cast<CGPlayer_C*>(unit)->GetPVPFactionIndex();
-                            type = 4 - (faction != player->GetPVPFactionIndex());
+                            type = MINIMAP_PLAYER_SAME_FACTION - (faction != player->GetPVPFactionIndex());
                         }
                     } else {
                         UNIT_REACTION reaction = unit->UnitReaction(player);
 
                         if (reaction < UNIT_REACTION_FRIENDLY) {
-                            type = (reaction > UNIT_REACTION_HOSTILE) + 5;
+                            type = (reaction > UNIT_REACTION_HOSTILE) + MINIMAP_MONSTER_HOSTILE;
                         } else {
-                            type = 7;
+                            type = MINIMAP_MONSTER_FRIENDLY;
                         }
                     }
                 }
@@ -2679,7 +2701,7 @@ void CGMinimapFrame::RenderGroupBlips(const C44Matrix& rotation) {
         return;
     }
 
-    for (uint32_t list = 0; list < 2; list++) {
+    for (uint32_t list = MINIMAP_RAID; list < MINIMAP_PLAYER_HOSTILE; list++) {
         for (uint32_t i = 0; i < s_objInfo[list].m_count; i++) {
             OBJINFO* info = &s_objInfo[list].m_data[i];
 
@@ -2717,7 +2739,7 @@ void CGMinimapFrame::RenderGroupBlips(const C44Matrix& rotation) {
 
             int32_t icon = info->m_icon - 1;
 
-            if (!list) {
+            if (!list) { // Raid classes use the second half of the class atlas.
                 icon += 16;
             }
 
@@ -2754,7 +2776,7 @@ void CGMinimapFrame::RenderObjectBlips(const C44Matrix& rotation, bool otherFloo
         return;
     }
 
-    for (uint32_t list = 2; list < 16; list++) {
+    for (uint32_t list = MINIMAP_PLAYER_HOSTILE; list < MINIMAP_VEHICLE_GROUND_UNOCCUPIED; list++) {
         for (uint32_t i = 0; i < s_objInfo[list].m_count; i++) {
             OBJINFO* info = &s_objInfo[list].m_data[i];
 
@@ -2819,8 +2841,8 @@ void CGMinimapFrame::RenderObjectBlips(const C44Matrix& rotation, bool otherFloo
 // VERIFY: a016d4c5 manual
 // OFFSET: 0x00580720
 void CGMinimapFrame::RenderVehicleBlips(const C44Matrix& rotation) {
-    for (uint32_t list = 16; list < MINIMAP_NUM_TYPES; list++) {
-        CTexture* texture = s_vehicleTextures[list - 16];
+    for (uint32_t list = MINIMAP_VEHICLE_GROUND_UNOCCUPIED; list < MINIMAP_NUM_TYPES; list++) {
+        CTexture* texture = s_vehicleTextures[list - MINIMAP_VEHICLE_GROUND_UNOCCUPIED];
 
         if (!s_objInfo[list].m_count || !texture) {
             continue;
