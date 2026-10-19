@@ -123,7 +123,14 @@ static int (*s_drawListSorters[GxuSorts_Last])(const void*, const void*) = { Dra
 // VERIFY: 0b88acbc auto
 // OFFSET: 0x008C8DE0
 EGxApi GxDefaultApi() {
+#ifdef WXL_ENABLE_DX11
+    // The DX11 build is intended to run as DX11 when launched directly. The
+    // legacy command-line switches in ConsoleDevice still provide explicit
+    // D3D9/OpenGL fallback paths for troubleshooting.
+    return GxApi_D3d11;
+#else
     return GxApi_D3d9;
+#endif
 }
 
 // VERIFY: cef2b995 auto

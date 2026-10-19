@@ -402,8 +402,16 @@ void ConsoleDeviceInitialize(const char* title, bool unused_a2, bool unused_a3) 
     }
 
 #ifdef WXL_ENABLE_DX11
-    // Launch either backend from the same matching runtime family without
-    // rewriting the user's saved graphics or account settings.
+    // DX11 is the default for this build, including when an older saved gxApi
+    // value still says D3D9. Explicit legacy switches below remain available
+    // for renderer comparison and fallback testing.
+    if (!CmdLineGetBool(CMD_OPENGL) && !CmdLineGetBool(CMD_D3D) &&
+        !CmdLineGetBool(CMD_D3D9EX) && GxApiSupported(GxApi_D3d11)) {
+        api = GxApi_D3d11;
+    }
+
+    // An explicit -d3d11 switch remains accepted for scripts that already use
+    // it, although direct launch no longer requires the switch.
     if (CmdLineGetBool(static_cast<CMDOPT>(CMD_D3D11)) && GxApiSupported(GxApi_D3d11)) {
         api = GxApi_D3d11;
     }

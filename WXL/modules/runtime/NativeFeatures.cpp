@@ -62,12 +62,14 @@ void RegisterFeatures(){
   {"wxlAppearanceSave","WXL negotiated retail appearance saving; matching server support required",AppearanceSave},
   {"wxlRetailDb2","WXL retail DB2 schemas and FDID paths; restart after changing",Db2},
   {"wxlRetailAppearances","WXL retail appearance recipes and body atlas; reload models after changing",Appearances},
-  {"wxlCustomOpcodes","WXL native custom opcode transport",Protocol},
+  // Private WXL opcodes require matching server handlers. Keep them opt-in so
+  // ordinary 3.3.5 servers never receive unsupported client packets.
+  {"wxlCustomOpcodes","WXL native custom opcode transport; requires matching server support",Protocol},
   {"wxlModernAssets","WXL modern model and FDID assets; restart after changing",Assets},
   {"wxlModernBlp","WXL modern BLP texture decoding; restart after changing",Blp},
   {"wxlCustomMaterials","WXL custom mesh materials including BlendAdd; reload models after changing",Materials},
   {"wxlParticles","WXL modern Screen particle rendering; reload models after changing",Particles}};
- for(const auto& f:features){auto* cv=CVar::Register(f.name,f.help,0,(Compiled&f.bit)?"1":"0",&Changed,0,false,reinterpret_cast<void*>(uintptr_t(f.bit)),false);
+ for(const auto& f:features){const char* defaultValue=(Compiled&f.bit)?"1":"0";if(f.bit==Protocol)defaultValue="0";auto* cv=CVar::Register(f.name,f.help,0,defaultValue,&Changed,0,false,reinterpret_cast<void*>(uintptr_t(f.bit)),false);
   if(cv)Changed(cv,nullptr,cv->m_stringValue.m_str,reinterpret_cast<void*>(uintptr_t(f.bit)));
  }
 }
