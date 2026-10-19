@@ -1663,7 +1663,7 @@ int32_t Packet_SMSG_CAST_FAILED(void* param, NETMESSAGE msgId, uint32_t time, CD
     PendingSpellCast* cast = FindPendingSpellCast(player, &local, castCount, spellId, player);
     Spell_C_SpellFailed(cast, &spell, reason, customError, customArg, true);
 
-    if (reason != 67 && (spell.m_attributes & 0x2000000)) {
+    if (reason != SPELL_FAILED_NOT_READY && (spell.m_attributes & 0x2000000)) {
         s_spellHistory[0].ClearOnHold(spellId, 0, true);
         CGSpellBook::UpdateCooldowns();
         CGSpellBook::UpdateUsable();
@@ -6128,19 +6128,19 @@ static UIErrors GetSpellFailedError(int32_t reason, const SpellRec* spell, int32
     UIErrors error = ERR_SPELL_FAILED_S;
 
     switch (reason) {
-        case 2:
+        case SPELL_FAILED_ALREADY_AT_FULL_HEALTH:
             return ERR_SPELL_FAILED_ALREADY_AT_FULL_HEALTH;
 
-        case 3:
+        case SPELL_FAILED_ALREADY_AT_FULL_MANA:
             return ERR_SPELL_FAILED_ALREADY_AT_FULL_MANA;
 
-        case 4:
+        case SPELL_FAILED_ALREADY_AT_FULL_POWER:
             return ERR_SPELL_FAILED_ALREADY_AT_FULL_POWER_S;
 
-        case 11:
+        case SPELL_FAILED_BAD_IMPLICIT_TARGETS:
             return ERR_GENERIC_NO_TARGET;
 
-        case 12:
+        case SPELL_FAILED_BAD_TARGETS:
             if (spell->m_targets & 0x10) {
                 return ERR_INVALID_ITEM_TARGET;
             }
@@ -6151,15 +6151,15 @@ static UIErrors GetSpellFailedError(int32_t reason, const SpellRec* spell, int32
 
             return error;
 
-        case 28:
+        case SPELL_FAILED_EQUIPPED_ITEM:
             return ERR_SPELL_FAILED_EQUIPPED_ITEM;
 
-        case 29:
-        case 30:
-        case 31:
+        case SPELL_FAILED_EQUIPPED_ITEM_CLASS:
+        case SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND:
+        case SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND:
             return ERR_SPELL_FAILED_EQUIPPED_ITEM_CLASS_S;
 
-        case 45:
+        case SPELL_FAILED_ITEM_NOT_READY:
             switch (spell->m_category) {
                 case 4:
                 case 9:
@@ -6173,10 +6173,10 @@ static UIErrors GetSpellFailedError(int32_t reason, const SpellRec* spell, int32
                     return ERR_ITEM_COOLDOWN;
             }
 
-        case 52:
+        case SPELL_FAILED_NEED_AMMO:
             return ERR_NOAMMO_S;
 
-        case 67:
+        case SPELL_FAILED_NOT_READY:
             switch (spell->m_category) {
                 case 4:
                 case 9:
@@ -6203,41 +6203,41 @@ static UIErrors GetSpellFailedError(int32_t reason, const SpellRec* spell, int32
             CGContainerInfo::UpdateCooldowns();
             return error;
 
-        case 72:
+        case SPELL_FAILED_NOT_UNSHEATHED:
             return ERR_SPELL_FAILED_NOTUNSHEATHED;
 
-        case 94:
+        case SPELL_FAILED_ONLY_SHAPESHIFT:
             return ERR_SPELL_FAILED_SHAPESHIFT_FORM_S;
 
-        case 97:
+        case SPELL_FAILED_OUT_OF_RANGE:
             return ERR_SPELL_OUT_OF_RANGE;
 
-        case 100:
+        case SPELL_FAILED_REAGENTS:
             return ERR_SPELL_FAILED_REAGENTS;
 
-        case 129:
+        case SPELL_FAILED_TOO_MANY_OF_ITEM:
             if (misc > 0) {
                 error = ERR_ITEM_MAX_LIMIT_CATEGORY_COUNT_EXCEEDED_IS;
             }
 
             return error;
 
-        case 131:
+        case SPELL_FAILED_TOTEMS:
             return ERR_SPELL_FAILED_TOTEMS;
 
-        case 148:
+        case SPELL_FAILED_PLAY_TIME:
             return ERR_PLAY_TIME_EXCEEDED;
 
-        case 170:
+        case SPELL_FAILED_ON_USE_ENCHANT:
             return ERR_BAD_ON_USE_ENCHANT;
 
-        case 174:
+        case SPELL_FAILED_TOO_MANY_SOCKETS:
             return ERR_TOO_MANY_SOCKETS;
 
-        case 178:
+        case SPELL_FAILED_NO_VALID_TARGETS:
             return ERR_GENERIC_NO_VALID_TARGETS;
 
-        case 184:
+        case SPELL_FAILED_MAX_SOCKETS:
             return ERR_MAX_SOCKETS;
 
         default:
@@ -6257,7 +6257,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
 
     UpdateTradeSkillRecast(spellId);
 
-    if (s_autoRepeatingSpell && (reason == 67 || reason == 105)) {
+    if (s_autoRepeatingSpell && (reason == SPELL_FAILED_NOT_READY || reason == SPELL_FAILED_SPELL_IN_PROGRESS)) {
         SpellRec autoRepeat;
 
         if (g_spellDB.GetRecord(s_autoRepeatingSpell, &autoRepeat) && (autoRepeat.m_attributesExC & 0x400000)) {
@@ -6273,14 +6273,14 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
 
     CGPlayer_C* player = ClntObjMgrGetActivePlayerObj();
 
-    if (player && reason != 27) {
+    if (player && reason != SPELL_FAILED_DONT_REPORT) {
         SI2::PlaySpellFizzleSound(spellId, player);
     }
 
     UIErrors error = GetSpellFailedError(reason, spell, misc1);
 
     if (player) {
-        if (reason == 52) {
+        if (reason == SPELL_FAILED_NEED_AMMO) {
             CGTutorial::TriggerTutorial(44);
         }
 
@@ -6292,35 +6292,35 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             autoRepeat = true;
         } else {
             switch (reason) {
-                case 47:
-                case 52:
-                case 53:
-                case 54:
-                case 97:
-                case 128:
-                case 134:
+                case SPELL_FAILED_LINE_OF_SIGHT:
+                case SPELL_FAILED_NEED_AMMO:
+                case SPELL_FAILED_NEED_AMMO_POUCH:
+                case SPELL_FAILED_NEED_EXOTIC_AMMO:
+                case SPELL_FAILED_OUT_OF_RANGE:
+                case SPELL_FAILED_TOO_CLOSE:
+                case SPELL_FAILED_UNIT_NOT_INFRONT:
                     player->CancelRangedMode();
                     break;
             }
         }
 
         if (autoRepeat) {
-            bool cancel = reason != 27;
+            bool cancel = reason != SPELL_FAILED_DONT_REPORT;
             bool check = true;
 
             if (spellId == s_autoRangedCombatSpell && resetCooldown) {
                 switch (reason) {
-                    case 11:
-                    case 12:
-                    case 23:
-                    case 28:
-                    case 29:
-                    case 30:
-                    case 31:
-                    case 52:
-                    case 97:
-                    case 128:
-                    case 134:
+                    case SPELL_FAILED_BAD_IMPLICIT_TARGETS:
+                    case SPELL_FAILED_BAD_TARGETS:
+                    case SPELL_FAILED_CASTER_DEAD:
+                    case SPELL_FAILED_EQUIPPED_ITEM:
+                    case SPELL_FAILED_EQUIPPED_ITEM_CLASS:
+                    case SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND:
+                    case SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND:
+                    case SPELL_FAILED_NEED_AMMO:
+                    case SPELL_FAILED_OUT_OF_RANGE:
+                    case SPELL_FAILED_TOO_CLOSE:
+                    case SPELL_FAILED_UNIT_NOT_INFRONT:
                         break;
 
                     default:
@@ -6333,13 +6333,13 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
                 Spell_C_CancelAutoRepeat(true);
 
                 switch (reason) {
-                    case 29:
-                    case 52:
-                    case 53:
-                    case 54:
-                    case 97:
-                    case 128:
-                    case 134:
+                    case SPELL_FAILED_EQUIPPED_ITEM_CLASS:
+                    case SPELL_FAILED_NEED_AMMO:
+                    case SPELL_FAILED_NEED_AMMO_POUCH:
+                    case SPELL_FAILED_NEED_EXOTIC_AMMO:
+                    case SPELL_FAILED_OUT_OF_RANGE:
+                    case SPELL_FAILED_TOO_CLOSE:
+                    case SPELL_FAILED_UNIT_NOT_INFRONT:
                         player->CancelRangedMode();
                         break;
                 }
@@ -6368,7 +6368,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
         s_lastFailedTime = now;
     }
 
-    if (reason == 27) {
+    if (reason == SPELL_FAILED_DONT_REPORT) {
         CGUnit_C* unit = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(cast->m_data.m_caster, TYPE_UNIT, __FILE__, __LINE__));
 
         if (unit) {
@@ -6395,7 +6395,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
     }
 
     if (!format[0]) {
-        if (reason == 172) {
+        if (reason == SPELL_FAILED_CUSTOM_ERROR) {
             GetCustomSpellFailedString(format, sizeof(format), misc1);
             suppress = true;
         }
@@ -6421,7 +6421,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
     const char* message = format;
 
     switch (reason) {
-        case 4: {
+        case SPELL_FAILED_ALREADY_AT_FULL_POWER: {
             if (!player) {
                 Spell_C_FailPendingCast(cast, spell, 27);
                 return;
@@ -6446,9 +6446,9 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 29:
-        case 30:
-        case 31: {
+        case SPELL_FAILED_EQUIPPED_ITEM_CLASS:
+        case SPELL_FAILED_EQUIPPED_ITEM_CLASS_MAINHAND:
+        case SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND: {
             bool found = false;
 
             for (int32_t i = 0; i < g_itemSubClassMaskDB.m_numRecords; i++) {
@@ -6474,7 +6474,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 54: {
+        case SPELL_FAILED_NEED_EXOTIC_AMMO: {
             ItemSubClassRec* rec = FindAnyItemSubclassRec(6, 1 << misc1);
 
             if (rec) {
@@ -6485,7 +6485,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 55: {
+        case SPELL_FAILED_NEED_MORE_ITEMS: {
             WOWGUID guid = { static_cast<uint64_t>(static_cast<int64_t>(spellId)) | 0x1FE0000000000000ull };
             ItemStats_C* stats = g_itemDBCache.GetRecord(misc1, guid, SpellMissingItemsCallback, reinterpret_cast<void*>(static_cast<intptr_t>(misc2)), false);
 
@@ -6499,7 +6499,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 85: {
+        case SPELL_FAILED_NO_POWER: {
             PowerDisplayRec* display = g_powerDisplayDB.GetRecord(spell->m_powerDisplayID);
 
             if (display) {
@@ -6517,7 +6517,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 94: {
+        case SPELL_FAILED_ONLY_SHAPESHIFT: {
             uint32_t count = g_spellShapeshiftFormDB.m_numRecords;
 
             if (count > 64) {
@@ -6562,9 +6562,9 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 100:
-        case 131: {
-            if (reason == 100 && misc1 == -2) {
+        case SPELL_FAILED_REAGENTS:
+        case SPELL_FAILED_TOTEMS: {
+            if (reason == SPELL_FAILED_REAGENTS && misc1 == -2) {
                 error = static_cast<UIErrors>(0);
                 text[0] = 0;
                 message = text;
@@ -6584,7 +6584,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 101: {
+        case SPELL_FAILED_REQUIRES_AREA: {
             AreaTableRec* area = g_areaTableDB.GetRecord(misc1);
 
             if (area) {
@@ -6595,7 +6595,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 102: {
+        case SPELL_FAILED_REQUIRES_SPELL_FOCUS: {
             SpellFocusObjectRec* focus = g_spellFocusObjectDB.GetRecord(misc1);
 
             if (focus) {
@@ -6606,7 +6606,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 129: {
+        case SPELL_FAILED_TOO_MANY_OF_ITEM: {
             if (!misc1) {
                 break;
             }
@@ -6623,7 +6623,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 130: {
+        case SPELL_FAILED_TOTEM_CATEGORY: {
             TotemCategoryRec* totem = g_totemCategoryDB.GetRecord(misc1);
 
             if (!totem) {
@@ -6636,7 +6636,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 147: {
+        case SPELL_FAILED_PREVENTED_BY_MECHANIC: {
             SpellMechanicRec* mechanic = g_spellMechanicDB.GetRecord(misc1);
 
             if (mechanic) {
@@ -6647,14 +6647,14 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 150: {
+        case SPELL_FAILED_MIN_SKILL: {
             SkillLineRec* skill = g_skillLineDB.GetRecord(misc1);
             SStrPrintf(text, sizeof(text), format, skill ? skill->m_displayName : "UNKNOWN", misc2);
             message = text;
             break;
         }
 
-        case 176: {
+        case SPELL_FAILED_UNIQUE_GLYPH: {
             CGObject_C* object = ClntObjMgrObjectPtr(cast->m_data.m_castItem, TYPE_OBJECT, __FILE__, __LINE__);
             const char* name = spell->m_name;
 
@@ -6671,7 +6671,7 @@ void Spell_C_SpellFailed(PendingSpellCast* cast, const SpellRec* spell, int32_t 
             break;
         }
 
-        case 181:
+        case SPELL_FAILED_FISHING_TOO_LOW:
             SStrPrintf(text, sizeof(text), format, misc1);
             message = text;
             break;
@@ -6877,7 +6877,7 @@ bool Spell_C_HaveSpellTokens(CGUnit_C* unit, const SpellRec* spell, bool report,
     for (uint32_t i = 0; i < sizeof(spell->m_totem) / sizeof(spell->m_totem[0]); i++) {
         if (spell->m_totem[i] && !player->m_bag.FindItemOfType(spell->m_totem[i], 0)) {
             if (report) {
-                Spell_C_SpellFailed(cast, spell, 131, spell->m_totem[i], -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_TOTEMS, spell->m_totem[i], -1, false);
             }
 
             return false;
@@ -6887,7 +6887,7 @@ bool Spell_C_HaveSpellTokens(CGUnit_C* unit, const SpellRec* spell, bool report,
     for (uint32_t i = 0; i < sizeof(spell->m_requiredTotemCategoryID) / sizeof(spell->m_requiredTotemCategoryID[0]); i++) {
         if (spell->m_requiredTotemCategoryID[i] && !player->m_bag.FindTotemCategory(spell->m_requiredTotemCategoryID[i], 0)) {
             if (report) {
-                Spell_C_SpellFailed(cast, spell, 130, spell->m_requiredTotemCategoryID[i], -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_TOTEM_CATEGORY, spell->m_requiredTotemCategoryID[i], -1, false);
             }
 
             return false;
@@ -6918,7 +6918,7 @@ bool Spell_C_HaveSpellTokens(CGUnit_C* unit, const SpellRec* spell, bool report,
 
         if (count < needed) {
             if (report) {
-                Spell_C_SpellFailed(cast, spell, 100, spell->m_reagent[i], -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_REAGENTS, spell->m_reagent[i], -1, false);
             }
 
             return false;
@@ -6963,7 +6963,7 @@ bool Spell_C_HaveEquippedSpellItems(CGUnit_C* unit, const SpellRec* spell, bool 
 
     if ((spell->m_attributesExC & 0x1000400) == 0x1000400 && !player->EquippedItemMeetSpellRequirements(spell, 0x10000)) {
         if (report) {
-            Spell_C_SpellFailed(cast, spell, 31, spell->m_equippedItemClass, spell->m_equippedItemSubclass, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_EQUIPPED_ITEM_CLASS_OFFHAND, spell->m_equippedItemClass, spell->m_equippedItemSubclass, false);
         }
 
         return false;
@@ -7002,7 +7002,7 @@ bool Spell_C_HaveEquippedSpellItems(CGUnit_C* unit, const SpellRec* spell, bool 
 
     if (!CGCharacterInfo::GetActivePlayerAmmoID(player)) {
         if (report) {
-            Spell_C_SpellFailed(cast, spell, 52, ammoType, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NEED_AMMO, ammoType, -1, false);
         }
 
         return false;
@@ -7015,7 +7015,7 @@ bool Spell_C_HaveEquippedSpellItems(CGUnit_C* unit, const SpellRec* spell, bool 
 
     if (!player->m_bag.FindItem(FindAmmoByType, &search, 0)) {
         if (report) {
-            Spell_C_SpellFailed(cast, spell, 52, ammoType, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NEED_AMMO, ammoType, -1, false);
         }
 
         return false;
@@ -7197,9 +7197,9 @@ bool Spell_C_RangeCheckSelected(CGUnit_C* caster, const SpellRec* spell, WOWGUID
 
     if (!result && report) {
         if (flag) {
-            Spell_C_SpellFailed(cast, spell, 97, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_OUT_OF_RANGE, -1, -1, false);
         } else {
-            Spell_C_SpellFailed(cast, spell, 128, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_TOO_CLOSE, -1, -1, false);
         }
     }
 
@@ -7542,7 +7542,7 @@ static bool ValidateSpellTarget(CGUnit_C* caster, const SpellRec* spell, uint32_
 // OFFSET: 0x00809F80
 int32_t Spell_C_PrepareMissileTrajectoryCast(CGUnit_C* caster, PendingSpellCast* cast, const SpellRec* spell, const TSStackArray<CGUnit_C*>* targets, float* pitch, float* speed) {
     if (caster->IsUpdatingMissileTrajectory()) {
-        Spell_C_SpellFailed(cast, spell, 105, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_SPELL_IN_PROGRESS, -1, -1, false);
         return 0;
     }
 
@@ -7563,7 +7563,7 @@ int32_t Spell_C_PrepareMissileTrajectoryCast(CGUnit_C* caster, PendingSpellCast*
 
     if (playNow) {
         if (s_delayedTrajectoryCast || (kit && kit->m_animID >= 0 && caster->m_specialIdleAnim == kit->m_animID)) {
-            Spell_C_SpellFailed(cast, spell, 105, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_SPELL_IN_PROGRESS, -1, -1, false);
             return 0;
         }
 
@@ -7588,7 +7588,7 @@ int32_t Spell_C_PrepareMissileTrajectoryCast(CGUnit_C* caster, PendingSpellCast*
 
     if (!caster->ComputeMissileTrajectory(spell, pitch, speed, &launch, &impact, &time, nullptr, nullptr, 0)) {
         ConsoleWrite("Could not compute missile trajectory", DEFAULT_COLOR);
-        Spell_C_SpellFailed(cast, spell, 32, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ERROR, -1, -1, false);
         return 0;
     }
 
@@ -7683,7 +7683,7 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
 
     if (!(spell.m_attributes & 0x8000000) && caster->GetClientStandState()) {
         if (!caster->CanAutoStand()) {
-            Spell_C_SpellFailed(cast, &spell, 69, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_NOT_STANDING, -1, -1, false);
             return;
         }
 
@@ -7692,7 +7692,7 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
 
     if (!(spell.m_attributes & 0x1000000) && static_cast<int32_t>(caster->m_unit->m_unitFieldMountdisplayid) > 0 && !caster->MountedCombatAllowed() && caster->m_mountDisplayId > 0 && !(caster->m_clientFlags & 0x10000000)) {
         if (!caster->CanAutoDismount()) {
-            Spell_C_SpellFailed(cast, &spell, 64, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_NOT_MOUNTED, -1, -1, false);
             return;
         }
 
@@ -7725,12 +7725,12 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
     if (caster->m_movement->m_flags & 0x2000000) {
         if ((static_cast<int32_t>(caster->m_unit->m_unitFieldMountdisplayid) > 0 && (caster->m_mountDisplayId <= 0 || (caster->m_clientFlags & 0x10000000))) || caster->m_shapeshiftSuppressed) {
             if ((spell.m_attributesEx & 0x44) && (spell.m_channelInterruptFlags & 0x18)) {
-                Spell_C_SpellFailed(cast, &spell, 51, -1, -1, false);
+                Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_MOVING, -1, -1, false);
                 return;
             }
 
             if ((spell.m_interruptFlags & 0x1) && !(spell.m_attributesExB & 0x20) && (SpellRec::GetCastTime(&spell, caster->m_unit->m_unitFieldPetnumber != 0, 0, 0) || (spell.m_auraInterruptFlags & 0x18))) {
-                Spell_C_SpellFailed(cast, &spell, 51, -1, -1, false);
+                Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_MOVING, -1, -1, false);
                 return;
             }
         }
@@ -7744,7 +7744,7 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
 
         if (!item) {
             ConsoleWrite("Casting item not found", DEFAULT_COLOR);
-            Spell_C_SpellFailed(cast, &spell, 32, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_ERROR, -1, -1, false);
             return;
         }
 
@@ -7752,7 +7752,7 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
 
         if (!container) {
             ConsoleWrite("Casting item's container not found", DEFAULT_COLOR);
-            Spell_C_SpellFailed(cast, &spell, 32, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_ERROR, -1, -1, false);
             return;
         }
 
@@ -7760,7 +7760,7 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
 
         if (slot < 0) {
             ConsoleWrite("Casting item not found in container", DEFAULT_COLOR);
-            Spell_C_SpellFailed(cast, &spell, 32, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_ERROR, -1, -1, false);
             return;
         }
 
@@ -7768,14 +7768,14 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
 
         if (!owner) {
             ConsoleWrite("Active player not found", DEFAULT_COLOR);
-            Spell_C_SpellFailed(cast, &spell, 32, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_ERROR, -1, -1, false);
             return;
         }
 
         uint8_t bag = owner->FindSlotIndex(item->m_item->m_itemFieldContained);
 
         if (item->GetInventoryType() && (bag != 0xFF || slot > 18)) {
-            Spell_C_SpellFailed(cast, &spell, 28, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_EQUIPPED_ITEM, -1, -1, false);
             return;
         }
 
@@ -7803,7 +7803,7 @@ void Spell_C::SendPendingCast(PendingSpellCast* cast, bool hideVisuals) {
     if (missile && (missile->m_flags & 0x1)) {
         if (mover != caster) {
             ConsoleWrite("Missile trajectory does not have active mover caster", DEFAULT_COLOR);
-            Spell_C_SpellFailed(cast, &spell, 27, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_DONT_REPORT, -1, -1, false);
             return;
         }
 
@@ -8215,7 +8215,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
                 OverrideSpellDataRec* rec = g_overrideSpellDataDB.GetRecord(overrideId);
 
                 if (rec && !(rec->m_flags & 0x4) && !Spell_C_IsOverride(spellId, rec)) {
-                    Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+                    Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW, -1, -1, false);
                     return false;
                 }
             }
@@ -8262,7 +8262,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
                 }
 
                 if (!(spell.m_attributesExF & 0x1000) && !(spell.m_attributes & 0x1000000) && (seat->m_flags & required) != required) {
-                    Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+                    Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW, -1, -1, false);
                     return false;
                 }
 
@@ -8276,7 +8276,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
                             SummonPropertiesRec* properties = g_summonPropertiesDB.GetRecord(spell.m_effectMiscValueB[i]);
 
                             if (properties && properties->m_control) {
-                                Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+                                Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW, -1, -1, false);
                                 return false;
                             }
                         }
@@ -8315,17 +8315,17 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
 
         if (flags & 0x1000000) {
             if (melee || Spell_C_IsRestrictedAbility(&spell)) {
-                Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+                Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW, -1, -1, false);
                 return false;
             }
         } else if (!melee && (flags & 0x800000)) {
-            Spell_C_SpellFailed(cast, &spell, 173, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_CANT_DO_THAT_RIGHT_NOW, -1, -1, false);
             return false;
         }
     }
 
     if (unit->IsDeadOrGhost() && !(spell.m_attributes & 0x800000)) {
-        Spell_C_SpellFailed(cast, &spell, 23, -1, -1, false);
+        Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_CASTER_DEAD, -1, -1, false);
         return false;
     }
 
@@ -8343,12 +8343,12 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
     }
 
     if ((effect == 99 || effect == 127 || effect == 158) && unit->GetComboPointTarget()) {
-        Spell_C_SpellFailed(cast, &spell, 74, -1, -1, false);
+        Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_NOT_WHILE_LOOTING, -1, -1, false);
         return false;
     }
 
     if (((effect == 53 || effect == 54 || effect == 92 || effect == 156) && unit->GetComboPointTarget()) || unit->m_mountTransitionSpellId) {
-        Spell_C_SpellFailed(cast, &spell, 105, -1, -1, false);
+        Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_SPELL_IN_PROGRESS, -1, -1, false);
         return false;
     }
 
@@ -8375,7 +8375,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
     }
 
     if ((spell.m_attributesExG & 0x8) && !(unit->m_unit->m_unitFieldFlags2 & 0x40000)) {
-        Spell_C_SpellFailed(cast, &spell, 107, -1, -1, false);
+        Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_SPELL_UNAVAILABLE, -1, -1, false);
         return false;
     }
 
@@ -8400,7 +8400,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
         }
 
         if (!usable) {
-            Spell_C_SpellFailed(cast, &spell, 28, spell.m_equippedItemClass, spell.m_equippedItemSubclass, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_EQUIPPED_ITEM, spell.m_equippedItemClass, spell.m_equippedItemSubclass, false);
             return false;
         }
     }
@@ -8415,7 +8415,7 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
         }
 
         if (noComboPoints && !unit->IgnoresAuraState(&spell)) {
-            Spell_C_SpellFailed(cast, &spell, unit->m_unit->m_unitFieldBytes0[1] == 1 ? 22 : 78, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, unit->m_unit->m_unitFieldBytes0[1] == 1 ? SPELL_FAILED_CASTER_AURASTATE : SPELL_FAILED_NO_COMBO_POINTS, -1, -1, false);
             return false;
         }
     }
@@ -8458,17 +8458,17 @@ bool Spell_C_CastSpell(CGUnit_C* caster, int32_t spellId, const CGItem_C* item, 
 
     if (!Spell_C_BeginCast(unit, &spell, target, cast, confirmed)) {
         if (target.m_guid == 0xFFFFFFFFFFFFFFFEull) {
-            Spell_C_SpellFailed(cast, &spell, 11, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_BAD_IMPLICIT_TARGETS, -1, -1, false);
             return false;
         }
 
         if ((spell.m_attributes & 0x200) && (!(unit->m_obj->m_type & TYPE_PLAYER) || !static_cast<CGPlayer_C*>(unit)->m_bag.GetItemGuid(15))) {
-            Spell_C_SpellFailed(cast, &spell, 50, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_MAINHAND_EMPTY, -1, -1, false);
             return false;
         }
 
         if ((s_needTargets & 0x80) && (static_cast<uint32_t>(target.m_guid) & static_cast<uint32_t>(target.m_guid >> 32)) != 0xFFFFFFFF && (!(spell.m_attributesExE & 0x800) || !(s_needTargets & 0x10C))) {
-            Spell_C_SpellFailed(cast, &spell, CGGameUI::m_lockedTarget ? 12 : 11, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, CGGameUI::m_lockedTarget ? SPELL_FAILED_BAD_TARGETS : SPELL_FAILED_BAD_IMPLICIT_TARGETS, -1, -1, false);
             return false;
         }
 
@@ -8755,7 +8755,7 @@ bool Spell_C_HandleSpriteClick(CGObject_C* object, PendingSpellCast* cast) {
         uint8_t tooFar;
 
         if (!RangeCheck(caster, cast->m_data.m_spellId, object, &tooFar)) {
-            Spell_C_SpellFailed(cast, &spell, tooFar ? 97 : 128, -1, -1, false);
+            Spell_C_SpellFailed(cast, &spell, tooFar ? SPELL_FAILED_OUT_OF_RANGE : SPELL_FAILED_TOO_CLOSE, -1, -1, false);
             cast->m_data.m_objectTarget = WOWGUID{ 0 };
             s_needTargets = needTargets;
             return false;
@@ -8788,7 +8788,7 @@ bool Spell_C_HandleGlyphClick(int32_t socket) {
     CGPlayerLocalData* data = static_cast<CGPlayerLocalData*>(player->m_player);
 
     if (!((1 << socket) & data->m_playerGlyphsEnabled)) {
-        Spell_C_SpellFailed(cast, &spell, 177, -1, -1, false);
+        Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_GLYPH_SOCKET_LOCKED, -1, -1, false);
         return false;
     }
 
@@ -8806,13 +8806,13 @@ bool Spell_C_HandleGlyphClick(int32_t socket) {
         }
 
         if (slot->m_type != properties->m_glyphSlotFlags) {
-            Spell_C_SpellFailed(s_targetingSpell, &spell, 175, -1, -1, false);
+            Spell_C_SpellFailed(s_targetingSpell, &spell, SPELL_FAILED_INVALID_GLYPH, -1, -1, false);
             return false;
         }
 
         for (uint32_t j = 0; j < sizeof(data->m_playerFieldGlyphs1) / sizeof(data->m_playerFieldGlyphs1[0]); j++) {
             if (data->m_playerFieldGlyphs1[j] == static_cast<uint32_t>(spell.m_effectMiscValue[i])) {
-                Spell_C_SpellFailed(s_targetingSpell, &spell, 176, -1, -1, false);
+                Spell_C_SpellFailed(s_targetingSpell, &spell, SPELL_FAILED_UNIQUE_GLYPH, -1, -1, false);
                 return false;
             }
         }
@@ -8834,7 +8834,7 @@ bool Spell_C_HandleGlyphClick(int32_t socket) {
         return result;
     }
 
-    Spell_C_SpellFailed(cast, &spell, 175, -1, -1, false);
+    Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_INVALID_GLYPH, -1, -1, false);
     return false;
 }
 

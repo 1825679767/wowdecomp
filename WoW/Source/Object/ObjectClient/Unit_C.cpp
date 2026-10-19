@@ -1,3 +1,4 @@
+#include "WoW/Source/Magic/Types.h"
 #include "Unit_C.h"
 #include <cmath>
 #include <new>
@@ -15891,31 +15892,31 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
 
     if (map) {
         if (!CGUnit_C::IsSpellAllowedInArena(spell)) {
-            Spell_C_SpellFailed(cast, spell, 151, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NOT_IN_ARENA, -1, -1, false);
             return false;
         }
 
         if (map->m_instanceType != 4 && (spell->m_attributesExF & 0x2)) {
-            Spell_C_SpellFailed(cast, spell, 168, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_IN_ARENA, -1, -1, false);
             return false;
         }
     }
 
     if (item) {
         if (Spell_C_GetItemCooldown(const_cast<CGItem_C*>(item), nullptr, nullptr, nullptr)) {
-            Spell_C_SpellFailed(cast, spell, 45, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ITEM_NOT_READY, -1, -1, false);
             return false;
         }
     } else {
         bool player = this->m_obj->m_guid == ClntObjMgrGetActivePlayer();
 
         if (Spell_C_GetSpellCooldown(spell->m_id, !player, nullptr, nullptr, nullptr)) {
-            Spell_C_SpellFailed(cast, spell, 67, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NOT_READY, -1, -1, false);
             return false;
         }
 
         if (!Spell_C_HaveSpellPower(this, spell)) {
-            Spell_C_SpellFailed(cast, spell, 85, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NO_POWER, -1, -1, false);
             return false;
         }
     }
@@ -15961,7 +15962,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
             }
 
             if (*controlled && !(spell->m_attributesEx & 0x1)) {
-                Spell_C_SpellFailed(cast, spell, this->m_unit->m_unitFieldCharm ? 6 : 7, -1, -1, false);
+                Spell_C_SpellFailed(cast, spell, this->m_unit->m_unitFieldCharm ? SPELL_FAILED_ALREADY_HAVE_CHARM : SPELL_FAILED_ALREADY_HAVE_SUMMON, -1, -1, false);
                 return false;
             }
         }
@@ -15974,7 +15975,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
             }
 
             if (!*controlled) {
-                Spell_C_SpellFailed(cast, spell, 84, -1, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NO_PET, -1, -1, false);
                 return false;
             }
 
@@ -15992,13 +15993,13 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
                     int32_t level;
 
                     if (!petUnit->GetSpellRequiredLevel(learn, &level)) {
-                        Spell_C_SpellFailed(cast, spell, 107, -1, -1, false);
+                        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_SPELL_UNAVAILABLE, -1, -1, false);
                         return false;
                     }
 
                     if (petUnit->IsSpellKnown(learn) || petUnit->IsSpellSuperceded(learn)) {
                         CGGameUI::DisplayError(ERR_PET_SPELL_ALREADY_KNOWN_S, spell->m_name);
-                        Spell_C_SpellFailed(cast, spell, 27, -1, -1, false);
+                        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_DONT_REPORT, -1, -1, false);
                         return false;
                     }
                 }
@@ -16010,15 +16011,15 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
 
     if (this->m_unit->m_unitFieldHealth > 0) {
         if ((this->m_obj->m_type & TYPE_PLAYER) && (static_cast<CGPlayer_C*>(this)->m_player->m_playerFieldBytes[0] & 0x4)) {
-            Spell_C_SpellFailed(cast, spell, 105, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_SPELL_IN_PROGRESS, -1, -1, false);
             return false;
         }
 
         if (this->m_unit->m_unitFieldCharmedby && this->m_unit->m_unitFieldCharmedby != ClntObjMgrGetActivePlayer() && !Spell_C_CancelsCharm(this, spell, &reason)) {
             if (reason) {
-                Spell_C_SpellFailed(cast, spell, 147, reason, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_PREVENTED_BY_MECHANIC, reason, -1, false);
             } else {
-                Spell_C_SpellFailed(cast, spell, 24, -1, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_CHARMED, -1, -1, false);
             }
 
             return false;
@@ -16026,9 +16027,9 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
 
         if ((this->m_unit->m_unitFieldFlags & 0x40000) && !(spell->m_attributesExE & 0x8) && !(spell->m_attributesExG & 0x100000) && !Spell_C_CancelsStun(this, spell, &reason)) {
             if (reason) {
-                Spell_C_SpellFailed(cast, spell, 147, reason, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_PREVENTED_BY_MECHANIC, reason, -1, false);
             } else {
-                Spell_C_SpellFailed(cast, spell, 108, -1, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_STUNNED, -1, -1, false);
             }
 
             return false;
@@ -16036,9 +16037,9 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
 
         if (spell->m_preventionType == 1 && (this->m_unit->m_unitFieldFlags & 0x2000) && !Spell_C_CancelsSilence(this, spell, &reason)) {
             if (reason) {
-                Spell_C_SpellFailed(cast, spell, 147, reason, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_PREVENTED_BY_MECHANIC, reason, -1, false);
             } else {
-                Spell_C_SpellFailed(cast, spell, 104, -1, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_SILENCED, -1, -1, false);
             }
 
             return false;
@@ -16046,9 +16047,9 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
 
         if (spell->m_preventionType == 2 && (this->m_unit->m_unitFieldFlags & 0x20000) && !Spell_C_CancelsPacify(this, spell, &reason)) {
             if (reason) {
-                Spell_C_SpellFailed(cast, spell, 147, reason, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_PREVENTED_BY_MECHANIC, reason, -1, false);
             } else {
-                Spell_C_SpellFailed(cast, spell, 98, -1, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_PACIFIED, -1, -1, false);
             }
 
             return false;
@@ -16056,9 +16057,9 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
 
         if ((this->m_unit->m_unitFieldFlags & 0x800000) && !(spell->m_attributesExE & 0x20000) && !(spell->m_attributesExG & 0x100000) && !Spell_C_CancelsFear(this, spell, &reason)) {
             if (reason) {
-                Spell_C_SpellFailed(cast, spell, 147, reason, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_PREVENTED_BY_MECHANIC, reason, -1, false);
             } else {
-                Spell_C_SpellFailed(cast, spell, 34, -1, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_FLEEING, -1, -1, false);
             }
 
             return false;
@@ -16066,9 +16067,9 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
 
         if ((this->m_unit->m_unitFieldFlags & 0x400000) && !(spell->m_attributesExE & 0x40000) && !(spell->m_attributesExG & 0x100000) && !Spell_C_CancelsConfuse(this, spell, &reason)) {
             if (reason) {
-                Spell_C_SpellFailed(cast, spell, 147, reason, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_PREVENTED_BY_MECHANIC, reason, -1, false);
             } else {
-                Spell_C_SpellFailed(cast, spell, 26, -1, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_CONFUSED, -1, -1, false);
             }
 
             return false;
@@ -16078,32 +16079,32 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     int32_t auraInterrupt = spell->m_auraInterruptFlags;
 
     if (((auraInterrupt & 0x200) && !this->m_sheatheState) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x200) && !this->m_sheatheState)) {
-        Spell_C_SpellFailed(cast, spell, 72, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NOT_UNSHEATHED, -1, -1, false);
         return false;
     }
 
     if (((auraInterrupt & 0x40) && (this->m_mountDisplayId <= 0 || (this->m_clientFlags & 0x10000000))) || ((spell->m_attributesEx & 0x44) && (spell->m_channelInterruptFlags & 0x40) && !this->IsMounted())) {
-        Spell_C_SpellFailed(cast, spell, 91, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_MOUNTED, -1, -1, false);
         return false;
     }
 
     if (!(spell->m_attributes & 0x1000000) && this->m_mountDisplayId > 0 && !(this->m_clientFlags & 0x10000000) && !this->MountedCombatAllowed() && !this->CanAutoDismount()) {
-        Spell_C_SpellFailed(cast, spell, 64, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NOT_MOUNTED, -1, -1, false);
         return false;
     }
 
     if (!(spell->m_attributes & 0x8000000) && this->GetClientStandState() && !this->CanAutoStand()) {
-        Spell_C_SpellFailed(cast, spell, 69, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NOT_STANDING, -1, -1, false);
         return false;
     }
 
     if ((spell->m_attributes & 0x1000) && !g_clientGameTime.IsDaytime()) {
-        Spell_C_SpellFailed(cast, spell, 89, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_DAYTIME, -1, -1, false);
         return false;
     }
 
     if ((spell->m_attributes & 0x2000) && g_clientGameTime.IsDaytime()) {
-        Spell_C_SpellFailed(cast, spell, 92, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_NIGHTTIME, -1, -1, false);
         return false;
     }
 
@@ -16111,17 +16112,17 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     int32_t channeled = spell->m_attributesEx & 0x44;
 
     if (((auraInterrupt & 0x100) && !(this->m_clientFlags & 0x200000)) || (channeled && (spell->m_channelInterruptFlags & 0x100) && !(this->m_clientFlags & 0x200000))) {
-        Spell_C_SpellFailed(cast, spell, 96, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_UNDERWATER, -1, -1, false);
         return false;
     }
 
     if (((auraInterrupt & 0x80) && (this->m_clientFlags & 0x200000)) || (channeled && (spell->m_channelInterruptFlags & 0x80) && (this->m_clientFlags & 0x200000))) {
-        Spell_C_SpellFailed(cast, spell, 88, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_ABOVEWATER, -1, -1, false);
         return false;
     }
 
     if ((channeled && (spell->m_channelInterruptFlags & 0x18) && (this->m_movement->m_flags & 0xC0100F) && !(spell->m_targets & 0x60)) || ((spell->m_interruptFlags & 0x1) && (this->m_movement->m_flags & 0xC0100F) && !(spell->m_targets & 0x60) && !(spell->m_attributesExB & 0x20) && (SpellRec::GetCastTime(spell, this->m_unit->m_unitFieldPetnumber != 0, 0, 0) || (spell->m_auraInterruptFlags & 0x18)))) {
-        Spell_C_SpellFailed(cast, spell, 51, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_MOVING, -1, -1, false);
         return false;
     }
 
@@ -16136,36 +16137,36 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     }
 
     if ((spell->m_attributes & 0x10000000) && (this->m_unit->m_unitFieldFlags & 0x80000) && !this->IgnoresAuraState(spell)) {
-        Spell_C_SpellFailed(cast, spell, 1, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_AFFECTING_COMBAT, -1, -1, false);
         return false;
     }
 
     if (spell->m_casterAuraState && !this->HasAuraState(spell->m_casterAuraState) && !this->IgnoresAuraState(spell)) {
-        Spell_C_SpellFailed(cast, spell, 22, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_CASTER_AURASTATE, -1, -1, false);
         return false;
     }
 
     if (spell->m_excludeCasterAuraState && this->HasAuraState(spell->m_excludeCasterAuraState) && !this->IgnoresAuraState(spell)) {
-        Spell_C_SpellFailed(cast, spell, 22, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_CASTER_AURASTATE, -1, -1, false);
         return false;
     }
 
     int32_t casterAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_casterAuraSpell);
 
     if (casterAura && !this->HasAuraBySpellId(casterAura) && !this->IgnoresAuraState(spell)) {
-        Spell_C_SpellFailed(cast, spell, 22, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_CASTER_AURASTATE, -1, -1, false);
         return false;
     }
 
     int32_t excludeCasterAura = QuestTextParser::Spell_C_SpellGetSpellIDForDifficulty(spell->m_excludeCasterAuraSpell);
 
     if (excludeCasterAura && this->HasAuraBySpellId(excludeCasterAura) && !this->IgnoresAuraState(spell)) {
-        Spell_C_SpellFailed(cast, spell, 22, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_CASTER_AURASTATE, -1, -1, false);
         return false;
     }
 
     if (spell->m_minFactionID && GetRepListRepValue(spell->m_minFactionID) < CGReputationInfo::m_reactionThresholds[spell->m_minReputation]) {
-        Spell_C_SpellFailed(cast, spell, 149, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_REPUTATION, -1, -1, false);
         return false;
     }
 
@@ -16173,7 +16174,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
         AreaTableRec* area = CGGameUI::GetCurrentSubzoneRec();
 
         if (!area) {
-            Spell_C_SpellFailed(cast, spell, 39, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_INCORRECT_AREA, -1, -1, false);
             return false;
         }
 
@@ -16185,12 +16186,12 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
                 AreaGroupRec* groupRec = g_areaGroupDB.GetRecord(group);
 
                 if (groupRec) {
-                    Spell_C_SpellFailed(cast, spell, 101, groupRec->m_areaID[0], -1, false);
+                    Spell_C_SpellFailed(cast, spell, SPELL_FAILED_REQUIRES_AREA, groupRec->m_areaID[0], -1, false);
                     return false;
                 }
             }
 
-            Spell_C_SpellFailed(cast, spell, 39, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SPELL_FAILED_INCORRECT_AREA, -1, -1, false);
             return false;
         }
     }
@@ -16198,17 +16199,17 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     if (spell->m_attributes & 0xC000) {
         if (this->IsOutdoors()) {
             if (spell->m_attributes & 0x4000) {
-                Spell_C_SpellFailed(cast, spell, 90, -1, -1, false);
+                Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_INDOORS, -1, -1, false);
                 return false;
             }
         } else if (spell->m_attributes & 0x8000) {
-            Spell_C_SpellFailed(cast, spell, SpellRec::HasAura(spell, 78) ? 83 : 93, -1, -1, false);
+            Spell_C_SpellFailed(cast, spell, SpellRec::HasAura(spell, 78) ? SPELL_FAILED_NO_MOUNTS_ALLOWED : SPELL_FAILED_ONLY_OUTDOORS, -1, -1, false);
             return false;
         }
     }
 
     if ((spell->m_attributesExD & 0x4000000) && !static_cast<CGPlayer_C*>(this)->IsInFlyableZone(!(spell->m_attributesExG & 0x400000))) {
-        Spell_C_SpellFailed(cast, spell, 60, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NOT_HERE, -1, -1, false);
         return false;
     }
 
@@ -16216,18 +16217,18 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     MapRec* current;
 
     if ((spell->m_attributesExC & 0x800) && (current = g_mapDB.GetRecord(mapId)) != nullptr && current->m_instanceType != 3) {
-        Spell_C_SpellFailed(cast, spell, 142, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_ONLY_BATTLEGROUNDS, -1, -1, false);
         return false;
     }
 
     if ((spell->m_attributesExF & 0x800) && (current = g_mapDB.GetRecord(mapId)) != nullptr && current->m_instanceType == 2) {
-        Spell_C_SpellFailed(cast, spell, 167, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_NOT_IN_RAID_INSTANCE, -1, -1, false);
         return false;
     }
 
     if ((spell->m_attributesExB & 0x10000) && (this->m_obj->m_type & TYPE_PLAYER) && (this->GetActivePlayerFieldBytes0() & 0x1)) {
         Spell_C_PetTameFailure(2);
-        Spell_C_SpellFailed(cast, spell, 27, -1, -1, false);
+        Spell_C_SpellFailed(cast, spell, SPELL_FAILED_DONT_REPORT, -1, -1, false);
         return false;
     }
 

@@ -1,3 +1,4 @@
+#include "WoW/Source/Magic/Types.h"
 #include "Spell_C.h"
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
@@ -116,7 +117,7 @@ static int32_t Script_SpellTargetUnit(lua_State* L) {
     SpellRec spell;
     PendingSpellCast* cast = s_targetingSpell;
     g_spellDB.GetRecord(cast->m_data.m_spellId, &spell);
-    Spell_C_SpellFailed(cast, &spell, 97, -1, -1, false);
+    Spell_C_SpellFailed(cast, &spell, SPELL_FAILED_OUT_OF_RANGE, -1, -1, false);
     return 0;
 }
 
