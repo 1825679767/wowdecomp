@@ -98,6 +98,7 @@ bool CGxDeviceD3d11::Impl::FixedShaders(std::shared_ptr<Variant>& vertex,std::sh
         }
         if(specular)h<<"current.rgb=saturate(current.rgb+v.spec.rgb);";
         // The legacy converter applies fog after specular and texture stages.
+        if(state.fog&&fog)h<<"current.rgb=lerp(c[0].rgb,current.rgb,v.fog);";
         h<<"return current;}";
         pixel=compile(h.str(),false,vertex->translated.outputs);if(!pixel)return false;
     }
