@@ -84,10 +84,10 @@ void CChunkLiquid::CreateVertXY() {
     C3Vector* vert = this->m_verts;
     uint32_t index = 0;
 
-    float stepY = -(17066.666f - chunkX * 33.333332f - (17066.666f - (chunkX + 1) * 33.333332f)) * 0.125f;
+    float stepY = -(HALF_WORLD_SIZE - chunkX * 33.333332f - (HALF_WORLD_SIZE - (chunkX + 1) * 33.333332f)) * 0.125f;
 
     for (int32_t row = 0; row < rows; row++) {
-        float stepX = 0.125f * -(17066.666f - chunkY * 33.333332f - (17066.666f - (chunkY + 1) * 33.333332f));
+        float stepX = 0.125f * -(HALF_WORLD_SIZE - chunkY * 33.333332f - (HALF_WORLD_SIZE - (chunkY + 1) * 33.333332f));
         float x = (row + beginX) * stepX;
 
         for (int32_t col = 0; col < cols; col++) {

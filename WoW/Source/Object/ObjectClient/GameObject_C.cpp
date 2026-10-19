@@ -814,7 +814,7 @@ void CGGameObject_C::UpdateInteractIconAttach() {
 CGGameObject_C_TypeBase::CGGameObject_C_TypeBase(CGGameObject_C* owner) {
     this->m_owner = owner;
     this->m_useErrorType = 234;
-    this->m_interactDistance = 5.0f;
+    this->m_interactDistance = MAX_LOOT_DISTANCE;
 }
 
 // INLINED
@@ -1515,7 +1515,7 @@ void CGGameObject_C::UpdateObjectEffectAnimationStates(uint32_t anim) {
 // VERIFY: 8e612f17 auto
 // OFFSET: 0x00712700
 CGGameObject_C_Type_FishingNode::CGGameObject_C_Type_FishingNode(CGGameObject_C* owner) : CGGameObject_C_TypeAnimated(owner) {
-    this->m_interactDistance = 100.0f;
+    this->m_interactDistance = MAX_OBJ_INTEREST_RADIUS;
 }
 
 // VERIFY: 2b1b955c manual

@@ -113,6 +113,13 @@
 #include "WoW/Source/Ui/UIMacros.h"
 #include "WoW/Source/UIUtil/Cursor.h"
 
+static const float LINE_SPACING = 2.0f;
+static const float COLUMN_SPACING = 38.400002f;
+static const float XOFFSET = 10.24f;
+static const float YOFFSET = 10.24f;
+static const float WORDWRAP_MIN_WIDTH = 230.39999f;
+static const float TOOLTIP_FADE_TIME = 2.0f;
+
 // STATIC: 0x00AD2AAC
 static const char* s_spellLinkColorString = "|cff71d5ff";
 
@@ -844,7 +851,7 @@ void CGTooltip::FadeOut() {
         this->m_fading = 0;
     } else {
         this->m_fading = 1;
-        this->m_fadeTime = 2.0f;
+        this->m_fadeTime = TOOLTIP_FADE_TIME;
     }
 }
 
@@ -971,7 +978,7 @@ void CGTooltip::CalculateSize() {
             float lineWidth = 0.0f;
 
             if (this->m_leftStrings.m_data[i]->m_shown && this->m_rightStrings.m_data[i]->m_shown) {
-                lineWidth = NDCToDDCWidth(38.400002f / (CoordinateGetAspectCompensation() * 1024.0f));
+                lineWidth = NDCToDDCWidth(COLUMN_SPACING / (CoordinateGetAspectCompensation() * 1024.0f));
             }
 
             if (this->m_leftStrings.m_data[i]->m_shown) {
@@ -1002,8 +1009,8 @@ void CGTooltip::CalculateSize() {
 
         float stringWidth = this->m_leftStrings.m_data[i]->GetStringWidth();
 
-        if (stringWidth >= NDCToDDCWidth(230.39999f / (CoordinateGetAspectCompensation() * 1024.0f))) {
-            stringWidth = NDCToDDCWidth(230.39999f / (CoordinateGetAspectCompensation() * 1024.0f));
+        if (stringWidth >= NDCToDDCWidth(WORDWRAP_MIN_WIDTH / (CoordinateGetAspectCompensation() * 1024.0f))) {
+            stringWidth = NDCToDDCWidth(WORDWRAP_MIN_WIDTH / (CoordinateGetAspectCompensation() * 1024.0f));
         }
 
         float lineWidth = stringWidth;
@@ -1064,15 +1071,15 @@ void CGTooltip::CalculateSize() {
         }
 
         if (height != 0.0f) {
-            height = NDCToDDCWidth(2.0f / (CoordinateGetAspectCompensation() * 1024.0f)) + height;
+            height = NDCToDDCWidth(LINE_SPACING / (CoordinateGetAspectCompensation() * 1024.0f)) + height;
         }
 
         height = this->m_leftStrings.m_data[i]->GetHeight() + height;
     }
 
-    float borderX = NDCToDDCWidth(10.24f / (CoordinateGetAspectCompensation() * 1024.0f));
+    float borderX = NDCToDDCWidth(XOFFSET / (CoordinateGetAspectCompensation() * 1024.0f));
     float totalWidth = borderX + borderX + this->m_padding + width;
-    float borderY = NDCToDDCWidth(10.24f / (CoordinateGetAspectCompensation() * 1024.0f));
+    float borderY = NDCToDDCWidth(YOFFSET / (CoordinateGetAspectCompensation() * 1024.0f));
     float totalHeight = borderY + borderY + height;
     this->SetWidth(totalWidth);
     this->SetHeight(totalHeight);

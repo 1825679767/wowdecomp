@@ -38,6 +38,8 @@
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/DB/Rec/SpellMissileMotionRec.h"
 
+static const float MISSILE_HEIGHT_SCAN_RANGE = 20.0f;
+
 // STATIC: 0x00CA0B58
 CMissile* CMissile::s_inFlightMissileList;
 
@@ -801,7 +803,7 @@ void CMissile::FollowGround(const C3Vector& direction, float distance) {
 
     if (steps == 4) {
         C3Vector start = this->m_position;
-        C3Vector down(this->m_position.x, this->m_position.y, this->m_position.z - (this->m_groundOffset + 20.0f));
+        C3Vector down(this->m_position.x, this->m_position.y, this->m_position.z - (this->m_groundOffset + MISSILE_HEIGHT_SCAN_RANGE));
         C3Vector hit(0.0f, 0.0f, 0.0f);
         float t = 1.0f;
 

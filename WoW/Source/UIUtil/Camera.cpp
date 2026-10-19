@@ -41,6 +41,16 @@
 #include "WoW/Source/WorldClient/FrameTime.h"
 #include "WoW/Source/WorldClient/World.h"
 
+static const float ROTATION_SPEED = 0.09f;
+static const float MAX_DELTA = 0.2617994f;
+static const float FOCAL_DISTANCE = 3.3333333f;
+static const float WAIST_HEIGHT = 1.6666666f;
+
+static const float MIN_CAMERA_DIST = 0.0f;
+static const int32_t DELTA_Z_FREQUENCY = 100;
+
+static const float fadeAngle = -1.1868238f;
+
 // STATIC: 0x00AD1B4C
 float MAX_PITCH_ANGLE = 1.55334306f;
 
@@ -104,11 +114,11 @@ static float s_shakeFalloffMaxSqr = 6400.0f;
 // OFFSET: 0x005FD5C0
 static float UnwrapAngleToward(float target, float current, float lo, float hi) {
     while (target - current < lo) {
-        current -= 6.2831855f;
+        current -= TWO_PI;
     }
 
     while (target - current > hi) {
-        current += 6.2831855f;
+        current += TWO_PI;
     }
 
     return current;
@@ -118,11 +128,11 @@ static float UnwrapAngleToward(float target, float current, float lo, float hi) 
 // OFFSET: 0x005FE3C0
 static float WrapAngle0To2Pi(float angle) {
     if (angle < 0.0f) {
-        return angle + 6.2831855f;
+        return angle + TWO_PI;
     }
 
-    if (angle > 6.2831855f) {
-        return angle - 6.2831855f;
+    if (angle > TWO_PI) {
+        return angle - TWO_PI;
     }
 
     return angle;
@@ -394,14 +404,14 @@ void CGCamera::CalcTerrainTilt(CGObject_C* target, uint32_t time) {
     C3Vector position = this->GetSafeWorldPos(target);
     float facing = target->GetFacing();
 
-    if (static_cast<int32_t>(time - this->m_terrainTiltTime - 100) < 0) {
+    if (static_cast<int32_t>(time - this->m_terrainTiltTime - DELTA_Z_FREQUENCY) < 0) {
         return;
     }
 
     this->m_terrainTiltTime = time;
 
     C3Vector points[5];
-    position.z += 1.6666666f;
+    position.z += WAIST_HEIGHT;
 
     C3Vector direction;
     direction.x = cosf(facing);
@@ -410,9 +420,9 @@ void CGCamera::CalcTerrainTilt(CGObject_C* target, uint32_t time) {
     points[0] = position;
 
     C3Vector end;
-    end.x = direction.x * 3.3333333f + position.x;
-    end.y = direction.y * 3.3333333f + position.y;
-    end.z = 3.3333333f * direction.z + position.z;
+    end.x = direction.x * FOCAL_DISTANCE + position.x;
+    end.y = direction.y * FOCAL_DISTANCE + position.y;
+    end.z = FOCAL_DISTANCE * direction.z + position.z;
 
     points[1] = end;
     points[2] = end;
@@ -438,7 +448,7 @@ void CGCamera::CalcTerrainTilt(CGObject_C* target, uint32_t time) {
     delta.z = points[2].z - points[0].z;
 
     C2Vector horizontal(delta);
-    float slope = (points[4].z - points[2].z + 1.6666666f) / sqrtf(horizontal.y * horizontal.y + horizontal.x * horizontal.x);
+    float slope = (points[4].z - points[2].z + WAIST_HEIGHT) / sqrtf(horizontal.y * horizontal.y + horizontal.x * horizontal.x);
 
     float magnitude;
     float sign;
@@ -482,11 +492,11 @@ void CGCamera::ClampPitchToLimits(float delta) {
 
     float start = delta + this->m_smoothPitch.m_startValue;
     start = start < MIN_PITCH_ANGLE ? MIN_PITCH_ANGLE : (start < MAX_PITCH_ANGLE ? start : MAX_PITCH_ANGLE);
-    this->m_smoothPitch.m_startValue = UnwrapAngleToward(target, start, -3.1415927f, 3.1415927f);
+    this->m_smoothPitch.m_startValue = UnwrapAngleToward(target, start, -PI, PI);
 
     float pitch = this->m_pitch + delta;
     pitch = MIN_PITCH_ANGLE > pitch ? MIN_PITCH_ANGLE : (MAX_PITCH_ANGLE <= pitch ? MAX_PITCH_ANGLE : pitch);
-    this->m_pitch = UnwrapAngleToward(target, pitch, -3.1415927f, 3.1415927f);
+    this->m_pitch = UnwrapAngleToward(target, pitch, -PI, PI);
 }
 
 // VERIFY: 9448842b manual
@@ -939,7 +949,7 @@ void CGCamera::PickVehicleCamera() {
 // VERIFY: cfdf0028 manual
 // OFFSET: 0x006030E0
 int32_t CGCamera::SetDesiredFoVOffset(float offset, float delay, float scale, uint32_t time) {
-    this->m_targetFov = UnwrapAngleToward(offset, this->m_targetFov, -3.1415927f, 3.1415927f);
+    this->m_targetFov = UnwrapAngleToward(offset, this->m_targetFov, -PI, PI);
 
     if ((this->m_state & 0x40000000) && fabsf(this->m_smoothFoV.m_target - offset) < 0.001f && fabsf(this->m_smoothFoV.m_param4 - delay) < 0.001f && fabsf(this->m_smoothFoV.m_param3 - scale) < 0.001f) {
         return 1;
@@ -966,7 +976,7 @@ int32_t CGCamera::SetDesiredFoVOffset(float offset, float delay, float scale, ui
 // VERIFY: efa747ec manual
 // OFFSET: 0x00600FA0
 int32_t CGCamera::SetDesiredGroundOffset(float offset, float delay, float scale, uint32_t time) {
-    this->m_groundTilt = UnwrapAngleToward(offset, this->m_groundTilt, -3.1415927f, 3.1415927f);
+    this->m_groundTilt = UnwrapAngleToward(offset, this->m_groundTilt, -PI, PI);
 
     if ((this->m_state & 0x10000000) && fabsf(this->m_smoothGroundTilt.m_target - offset) < 0.001f && fabsf(this->m_smoothGroundTilt.m_param4 - delay) < 0.001f && fabsf(this->m_smoothGroundTilt.m_param3 - scale) < 0.001f) {
         return 1;
@@ -1224,19 +1234,19 @@ float CGCamera::SmoothTargetFacing(float facing, int32_t moved) {
 
     float delta = facing - this->m_targetFacing;
 
-    if (delta > 3.1415927f) {
-        delta -= 6.2831855f;
-    } else if (delta < -3.1415927f) {
-        delta += 6.2831855f;
+    if (delta > PI) {
+        delta -= TWO_PI;
+    } else if (delta < -PI) {
+        delta += TWO_PI;
     }
 
     float magnitude = fabsf(delta);
     float step;
 
-    if (magnitude > 0.2617994f) {
-        step = delta < 0.0f ? -0.2617994f : 0.2617994f;
-    } else if (magnitude > 0.09f) {
-        step = delta < 0.0f ? -0.09f : 0.09f;
+    if (magnitude > MAX_DELTA) {
+        step = delta < 0.0f ? -MAX_DELTA : MAX_DELTA;
+    } else if (magnitude > ROTATION_SPEED) {
+        step = delta < 0.0f ? -ROTATION_SPEED : ROTATION_SPEED;
     } else {
         return facing;
     }
@@ -1263,7 +1273,7 @@ int32_t CGCamera::StartSmoothFlyingMountHeight(float height, float rate, uint32_
 // VERIFY: 18e5c001 auto
 // OFFSET: 0x00600F00
 int32_t CGCamera::StartSmoothFoV(float offset, float rate, uint32_t startTime) {
-    this->m_targetFov = UnwrapAngleToward(offset, this->m_targetFov, -3.1415927f, 3.1415927f);
+    this->m_targetFov = UnwrapAngleToward(offset, this->m_targetFov, -PI, PI);
 
     if (fabsf(this->m_targetFov - offset) < 0.001f && !(this->m_state & 0x80008000)) {
         return 0;
@@ -1281,7 +1291,7 @@ int32_t CGCamera::StartSmoothFoV(float offset, float rate, uint32_t startTime) {
 // VERIFY: 443312a1 auto
 // OFFSET: 0x005FE9B0
 int32_t CGCamera::StartSmoothGroundTilt(float offset, float rate, uint32_t startTime) {
-    this->m_groundTilt = UnwrapAngleToward(offset, this->m_groundTilt, -3.1415927f, 3.1415927f);
+    this->m_groundTilt = UnwrapAngleToward(offset, this->m_groundTilt, -PI, PI);
 
     if (fabsf(this->m_groundTilt - offset) < 0.001f) {
         return 0;
@@ -1446,8 +1456,8 @@ void CGCamera::UpdateTargetHeight(CGObject_C* target, uint32_t time) {
 // OFFSET: 0x005FE5F0
 void CGCamera::UpdateYaw(float delta) {
     this->m_smoothYaw.m_target = CMath::normalizeangle0to2pi_(delta + this->m_smoothYaw.m_target);
-    this->m_smoothYaw.m_startValue = UnwrapAngleToward(this->m_smoothYaw.m_target, CMath::normalizeangle0to2pi_(delta + this->m_smoothYaw.m_startValue), -3.1415927f, 3.1415927f);
-    this->m_yaw = UnwrapAngleToward(this->m_smoothYaw.m_target, CMath::normalizeangle0to2pi_(this->m_yaw + delta), -3.1415927f, 3.1415927f);
+    this->m_smoothYaw.m_startValue = UnwrapAngleToward(this->m_smoothYaw.m_target, CMath::normalizeangle0to2pi_(delta + this->m_smoothYaw.m_startValue), -PI, PI);
+    this->m_yaw = UnwrapAngleToward(this->m_smoothYaw.m_target, CMath::normalizeangle0to2pi_(this->m_yaw + delta), -PI, PI);
 }
 
 // VERIFY: 3e57388a auto
@@ -1845,7 +1855,7 @@ void CGCamera::SaveViewToCVars(uint32_t view, float distance, float pitch, float
 // VERIFY: 68a3e1df manual
 // OFFSET: 0x00601190
 int32_t CGCamera::SetDesiredPitchAngle(float pitch, float delay, float scale, uint32_t time) {
-    this->m_pitch = UnwrapAngleToward(pitch, this->m_pitch, -3.1415927f, 3.1415927f);
+    this->m_pitch = UnwrapAngleToward(pitch, this->m_pitch, -PI, PI);
 
     if ((this->m_state & 0x2000000) && fabsf(this->m_smoothPitch.m_target - pitch) < 0.001f && fabsf(this->m_smoothPitch.m_param4 - delay) < 0.001f && fabsf(this->m_smoothPitch.m_param3 - scale) < 0.001f) {
         return 1;
@@ -1866,7 +1876,7 @@ int32_t CGCamera::SetDesiredPitchAngle(float pitch, float delay, float scale, ui
 // VERIFY: cf7fb294 manual
 // OFFSET: 0x006012D0
 int32_t CGCamera::SetDesiredTargetOffset(float offset, float delay, float scale, uint32_t time) {
-    this->m_targetOffset = UnwrapAngleToward(offset, this->m_targetOffset, -3.1415927f, 3.1415927f);
+    this->m_targetOffset = UnwrapAngleToward(offset, this->m_targetOffset, -PI, PI);
 
     if ((this->m_state & 0x8000000) && fabsf(this->m_smoothTargetOffset.m_target - offset) < 0.001f && fabsf(this->m_smoothTargetOffset.m_param4 - delay) < 0.001f && fabsf(this->m_smoothTargetOffset.m_param3 - scale) < 0.001f) {
         return 1;
@@ -1915,7 +1925,7 @@ void CGCamera::SetDesiredVehicleYawOffset(float offset, uint32_t startTime, uint
 // VERIFY: 3c5a1872 manual
 // OFFSET: 0x00601410
 int32_t CGCamera::SetDesiredYawAngle(float yaw, float delay, float scale, uint32_t time) {
-    this->m_yaw = UnwrapAngleToward(yaw, this->m_yaw, -3.1415927f, 3.1415927f);
+    this->m_yaw = UnwrapAngleToward(yaw, this->m_yaw, -PI, PI);
 
     if ((this->m_state & 0x1000000) && fabsf(this->m_smoothYaw.m_target - yaw) < 0.001f && fabsf(this->m_smoothYaw.m_param4 - delay) < 0.001f && fabsf(this->m_smoothYaw.m_param3 - scale) < 0.001f) {
         return 1;
@@ -2101,7 +2111,7 @@ int32_t CGCamera::StartSmoothDistance(float distance, float rate, uint32_t start
 // VERIFY: d9c18e76 auto
 // OFFSET: 0x005FEA40
 int32_t CGCamera::StartSmoothPitch(float pitch, float rate, uint32_t startTime) {
-    this->m_pitch = UnwrapAngleToward(pitch, this->m_pitch, -3.1415927f, 3.1415927f);
+    this->m_pitch = UnwrapAngleToward(pitch, this->m_pitch, -PI, PI);
 
     if (fabsf(this->m_pitch - pitch) < 0.001f) {
         return 0;
@@ -2119,7 +2129,7 @@ int32_t CGCamera::StartSmoothPitch(float pitch, float rate, uint32_t startTime) 
 // VERIFY: bc92f038 auto
 // OFFSET: 0x005FEAD0
 int32_t CGCamera::StartSmoothTargetOffset(float offset, float rate, uint32_t startTime) {
-    this->m_targetOffset = UnwrapAngleToward(offset, this->m_targetOffset, -3.1415927f, 3.1415927f);
+    this->m_targetOffset = UnwrapAngleToward(offset, this->m_targetOffset, -PI, PI);
 
     if (fabsf(this->m_targetOffset - offset) < 0.001f) {
         return 0;
@@ -2137,7 +2147,7 @@ int32_t CGCamera::StartSmoothTargetOffset(float offset, float rate, uint32_t sta
 // VERIFY: fed19b69 auto
 // OFFSET: 0x005FEB60
 int32_t CGCamera::StartSmoothYaw(float yaw, float rate, uint32_t startTime) {
-    this->m_yaw = UnwrapAngleToward(yaw, this->m_yaw, -3.1415927f, 3.1415927f);
+    this->m_yaw = UnwrapAngleToward(yaw, this->m_yaw, -PI, PI);
 
     if (fabsf(this->m_yaw - yaw) < 0.001f) {
         return 0;
@@ -2590,7 +2600,7 @@ void CGCamera::CalcTargetCamera(CGObject_C* target, uint32_t time) {
             fadeStart = fadeStart * 0.33333334f;
         }
 
-        if (distance < this->m_height && this->m_pitch < -1.1868238f) {
+        if (distance < this->m_height && this->m_pitch < fadeAngle) {
             float scale = (-1.5707964f - this->m_pitch) * -2.604353f;
 
             if (fabsf(scale) >= 0.00000023841858f) {
@@ -2855,7 +2865,7 @@ void CGCamera::UpdateMotion(uint32_t time) {
     } else if (CGBarberShop::m_barberShopEnabled) {
         minDistance = CGBarberShop::GetMinCameraDistance();
     } else {
-        minDistance = 0.0f;
+        minDistance = MIN_CAMERA_DIST;
     }
 
     float maxDistance;
@@ -2940,10 +2950,10 @@ void CGCamera::UpdateMotion(uint32_t time) {
             case CAMERA_MOVE_RIGHT:
                 this->m_smoothYaw.m_target = s_cvCameraYawMoveSpeed->m_floatValue * this->m_motionSpeed[CAMERA_MOVE_RIGHT] * static_cast<float>(elapsed) * 0.001f * 0.017453292f + this->m_smoothYaw.m_target;
 
-                if (this->m_smoothYaw.m_target > 6.2831855f) {
+                if (this->m_smoothYaw.m_target > TWO_PI) {
                     do {
-                        this->m_smoothYaw.m_target = this->m_smoothYaw.m_target - 6.2831855f;
-                    } while (6.2831855f < this->m_smoothYaw.m_target);
+                        this->m_smoothYaw.m_target = this->m_smoothYaw.m_target - TWO_PI;
+                    } while (TWO_PI < this->m_smoothYaw.m_target);
                 }
 
                 if (!(this->m_state & 0x1000000)) {
@@ -2957,7 +2967,7 @@ void CGCamera::UpdateMotion(uint32_t time) {
 
                 if (this->m_smoothYaw.m_target < 0.0f) {
                     do {
-                        this->m_smoothYaw.m_target = this->m_smoothYaw.m_target + 6.2831855f;
+                        this->m_smoothYaw.m_target = this->m_smoothYaw.m_target + TWO_PI;
                     } while (0.0f > this->m_smoothYaw.m_target);
                 }
 
@@ -3590,13 +3600,13 @@ void CGCamera::RunBobs(C3Vector& offset) {
 
     frequency = speed * frequency;
     float time = static_cast<float>(OsGetAsyncTimeMs() - this->m_bobTime) * 0.001f;
-    float sway = std::sin(time * frequency * 6.2831855f) * horizontal;
+    float sway = std::sin(time * frequency * TWO_PI) * horizontal;
     float angle = facing + 1.5707964f;
     float c = std::cos(angle);
     float s = std::sin(angle);
     offset.x = c * sway;
     offset.y = sway * s;
-    offset.z = std::sin((frequency + frequency) * time * 6.2831855f) * vertical;
+    offset.z = std::sin((frequency + frequency) * time * TWO_PI) * vertical;
 }
 
 // VERIFY: e7e240bc manual
@@ -4019,7 +4029,7 @@ static int32_t __stdcall ComputeShakeFalloff(const C3Vector& position, const C3V
 // VERIFY: 6b01b912 manual
 // OFFSET: 0x005FE6C0
 void CGCamera::AddShakeOffset(C3Vector& offset, float facing, float amplitude, float time, float frequency, CGCameraShakeType type, float damping, CGCameraDir dir) {
-    float value = sinf(frequency * time * 6.2831855f) * amplitude;
+    float value = sinf(frequency * time * TWO_PI) * amplitude;
 
     if (type == CAMSHAKE_DECAYED_SINE) {
         value = value * expf(-(time * damping));
@@ -4149,7 +4159,7 @@ void CGCamera::SetTelescope(int32_t telescope) {
         base = base + this->m_groundTilt;
     }
 
-    float angle = UnwrapAngleToward(0.0f, -atan2f(dir.z, sqrtf(1.0f - dir.z * dir.z)) - base, -3.1415927f, 3.1415927f);
+    float angle = UnwrapAngleToward(0.0f, -atan2f(dir.z, sqrtf(1.0f - dir.z * dir.z)) - base, -PI, PI);
     this->StartSmoothTargetOffset(angle + offset, 0.5f, time);
     this->m_telescopePitchOffset = angle;
 }
@@ -4270,7 +4280,7 @@ void CGCamera::AddShakeById(int32_t shakeId, const C3Vector* position) {
 // VERIFY: 8de48629 auto
 // OFFSET: 0x005FFFD0
 float CameraEaseInOut(float t) {
-    return 0.5f - CMath::cos_(t * 3.1415927f) * 0.5f;
+    return 0.5f - CMath::cos_(t * PI) * 0.5f;
 }
 
 // VERIFY: f1d24674 auto

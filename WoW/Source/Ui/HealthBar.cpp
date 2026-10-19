@@ -5,6 +5,8 @@
 #include "WoW/Source/Object/Unit.h"
 #include "WoW/Source/ObjectMgrClient/ObjectMgrClient.h"
 
+static const float HPBAR_RED_THRESHOLD = 0.2f;
+
 // STATIC: 0x00DCEC58
 CDataAllocator CGSimpleHealthBar::s_simpleHealthBarHeap(sizeof(CGSimpleHealthBar), 5);
 
@@ -69,8 +71,8 @@ void CGSimpleHealthBar::SetValue(float value) {
 
     CImVector color;
     color.b = 0;
-    color.g = percent <= 0.2f ? 0 : 0xFF;
-    color.r = percent <= 0.2f ? 0xFF : 0;
+    color.g = percent <= HPBAR_RED_THRESHOLD ? 0 : 0xFF;
+    color.r = percent <= HPBAR_RED_THRESHOLD ? 0xFF : 0;
     color.a = 0xFF;
     this->SetStatusBarColor(color);
     this->m_autoColor = 1;

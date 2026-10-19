@@ -34,6 +34,10 @@
 #include "WoW/Source/WorldClient/World.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
+static const float MAX_SHORT_RANGE_TELEPORT_SQUARED = 22500.0f;
+
+static const int32_t HEARTBEAT_INTERVAL_MS = 500;
+
 // STATIC: 0x00ADA370
 TSList<CPlayerMoveEvent, TSGetExplicitLink<CPlayerMoveEvent> > CPlayerMoveQueue::s_freeList;
 
@@ -941,7 +945,7 @@ void CMovement_C::SetUpdateInfo(uint32_t time, const CClientMoveUpdate* update, 
     }
 
     if ((this->m_flags & 0xC0100F) && this->m_unit->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        MovementGetGlobals()->m_timeCounterMaybe = time + 500;
+        MovementGetGlobals()->m_timeCounterMaybe = time + HEARTBEAT_INTERVAL_MS;
     }
 
     if (!(this->m_flags & 0xC010FF)) {
@@ -1897,7 +1901,7 @@ void CMovement_C::SplineToggleEnableFlying(int32_t enable) {
 // OFFSET: 0x006E9B70
 void CMovement_C::UpdateHeartbeatTimerA(uint32_t time) {
     if (this->m_unit->m_obj->m_guid == CGUnit_C::s_activeMover) {
-        MovementGetGlobals()->m_timeCounterMaybe = time + 500;
+        MovementGetGlobals()->m_timeCounterMaybe = time + HEARTBEAT_INTERVAL_MS;
     }
 }
 
@@ -5535,7 +5539,7 @@ void CMovement_C::Teleport(WOWGUID transport, const C3Vector& position, float fa
     float dx = this->m_position.x - position.x;
     float dy = this->m_position.y - position.y;
     float dz = this->m_position.z - position.z;
-    int32_t preload = dz * dz + dy * dy + dx * dx > 22500.0f;
+    int32_t preload = dz * dz + dy * dy + dx * dx > MAX_SHORT_RANGE_TELEPORT_SQUARED;
 
     this->CMovementShared::Teleport(position, facing, removeSpline);
     this->RemoveFromMoversList(1);

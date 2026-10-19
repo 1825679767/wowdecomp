@@ -1,3 +1,4 @@
+#include "WoW/Source/WorldClient/WorldConstants.h"
 #include "MinimapFrame.h"
 #include "Engine/Source/Gx/CGxDevice/CGxDevice.h"
 #include "Engine/Source/Services/Texture.h"
@@ -59,6 +60,9 @@
 #include "Engine/Source/Gxu/Gxu.h"
 #include "Engine/Source/Gx/CGxMatrixStack.h"
 #include "Engine/Source/Event/CMouseEvent.h"
+
+static const float MAX_POI_DISTANCE = 694.44446f;
+static const float ICON_SIZE = 0.0125f;
 
 // STATIC: 0x00ACEBAC
 int32_t CGMinimapFrame::s_scaleChanged = 1;
@@ -519,7 +523,7 @@ CGMinimapFrame::CGMinimapFrame(CSimpleFrame* parent) : CSimpleFrame(parent) {
     this->EnableEvent(SIMPLE_EVENT_MOUSE, -1);
 
     float scale = NDCToDDCHeight(1.0f) * 1.6666666f;
-    CGMinimapFrame::s_blipSize1 = 0.0125f * scale;
+    CGMinimapFrame::s_blipSize1 = ICON_SIZE * scale;
     CGMinimapFrame::s_blipHalfSize1 = CGMinimapFrame::s_blipSize1 * 0.5f;
     CGMinimapFrame::s_blipSize2 = scale * 0.0375f;
     CGMinimapFrame::s_blipHalfSize2 = CGMinimapFrame::s_blipSize2 * 0.5f;
@@ -806,7 +810,7 @@ void UpdatePointsOfInterest() {
 
     int32_t worst = -1;
     uint32_t count = 0;
-    float distances[3] = { 694.44446f, 694.44446f, 694.44446f };
+    float distances[3] = { MAX_POI_DISTANCE, MAX_POI_DISTANCE, MAX_POI_DISTANCE };
     int32_t indices[3] = { -1, -1, -1 };
     int32_t importance[3];
 
@@ -820,7 +824,7 @@ void UpdatePointsOfInterest() {
         float dx = poi->m_pos[0] - s_playerPosition.x;
         float distance = sqrt(dx * dx + dy * dy);
 
-        if (distance > 694.44446f && poi != &s_dynamicPOIs[2]) {
+        if (distance > MAX_POI_DISTANCE && poi != &s_dynamicPOIs[2]) {
             continue;
         }
 
@@ -1346,7 +1350,7 @@ static int32_t MinimapUpdatePosition(int32_t mapId, const C3Vector* position, C2
     }
 
     s_updateFlags &= ~1u;
-    C3Vector origin(17066.666f - baseTile[1] * 533.33331f, s_mapOrigin - 533.33331f * baseTile[0], 0.0f);
+    C3Vector origin(HALF_WORLD_SIZE - baseTile[1] * MD_AREA_POLY_SIZE, s_mapOrigin - MD_AREA_POLY_SIZE * baseTile[0], 0.0f);
     C2Vector origin2(origin);
     float inv = 1.0f / s_tileSize.y;
     uint32_t halfTiles = s_outdoorZoomTiles[s_outdoorZoom] >> 1;

@@ -179,6 +179,11 @@ const int32_t AUTO_SIT_IDLE_TIME = 300000;
 const int32_t AUTO_LOGOUT_IDLE_TIME = 1800000;
 }
 
+static const float MAX_CAMERA_SHIFT_SQUARED = 900.0f;
+
+static const float TARGET_NEAREST_FRONT_MAX_DISTANCE_SQUARED = 1681.0f;
+static const float TARGET_NEAREST_BACK_MAX_DISTANCE_SQUARED = 100.0f;
+
 // STATIC: 0x00ACC3F8
 CImVector s_deadSelectionColor = CImVector(0x7F, 0x7F, 0x7F, 0xFF);
 
@@ -5133,10 +5138,10 @@ static int32_t TargetUpdateProc(WOWGUID guid, void* param) {
     float maxDistanceSq;
 
     if (s_coneAngle > delta || 6.2831855f - s_coneAngle < delta) {
-        maxDistanceSq = 1681.0f;
+        maxDistanceSq = TARGET_NEAREST_FRONT_MAX_DISTANCE_SQUARED;
         inFront = 1;
     } else {
-        maxDistanceSq = 100.0f;
+        maxDistanceSq = TARGET_NEAREST_BACK_MAX_DISTANCE_SQUARED;
     }
 
     if (maxDistanceSq >= distanceSq) {
@@ -5551,7 +5556,7 @@ int32_t CGGameUI::StartCinematicCamera() {
     C3Vector position(0.0f, 0.0f, 0.0f);
     DataMgrGetCoord(static_cast<CDataMgr*>(camera->m_model->GetCameraByIndex(0)), 7, &position);
 
-    if ((previous.x - position.x) * (previous.x - position.x) + (previous.y - position.y) * (previous.y - position.y) + (previous.z - position.z) * (previous.z - position.z) > 900.0f) {
+    if ((previous.x - position.x) * (previous.x - position.x) + (previous.y - position.y) * (previous.y - position.y) + (previous.z - position.z) * (previous.z - position.z) > MAX_CAMERA_SHIFT_SQUARED) {
         World::Preload(position, 0);
     }
 
@@ -6835,7 +6840,7 @@ void CGGameUI::StopCinematicInternal(void* param) {
         float dy = camera->m_position.y - position.y;
         float dx = camera->m_position.x - position.x;
 
-        if (dx * dx + (dy * dy + dz * dz) > 900.0f) {
+        if (dx * dx + (dy * dy + dz * dz) > MAX_CAMERA_SHIFT_SQUARED) {
             World::Preload(target->GetPosition(), 0);
         }
     }

@@ -145,6 +145,16 @@
 #include "WoW/Source/WorldClient/Map.h"
 #include "WoW/Source/WowSvcs/WowSvcsClient/ClientServices.h"
 
+static const float UNDERWATER_BUBBLE_THRESHOLD = 5.0f;
+static const float MOUSE_LOOK_SEND_FACING_DELTA = 0.1f;
+
+static const float TRACKMOVE_THRESHOLD_DISTANCE = 4.5f;
+static const int32_t DEFAULT_MODEL_FADE_TIME = 1000;
+
+static const float MAX_NAMEPLATE_DIST_SQUARED = 1681.0f;
+
+static const float MISSILE_MIN_HEIGHT = 0.25f;
+
 // STATIC: 0x00ADAC04
 static INVENTORY_SLOTS s_virtualItemInvSlots[2] = { INVSLOT_MAINHAND, INVSLOT_OFFHAND };
 
@@ -1773,7 +1783,7 @@ void CGUnit_C::UpdateBreathState(uint32_t time) {
     if (World::QueryObjectLiquid(this->m_worldObject, &liquidType, &height, &a4)) {
         float headHeight = this->m_height * this->m_scale;
 
-        if (headHeight + 5.0f < height - this->GetPosition().z) {
+        if (headHeight + UNDERWATER_BUBBLE_THRESHOLD < height - this->GetPosition().z) {
             this->m_clientFlags |= 0x20;
             this->m_nextBreathCheckTime = time + 10000;
             return;
@@ -9010,12 +9020,12 @@ bool CGUnit_C::GetFlashColor(uint32_t time, CImVector& color) {
 // VERIFY: 7a167157 auto
 // OFFSET: 0x0071AE80
 int32_t CGUnit_C::IsFacingUnchangedSinceSent() const {
-    if (fabs(this->GetRawFacing() - this->m_lastSentFacing) < 0.1f) {
+    if (fabs(this->GetRawFacing() - this->m_lastSentFacing) < MOUSE_LOOK_SEND_FACING_DELTA) {
         if (!(this->m_movement->m_flags & (MOVEMENTFLAG_SWIMMING | MOVEMENTFLAG_FLYING)) && !(this->m_movement->m_flags2 & MOVEMENTFLAG2_ALWAYS_ALLOW_PITCHING)) {
             return 1;
         }
 
-        if (fabs(this->GetPitch() - this->m_lastSentPitch) < 0.1f) {
+        if (fabs(this->GetPitch() - this->m_lastSentPitch) < MOUSE_LOOK_SEND_FACING_DELTA) {
             return 1;
         }
     }
@@ -15131,7 +15141,7 @@ void CGUnit_C::SetUpdateInfo(const CClientMoveUpdate& update, int32_t activeMove
 void CGUnit_C::ApplyModelFade() {
     float alpha = this->GetBaseAlpha();
     CEffect* effect = this->m_auraEffects;
-    uint32_t time = 1000;
+    uint32_t time = DEFAULT_MODEL_FADE_TIME;
 
     if (effect) {
         alpha *= effect->m_alpha;
@@ -19015,8 +19025,8 @@ void CGUnit_C::CreateMissile(const WOWGUID* target, PendingSpellCastData* data, 
     if (spellVisual) {
         float height = spellVisual->m_missileFollowGroundHeight * 0.001f;
 
-        if (height <= 0.25f) {
-            height = 0.25f;
+        if (height <= MISSILE_MIN_HEIGHT) {
+            height = MISSILE_MIN_HEIGHT;
         }
 
         missile->m_groundOffset = height;
@@ -19268,8 +19278,8 @@ void CGUnit_C::CreateMissile(const SpellCastTargetPoint* point, PendingSpellCast
     if (spellVisual) {
         float height = spellVisual->m_missileFollowGroundHeight * 0.001f;
 
-        if (height <= 0.25f) {
-            height = 0.25f;
+        if (height <= MISSILE_MIN_HEIGHT) {
+            height = MISSILE_MIN_HEIGHT;
         }
 
         missile->m_groundOffset = height;
@@ -19457,8 +19467,8 @@ void CGUnit_C::CreateMissile(const TSStackArray<SpellCastTargetPoint>* points, P
     if (spellVisual) {
         float height = spellVisual->m_missileFollowGroundHeight * 0.001f;
 
-        if (height <= 0.25f) {
-            height = 0.25f;
+        if (height <= MISSILE_MIN_HEIGHT) {
+            height = MISSILE_MIN_HEIGHT;
         }
 
         missile->m_groundOffset = height;
@@ -20427,7 +20437,7 @@ int32_t CGUnit_C::ShouldShowNamePlate(CGWorldFrame* worldFrame, C3Vector* positi
     if (!map || map->m_instanceType != 4) {
         C3Vector delta = this->GetPosition() - target->GetPosition();
 
-        if (delta.y * delta.y + delta.x * delta.x + delta.z * delta.z > 1681.0f) {
+        if (delta.y * delta.y + delta.x * delta.x + delta.z * delta.z > MAX_NAMEPLATE_DIST_SQUARED) {
             return 0;
         }
     }
@@ -23168,7 +23178,7 @@ void CGUnit_C::HandleTracking(float drunkness, float turnOffset) {
         scale = 1.0f;
     }
 
-    scale *= 4.5f;
+    scale *= TRACKMOVE_THRESHOLD_DISTANCE;
 
     if (CGUnit_C::s_trackingType != TRACKTYPE_FOLLOW || scale * scale <= distSq3) {
         this->TrackingStartMove(time);

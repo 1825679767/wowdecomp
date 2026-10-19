@@ -5,7 +5,7 @@
 // VERIFY: ec789ebc auto
 // OFFSET: 0x007126D0
 CGGameObject_C_Type_Text::CGGameObject_C_Type_Text(CGGameObject_C* owner) : CGGameObject_C_TypeAnimated(owner) {
-    this->m_interactDistance = 5.5555553f;
+    this->m_interactDistance = MAX_SHOP_DISTANCE;
 }
 
 // VERIFY: 6f615625 auto

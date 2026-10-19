@@ -1896,7 +1896,7 @@ void TextureInitialize() {
     s_currentTime = OsGetAsyncTimeMs();
     s_gxTexCacheSize = 0;
     s_gxTexCacheMaxSize = 0;
-    EventRegisterEx(EVENT_ID_POLL, TextureUpdate, nullptr, 0.0f);
+    EventRegisterEx(EVENT_ID_POLL, TextureUpdate, nullptr, EVENT_PRIORITY_NORMAL);
 }
 
 // VERIFY: 7711ba71 manual

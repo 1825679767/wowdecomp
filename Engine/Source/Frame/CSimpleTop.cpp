@@ -1054,18 +1054,18 @@ void CSimpleTop::UnregisterForEvent(CSimpleFrame* frame, CSimpleEventType event,
 // VERIFY: f41311c7 auto
 // OFFSET: 0x004959F0
 void CSimpleTop::EnableEvents() {
-    EventRegisterEx(EVENT_ID_CHAR, &CSimpleTop::OnChar, this, 1.0f);
-    EventRegisterEx(EVENT_ID_IME, &CSimpleTop::OnIme, this, 1.0f);
-    EventRegisterEx(EVENT_ID_KEYDOWN, &CSimpleTop::OnKeyDown, this, 1.0f);
-    EventRegisterEx(EVENT_ID_KEYUP, &CSimpleTop::OnKeyUp, this, 1.0f);
-    EventRegisterEx(EVENT_ID_KEYDOWN_REPEATING, &CSimpleTop::OnKeyDownRepeat, this, 1.0f);
-    EventRegisterEx(EVENT_ID_MOUSEMOVE, &CSimpleTop::OnMouseMove, this, 1.0f);
-    EventRegisterEx(EVENT_ID_MOUSEMOVE_RELATIVE, &CSimpleTop::OnMouseMoveRelative, this, 1.0f);
-    EventRegisterEx(EVENT_ID_MOUSEDOWN, &CSimpleTop::OnMouseDown, this, 1.0f);
-    EventRegisterEx(EVENT_ID_MOUSEUP, &CSimpleTop::OnMouseUp, this, 1.0f);
-    EventRegisterEx(EVENT_ID_MOUSEWHEEL, &CSimpleTop::OnMouseWheel, this, 1.0f);
-    EventRegisterEx(EVENT_ID_SIZE, &CSimpleTop::OnDisplaySizeChanged, this, 1.0f);
-    EventRegisterEx(EVENT_ID_FOCUS, &CSimpleTop::OnFocusChanged, this, 1.0f);
+    EventRegisterEx(EVENT_ID_CHAR, &CSimpleTop::OnChar, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_IME, &CSimpleTop::OnIme, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_KEYDOWN, &CSimpleTop::OnKeyDown, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_KEYUP, &CSimpleTop::OnKeyUp, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_KEYDOWN_REPEATING, &CSimpleTop::OnKeyDownRepeat, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_MOUSEMOVE, &CSimpleTop::OnMouseMove, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_MOUSEMOVE_RELATIVE, &CSimpleTop::OnMouseMoveRelative, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_MOUSEDOWN, &CSimpleTop::OnMouseDown, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_MOUSEUP, &CSimpleTop::OnMouseUp, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_MOUSEWHEEL, &CSimpleTop::OnMouseWheel, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_SIZE, &CSimpleTop::OnDisplaySizeChanged, this, EVENT_PRIORITY_ABOVE_NORMAL);
+    EventRegisterEx(EVENT_ID_FOCUS, &CSimpleTop::OnFocusChanged, this, EVENT_PRIORITY_ABOVE_NORMAL);
 }
 
 // VERIFY: 8b4e6642 auto

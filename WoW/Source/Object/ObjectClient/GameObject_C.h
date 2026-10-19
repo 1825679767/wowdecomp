@@ -17,6 +17,13 @@
 #include "WoW/Source/SoundInterface/SoundInterface2.h"
 #include "WoW/Source/WorldClient/Map.h"
 
+static const float MAX_SHOP_DISTANCE = 5.5555553f;
+static const float MAX_BIND_DISTANCE = 10.0f;
+static const float MAX_LOOT_DISTANCE = 5.0f;
+static const float MAX_OBJ_INTEREST_RADIUS = 100.0f;
+static const float MAX_SITCHAIRUSE_DISTANCE = 3.0f;
+static const float MAX_SITCHAIR_DISTANCE_SQUARED = 0.16666667f;
+
 class SpellRec;
 class CMapBaseObj;
 class CDataStore;

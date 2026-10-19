@@ -489,7 +489,7 @@ void ShipPath::GetRollAndPitch(uint32_t time, float speed, float turn, C3Vector*
 
     if (fabsf(physics->m_waveTimeScale) >= 0.00000023841858f) {
         uint32_t period = static_cast<uint32_t>(6283.1855f / physics->m_waveTimeScale);
-        position->z = sinf(static_cast<float>(time % period) * 6.2831855f / static_cast<float>(period)) * physics->m_waveAmp * damp + position->z;
+        position->z = sinf(static_cast<float>(time % period) * TWO_PI / static_cast<float>(period)) * physics->m_waveAmp * damp + position->z;
     }
 
     float bankTurn;
@@ -506,14 +506,14 @@ void ShipPath::GetRollAndPitch(uint32_t time, float speed, float turn, C3Vector*
         *roll = 0.0f;
     } else {
         uint32_t period = static_cast<uint32_t>(6283.1855f / physics->m_rollTimeScale);
-        *roll = (bank + sinf(static_cast<float>(time % period) * 6.2831855f / static_cast<float>(period) + 0.5f) * physics->m_rollAmp) * damp;
+        *roll = (bank + sinf(static_cast<float>(time % period) * TWO_PI / static_cast<float>(period) + 0.5f) * physics->m_rollAmp) * damp;
     }
 
     if (fabsf(physics->m_pitchTimeScale) < 0.00000023841858f) {
         *pitch = 0.0f;
     } else {
         uint32_t period = static_cast<uint32_t>(6283.1855f / physics->m_pitchTimeScale);
-        *pitch = damp * (sinf(6.2831855f * static_cast<float>(time % period) / static_cast<float>(period) + 0.2f) * physics->m_pitchAmp);
+        *pitch = damp * (sinf(TWO_PI * static_cast<float>(time % period) / static_cast<float>(period) + 0.2f) * physics->m_pitchAmp);
     }
 }
 
@@ -562,10 +562,10 @@ void ShipPath::ComputeRollAndPitch(float speed, float facing, float distance, ui
             float heading = atan2f(-vel.y, -vel.x);
             float delta = facing - heading;
 
-            if (delta > 3.1415927f) {
-                delta -= 6.2831855f;
-            } else if (delta < -3.1415927f) {
-                delta += 6.2831855f;
+            if (delta > PI) {
+                delta -= TWO_PI;
+            } else if (delta < -PI) {
+                delta += TWO_PI;
             }
 
             turn = delta * 2.2222223f + turn;

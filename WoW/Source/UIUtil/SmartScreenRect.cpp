@@ -33,6 +33,11 @@ static CRect SmartScreenRectMoveLeft(SCREENRECTGRIDS grid, CRect rect);
 static CRect SmartScreenRectMoveRight(SCREENRECTGRIDS grid, CRect rect);
 static CRect SmartScreenRectMoveDown(SCREENRECTGRIDS grid, CRect rect);
 
+static const float TOPBORDER = 0.0375f;
+static const float BOTTOMBORDER = 0.01875f;
+
+static const float LEFTBORDER = 0.0f;
+
 // STATIC: 0x00A23C08
 static TEST_DIRECTION s_searchDirections[9][NUM_TESTDIRECTIONS] = {
     { TEST_UP, TEST_RIGHT, TEST_DOWN, TEST_LEFT },
@@ -79,16 +84,16 @@ inline BFSNODE::BFSNODE() {
 // OFFSET: 0x00615050
 static uint32_t SmartScreenRectClampToScreen(CRect* out, CRect rect, int32_t testOnly) {
     float screenWidth = NDCToDDCWidth(1.0f);
-    float top = NDCToDDCHeight(1.0f) - 0.0375f;
+    float top = NDCToDDCHeight(1.0f) - TOPBORDER;
 
     static float s_screenWidth = screenWidth;
-    static float s_bottom = top - 0.01875f;
+    static float s_bottom = top - BOTTOMBORDER;
 
     uint32_t flags = SRECTCLAMP_NONE;
     float width = rect.maxX - rect.minX;
     float height = rect.minY - rect.maxY;
 
-    if (rect.minX < 0.0f) {
+    if (rect.minX < LEFTBORDER) {
         flags = SRECTCLAMP_LEFT;
     }
 
@@ -96,7 +101,7 @@ static uint32_t SmartScreenRectClampToScreen(CRect* out, CRect rect, int32_t tes
         flags |= SRECTCLAMP_RIGHT;
     }
 
-    if (rect.maxY < 0.01875f) {
+    if (rect.maxY < BOTTOMBORDER) {
         flags |= SRECTCLAMP_BOTTOM;
     }
 
@@ -118,14 +123,14 @@ static uint32_t SmartScreenRectClampToScreen(CRect* out, CRect rect, int32_t tes
             rect.minY = top;
             rect.maxY = top - height;
         } else if (flags & SRECTCLAMP_BOTTOM) {
-            rect.maxY = 0.01875f;
-            rect.minY = height + 0.01875f;
+            rect.maxY = BOTTOMBORDER;
+            rect.minY = height + BOTTOMBORDER;
         }
     }
 
     if (flags & SRECTCLAMP_HORIZONTAL) {
         if (flags & SRECTCLAMP_LEFT) {
-            rect.minX = 0.0f;
+            rect.minX = LEFTBORDER;
             rect.maxX = width;
         } else if (flags & SRECTCLAMP_RIGHT) {
             rect.maxX = screenWidth;
@@ -168,8 +173,8 @@ static void SmartScreenRectClipRect(CRect& rect) {
         rect.minY = height;
     }
 
-    if (rect.minX < 0.0f) {
-        rect.minX = 0.0f;
+    if (rect.minX < LEFTBORDER) {
+        rect.minX = LEFTBORDER;
         rect.maxX = width;
     }
 

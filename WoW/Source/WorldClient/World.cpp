@@ -101,6 +101,11 @@
 #include "WoW/Source/Object/ObjectClient/Object_C.h"
 #include "WoW/Source/Game/GameClient/ProjectTex.h"
 
+static const float dirLightScaleAmount = 0.5f;
+
+static const int32_t MAX_SOUND_EXT_LEVEL = 9999;
+static const int32_t MIN_SOUND_EXT_LEVEL = 2;
+
 // STATIC: 0x00ADEE48
 static const char* s_zonePaths[11] = {
     "L 415.58442,531.25541 L 387.74026,529.59307 L 385.80086,526.82251 L 385.7316,520.17316 L 375.1342,520.8658 L 374.64936,522.04329 L 373.4026,522.11255 L 372.36364,520.8658 L 365.57576,520.72727 L 365.43723,519.06493 L 348.67533,518.78788 L 343.27273,515.87879 L 334.96104,515.87879 L 333.2987,517.26406 L 319.03031,517.54113 L 243.94805,475.29004 L 225.9394,566.44155 L 266.25109,632.93506 L 350.19914,653.71429 L 415.47711,629.01747 L 416.3857,586.28568 L 417.80507,564.21323 L 415.74891,558.96969 L 420,549.41992 L 420.329,545.35065 L 417.70834,543.36003 L 417.79667,534.77107 z",
@@ -578,7 +583,7 @@ void DayNight::FindAndAddZoneLight(const C3Vector* position) {
         return;
     }
 
-    C2Vector point(-(position->y - 17066.666f), -(position->x - 17066.666f));
+    C2Vector point(-(position->y - HALF_WORLD_SIZE), -(position->x - HALF_WORLD_SIZE));
 
     for (uint32_t i = 0; i < sizeof(s_zones) / sizeof(s_zones[0]); i++) {
         const Zone& zone = s_zones[i];
@@ -658,10 +663,10 @@ int32_t World::QueryLiquidStatus(C3Vector* pos, int32_t* liquidType, float* heig
 // OFFSET: 0x0077F390
 int32_t World::QueryLiquidSounds(CMapEntity* entity, float radius, TSGrowableArray<World::LiquidQueryResult>& results) {
     if (entity->m_staticFlags & 0x1) {
-        uint32_t distance = 9999;
+        uint32_t distance = MAX_SOUND_EXT_LEVEL;
         entity->QueryLiquidSounds(results, &distance);
 
-        if (distance < 2) {
+        if (distance < MIN_SOUND_EXT_LEVEL) {
             CMap::QueryLiquidSounds(&entity->m_position, radius, results);
         }
 
@@ -1208,8 +1213,8 @@ void World::PrepareAreaOfInterest(const C3Vector& position) {
     CWorld::s_objectAreaOfInterest.t = C3Vector(position.x + farClip, position.y + farClip, position.z + farClip);
 
     int32_t radius = 1 - static_cast<int32_t>(streamDistance * -OO_COORD_TO_CHUNK);
-    int32_t chunkX = static_cast<int32_t>(-(position.x - 17066.666f) * OO_COORD_TO_CHUNK);
-    int32_t chunkY = static_cast<int32_t>(-(position.y - 17066.666f) * OO_COORD_TO_CHUNK);
+    int32_t chunkX = static_cast<int32_t>(-(position.x - HALF_WORLD_SIZE) * OO_COORD_TO_CHUNK);
+    int32_t chunkY = static_cast<int32_t>(-(position.y - HALF_WORLD_SIZE) * OO_COORD_TO_CHUNK);
 
     if (SFile::IsTrial()) {
         StreamingSetAreaOfInterest(chunkY, chunkX);
@@ -1762,8 +1767,8 @@ bool World::IsValidPosition(const C3Vector& position, float margin) {
 // OFFSET: 0x00406DE0
 bool World::IsValidPosition(float x, float y, float z, float margin) {
     if (_finite(x) && _finite(y) && _finite(z)) {
-        float v4 = -(y - 17066.666f);
-        float v5 = -(x - 17066.666f);
+        float v4 = -(y - HALF_WORLD_SIZE);
+        float v5 = -(x - HALF_WORLD_SIZE);
 
         if (margin > v4) {
             return 0;
@@ -2843,10 +2848,10 @@ void CWorldScene::Update(C3Vector* camPos, C3Vector* camTarget) {
     CWorldScene::s_viewProjW.w = CWorldScene::s_viewProjMatrix.d3;
 
     CWorldScene::boundingBox = CAaBox::Bounding(CWorldScene::s_frustumCorners, 8);
-    CWorldScene::s_frustumChunkRect.minX = CMath::fint_(-(CWorldScene::boundingBox.t.y - 17066.666f) * OO_COORD_TO_CHUNK - 0.5f);
-    CWorldScene::s_frustumChunkRect.minY = CMath::fint_(-(CWorldScene::boundingBox.t.x - 17066.666f) * OO_COORD_TO_CHUNK - 0.5f);
-    CWorldScene::s_frustumChunkRect.maxX = CMath::fint_(-(CWorldScene::boundingBox.b.y - 17066.666f) * OO_COORD_TO_CHUNK - 0.5f);
-    CWorldScene::s_frustumChunkRect.maxY = CMath::fint_(-(CWorldScene::boundingBox.b.x - 17066.666f) * OO_COORD_TO_CHUNK - 0.5f);
+    CWorldScene::s_frustumChunkRect.minX = CMath::fint_(-(CWorldScene::boundingBox.t.y - HALF_WORLD_SIZE) * OO_COORD_TO_CHUNK - 0.5f);
+    CWorldScene::s_frustumChunkRect.minY = CMath::fint_(-(CWorldScene::boundingBox.t.x - HALF_WORLD_SIZE) * OO_COORD_TO_CHUNK - 0.5f);
+    CWorldScene::s_frustumChunkRect.maxX = CMath::fint_(-(CWorldScene::boundingBox.b.y - HALF_WORLD_SIZE) * OO_COORD_TO_CHUNK - 0.5f);
+    CWorldScene::s_frustumChunkRect.maxY = CMath::fint_(-(CWorldScene::boundingBox.b.x - HALF_WORLD_SIZE) * OO_COORD_TO_CHUNK - 0.5f);
 
     CWorldScene::frustumIndex = 0;
     CWorldScene::frustumStack[0].CalcPlanesFromCorners(CWorldScene::s_frustumCorners);
@@ -3724,7 +3729,7 @@ void CWorldScene::RenderChunks() {
 
         if (CMap::enableSpecularTerrain) {
             GxRsSet(GxRs_MatSpecular, static_cast<int32_t>(0xFFFFFFFF));
-            GxRsSet(GxRs_MatSpecularExp, 20.0f);
+            GxRsSet(GxRs_MatSpecularExp, TERRAIN_SPEC_EXP);
         }
 
         for (int32_t i = 0; i < 5; i++) {
@@ -4365,7 +4370,7 @@ void CMap::UpdateEntity(CMapEntity* entity) {
         entity->m_targetDiffuseLightScale = 2.5f;
     } else {
         entity->m_staticFlags |= 0x8;
-        entity->m_targetDiffuseLightScale = 0.5f;
+        entity->m_targetDiffuseLightScale = dirLightScaleAmount;
     }
 }
 

@@ -38,6 +38,9 @@
 
 static const float MOUSE_DRAG_THRESHOLD = 8.0f;
 
+static const float DELTAX_PER_SECOND = 800.0f;
+static const float DELTAY_PER_SECOND = 600.0f;
+
 // STATIC: 0x00AD192C
 uint32_t s_joystick = 0xFFFFFFFF;
 
@@ -622,7 +625,7 @@ void CGInputControl::OnUpdate(float elapsed) {
 
         if (camera) {
             // STATIC: 0x00C24964
-            static C2Vector s_joystickLookScale = C2Vector(800.0f, 600.0f);
+            static C2Vector s_joystickLookScale = C2Vector(DELTAX_PER_SECOND, DELTAY_PER_SECOND);
 
             camera->UpdateFreeLookFacing(this->m_joystickLookX * s_joystickLookScale.x * elapsed, this->m_joystickLookY * s_joystickLookScale.y * elapsed, nullptr);
 

@@ -257,8 +257,8 @@ void CMapChunk::InitializeVertexGrid() {
 
         if (row < 8) {
             for (int32_t col = 0; col < 8; col++) {
-                vertex->x = x - 2.0833333f;
-                vertex->y = 0.0f - col * SMOLTILE_SIZE - 2.0833333f;
+                vertex->x = x - HALF_SMOLTILE_SIZE;
+                vertex->y = 0.0f - col * SMOLTILE_SIZE - HALF_SMOLTILE_SIZE;
                 vertex++;
             }
         }
@@ -394,8 +394,8 @@ void CMapChunk::CreateVerticesWorld(CGxVertexPN* v, const C3Vector& offset) {
 
         if (row < 8) {
             for (int32_t col = 0; col < 8; col++) {
-                v->m_position.x = rows[row] - 2.0833333f;
-                v->m_position.y = cols[col] - 2.0833333f;
+                v->m_position.x = rows[row] - HALF_SMOLTILE_SIZE;
+                v->m_position.y = cols[col] - HALF_SMOLTILE_SIZE;
                 v->m_position.z = this->m_topLeftCoords.z + height[col];
                 v->m_normal.x = normals[3 * col + 0] * 0.0078740157f;
                 v->m_normal.y = normals[3 * col + 1] * 0.0078740157f;
@@ -469,8 +469,8 @@ void CMapChunk::CreateVerticesWorld(CGxVertexPNC* v, const C3Vector& offset) {
 
         if (row < 8) {
             for (int32_t col = 0; col < 8; col++) {
-                v->m_position.x = rows[row] - 2.0833333f;
-                v->m_position.y = cols[col] - 2.0833333f;
+                v->m_position.x = rows[row] - HALF_SMOLTILE_SIZE;
+                v->m_position.y = cols[col] - HALF_SMOLTILE_SIZE;
                 v->m_position.z = this->m_topLeftCoords.z + *height;
                 v->m_normal.x = normals[0] * 0.0078740157f;
                 v->m_normal.y = normals[1] * 0.0078740157f;
@@ -1258,8 +1258,8 @@ void CMapChunk::CreateDetailDoodads() {
             float u = CRandom::sfloat_(seed);
             float v = CRandom::sfloat_(seed);
             uint32_t id = doodads[(i + j) & 15];
-            float px = u * 2.0833333f + 2.0833333f;
-            float py = v * 2.0833333f + 2.0833333f;
+            float px = u * HALF_SMOLTILE_SIZE + HALF_SMOLTILE_SIZE;
+            float py = v * HALF_SMOLTILE_SIZE + HALF_SMOLTILE_SIZE;
 
             if (!id) {
                 continue;
@@ -1330,9 +1330,9 @@ void CMapChunk::CreateDetailDoodads() {
             color.a = 0xFF;
 
             if (this->m_shadowMap) {
-                float shadowX = (px + cellX) * 1.92f;
+                float shadowX = (px + cellX) * OO_COORD_TO_SHADOW;
                 int32_t sx = CMath::fint_(shadowX - 0.5f);
-                float shadowY = (py + cellY) * 1.92f;
+                float shadowY = (py + cellY) * OO_COORD_TO_SHADOW;
                 int32_t sy = CMath::fint_(shadowY - 0.5f);
 
                 if (this->m_shadowMap[8 * sy + (sx >> 3)] & (1 << (sx & 7))) {

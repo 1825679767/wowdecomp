@@ -556,8 +556,8 @@ void CMapArea::QueryLiquidSounds(C3Vector* pos, float radius, TSGrowableArray<Wo
                 continue;
             }
 
-            float dx = chunk->m_topLeftCoords.x - static_cast<float>(tileRowStart) * SMOLTILE_SIZE - 2.0833333f - pos->x;
-            float dy = chunk->m_topLeftCoords.y - static_cast<float>(tileColStart) * SMOLTILE_SIZE - 2.0833333f - pos->y;
+            float dx = chunk->m_topLeftCoords.x - static_cast<float>(tileRowStart) * SMOLTILE_SIZE - HALF_SMOLTILE_SIZE - pos->x;
+            float dy = chunk->m_topLeftCoords.y - static_cast<float>(tileColStart) * SMOLTILE_SIZE - HALF_SMOLTILE_SIZE - pos->y;
             float dz = (liquid->m_height.y + liquid->m_height.x) * 0.5f - pos->z;
 
             int32_t colBegin = tileColStart - liquid->m_tileBegin.y;

@@ -15,6 +15,8 @@
 
 typedef IDirect3D9* (WINAPI* Direct3DCreate9Proc)(UINT sdkVersion);
 
+static const float MaxLightRange = 10000.0f;
+
 // STATIC: 0x00A2E4A8
 const D3DFORMAT CGxDeviceD3d::s_GxFormatToD3dFormat[CGxFormat::Formats_Last] = { D3DFMT_R5G6B5, D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8, D3DFMT_A2R10G10B10, D3DFMT_D16, D3DFMT_D24X8, D3DFMT_D24S8, D3DFMT_D32 };
 
@@ -1367,19 +1369,19 @@ void CGxDeviceD3d::ISetAlphaOp(uint32_t tmu, uint32_t op) {
 // VERIFY: c7d0427b auto
 // OFFSET: 0x006A4250
 void CGxDeviceD3d::ISetMaterial(CImVector diffuse, CImVector emissive, CImVector specular, float specularExp) {
-    s_d3dMaterial.Diffuse.r = diffuse.r * (1.0f / 255.0f);
-    s_d3dMaterial.Diffuse.g = diffuse.g * (1.0f / 255.0f);
-    s_d3dMaterial.Diffuse.b = diffuse.b * (1.0f / 255.0f);
-    s_d3dMaterial.Diffuse.a = diffuse.a * (1.0f / 255.0f);
+    s_d3dMaterial.Diffuse.r = diffuse.r * oo255;
+    s_d3dMaterial.Diffuse.g = diffuse.g * oo255;
+    s_d3dMaterial.Diffuse.b = diffuse.b * oo255;
+    s_d3dMaterial.Diffuse.a = diffuse.a * oo255;
     s_d3dMaterial.Ambient = s_d3dMaterial.Diffuse;
-    s_d3dMaterial.Emissive.r = emissive.r * (1.0f / 255.0f);
-    s_d3dMaterial.Emissive.g = emissive.g * (1.0f / 255.0f);
-    s_d3dMaterial.Emissive.b = emissive.b * (1.0f / 255.0f);
-    s_d3dMaterial.Emissive.a = emissive.a * (1.0f / 255.0f);
-    s_d3dMaterial.Specular.r = specular.r * (1.0f / 255.0f);
-    s_d3dMaterial.Specular.g = specular.g * (1.0f / 255.0f);
-    s_d3dMaterial.Specular.b = specular.b * (1.0f / 255.0f);
-    s_d3dMaterial.Specular.a = specular.a * (1.0f / 255.0f);
+    s_d3dMaterial.Emissive.r = emissive.r * oo255;
+    s_d3dMaterial.Emissive.g = emissive.g * oo255;
+    s_d3dMaterial.Emissive.b = emissive.b * oo255;
+    s_d3dMaterial.Emissive.a = emissive.a * oo255;
+    s_d3dMaterial.Specular.r = specular.r * oo255;
+    s_d3dMaterial.Specular.g = specular.g * oo255;
+    s_d3dMaterial.Specular.b = specular.b * oo255;
+    s_d3dMaterial.Specular.a = specular.a * oo255;
     s_d3dMaterial.Power = specularExp;
     this->m_d3dDevice->SetMaterial(&s_d3dMaterial);
 }
@@ -1438,7 +1440,7 @@ void CGxDeviceD3d::IStateSyncLights() {
             s_d3dLight.Specular.g = light.m_specColor.y;
             s_d3dLight.Specular.b = light.m_specColor.z;
             s_d3dLight.Specular.a = 0.0f;
-            s_d3dLight.Range = 10000.0f;
+            s_d3dLight.Range = MaxLightRange;
             s_d3dLight.Falloff = 1.0f;
             s_d3dLight.Attenuation0 = light.m_constantAttenuation;
             s_d3dLight.Attenuation1 = light.m_linearAttenuation;

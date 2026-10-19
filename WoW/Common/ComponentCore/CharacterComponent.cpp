@@ -5335,7 +5335,7 @@ bool CCharacterComponent::Initialize(EGxTexFormat format, uint32_t mipLevels, in
         s_threadTextureBuffer = TextureAllocMippedImg(PIXEL_ARGB8888, s_textureSize, s_textureSize);
     }
 
-    EventRegisterEx(EVENT_ID_POLL, &CCharacterComponent::Update, nullptr, 0.0f);
+    EventRegisterEx(EVENT_ID_POLL, &CCharacterComponent::Update, nullptr, EVENT_PRIORITY_NORMAL);
 
     return true;
 }
