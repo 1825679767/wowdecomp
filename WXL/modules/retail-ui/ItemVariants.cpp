@@ -776,7 +776,7 @@ namespace
         return 1;
     }
 
-    constexpr char kFrameScriptBootstrap[] = R"lua(
+    const std::string kFrameScriptBootstrap = std::string(R"lua(
 do
     wxlwow = wxlwow or {}
     wxlwow.request_item_variants = _WXLWOW_REQUEST_ITEM_VARIANTS
@@ -1056,6 +1056,7 @@ do
             if not itemID then
                 if ItemRefTooltip then
                     ItemRefTooltip.WXLWOWLinkedVariant = nil
+)lua") + R"lua(
                     ItemRefTooltip.WXLWOWAppliedLinkedKey = nil
                     hideVariantMetadata(ItemRefTooltip)
                 end
@@ -1344,7 +1345,7 @@ end
             &LuaPlayRetailEquipSound);
 
         ok &= framescript::RegisterScript(
-            "retail-item-variants", kFrameScriptBootstrap);
+            "retail-item-variants", kFrameScriptBootstrap.c_str());
         return ok;
     }
 }

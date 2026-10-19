@@ -1022,7 +1022,7 @@ do
 end
 )lua";
 
-    constexpr const char* kCollectionUiBootstrapV2 = R"lua(
+    constexpr char kCollectionUiBootstrapV2Part1[] = R"lua(
 do
     local UI = { installed = false, mode = "items", page = 1, pageSize = 10,
         generation = -1, elapsed = 0, sets = nil, filteredSets = nil,
@@ -1299,7 +1299,9 @@ do
         UI.status:SetWidth(238)
         UI.status:SetJustifyH("LEFT")
 
-        UI.rows = {}
+UI.rows = {}
+)lua";
+constexpr char kCollectionUiBootstrapV2Part2[] = R"lua(
         for index = 1, UI.pageSize do
             local row = CreateFrame("Button", "WXLTransmogSetRowV2" .. index, body)
             row:SetSize(232, 39)

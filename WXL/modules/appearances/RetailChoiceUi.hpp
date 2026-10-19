@@ -1,5 +1,6 @@
 // Copyright (C)2026 WarcraftXL. GPL-3.0-or-later.
 #pragma once
+#include <string>
 namespace wxl::native {
 inline constexpr char RetailChoiceUi[] = R"lua(
 do
@@ -109,7 +110,8 @@ do
   end
 end
 )lua";
-inline constexpr char RetailChoiceDonorUi[] = R"lua(
+inline const char* GetRetailChoiceDonorUi() {
+    static const std::string script = std::string(R"lua(
 do
     local owner = _G.WXLModernM2CustomizationBridge or {}
     _G.WXLModernM2CustomizationBridge = owner
@@ -375,6 +377,7 @@ do
     local function legacyBrokenKey()
         -- Native CMO sex is 0/1. Glue GetSelectedSex maps those to 2/3.
         -- Prefer the live identity, and use the actual Glue convention before a model exists.
+)lua") + R"lua(
         if owner.nativeIdentity then
             local race, sex = owner.nativeIdentity()
             if race == 23 and (sex == 0 or sex == 1) then
@@ -647,6 +650,7 @@ do
                 local current = legacyBrokenState(row.CustomizationIndex)
                 choiceName = tostring(index)
                 selected = index == current
+)lua" + R"lua(
                 choiceHasSwatch = hasSwatch
                 if row.CustomizationIndex == 1 then
                     swatch1 = legacyBrokenSkinSwatches[index]
@@ -889,6 +893,7 @@ do
                 GlueTooltip:SetText(tooltipTitle, 1, 1, 1)
                 if self.WXLTooltipDetail then
                     GlueTooltip:AddLine(self.WXLTooltipDetail, 0.8, 0.8, 0.8)
+)lua" + R"lua(
                 end
                 GlueTooltip:Show()
             end
@@ -1157,6 +1162,7 @@ do
         local sex = api.GetSelectedSex and api.GetSelectedSex()
         local token = (sex == 3 and (info.overrideRaceNameFemale or info.raceNameFemale)) or
             info.overrideRaceName or info.raceName
+)lua" + R"lua(
         local name = token and (_G[token] or token) or info.clientFileString or ""
         local tag = string.upper(info.clientFileString or "")
         local description = _G["CHARACTER_CREATE_INFO_RACE_" .. tag .. "_DESC"] or
@@ -1374,6 +1380,7 @@ do
         page.CustomizationName:SetText(self.page .. " / " .. pages)
         if pages > 1 then page:Show() else page:Hide() end
         local dice = frame.RandomizeCustomizationButton
+)lua" + R"lua(
         if dice then
             self:StyleDice(dice)
             dice:ClearAllPoints()
@@ -1586,6 +1593,7 @@ do
                 if name == "RandomizeCharCustomization" and isTuskarrCreatureFemale() then
                     -- This creature preview has no stock female humanoid axes.
                     -- Use only the verified skin variants, without stock randomize
+)lua" + R"lua(
                     -- or ComposeStock (both enter the legacy humanoid compositor).
                     local result = native and native()
                     owner:RefreshRows()
@@ -1756,4 +1764,6 @@ do
  end
 end
 )lua";
+    return script.c_str();
+}
 }

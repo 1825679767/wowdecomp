@@ -3709,7 +3709,7 @@ int32_t CCharacterComponent::UpdateTextureSlot(COMPONENT_SECTIONS section, const
 }
 
 // INLINED
-inline ITEM_SLOT CCharacterComponent::GetItemSlotForInvSlot(INVENTORY_SLOTS invSlot) {
+ITEM_SLOT CCharacterComponent::GetItemSlotForInvSlot(INVENTORY_SLOTS invSlot) {
     switch (invSlot) {
         case INVSLOT_HEAD:
             return ITEMSLOT_HEAD;
