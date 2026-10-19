@@ -11,6 +11,13 @@ enum EMOTESPECPROCS : int32_t {
     // EMOTESPECPROC_NUMSPECPROCS = 3,
 };
 
+// Bitset indexed by EMOTESPECPROCS, separate from EmotesRec::m_emoteFlags.
+enum EMOTESPECPROC_MASK : uint32_t {
+    allEmoteFlags = (1u << EMOTESPECPROC_NONE)
+        | (1u << EMOTESPECPROC_STANDSTATEHANDLER)
+        | (1u << EMOTESPECPROC_EMOTESTATEHANDLER),
+};
+
 class SFileImpl;
 
 class EmotesRec {

@@ -82,6 +82,14 @@ enum VICTIMSTATES : uint32_t {
     NUM_VICTIMSTATES = 9,
 };
 
+// Bitsets indexed by VICTIMSTATES, separate from the state IDs.
+enum VICTIMSTATE_MASK : uint32_t {
+    WOUNDSTATES = (1u << VS_WOUND) | (1u << VS_DODGE)
+        | (1u << VS_PARRY) | (1u << VS_BLOCK),
+    PREANIMSTATES = (1u << VS_DODGE) | (1u << VS_PARRY)
+        | (1u << VS_EVADE) | (1u << VS_DEFLECT),
+};
+
 enum MISS_REASON : int32_t {
     MISS_NONE = 0,
     MISS_PHYSICAL = 1,
