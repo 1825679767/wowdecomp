@@ -1828,7 +1828,7 @@ void CCharacterComponent::SetHairStyle(int32_t hairStyleID, const char* debug) {
     }
 
     this->m_data.m_preferences.m_hairStyleId = hairStyleID;
-    this->m_data.m_geosets[0] = GetConditionalGeoset(&this->m_data.m_preferences);
+    this->m_data.m_geosets[CHARGEOSET_HAIR] = GetConditionalGeoset(&this->m_data.m_preferences);
 
     if (!(this->m_data.m_flags & 0x1)) {
         this->LoadBaseVariation(VARIATION_HAIR, 1, hairStyleID, this->m_data.m_preferences.m_hairColorId, SECTION_HEAD_LOWER, debug);
@@ -1881,9 +1881,9 @@ void CCharacterComponent::SetBeardStyle(int32_t facialHairID, bool loadVariation
     CharacterFacialHairStylesRec* styleRec = GetConditionalFacialHairStyle(&this->m_data.m_preferences);
 
     if (styleRec) {
-        this->m_data.m_geosets[1] = styleRec->m_geoset[0] + 100;
-        this->m_data.m_geosets[3] = styleRec->m_geoset[1] + 300;
-        this->m_data.m_geosets[2] = styleRec->m_geoset[2] + 200;
+        this->m_data.m_geosets[CHARGEOSET_BEARD] = styleRec->m_geoset[0] + 100;
+        this->m_data.m_geosets[CHARGEOSET_MOUSTACHE] = styleRec->m_geoset[1] + 300;
+        this->m_data.m_geosets[CHARGEOSET_SIDEBURN] = styleRec->m_geoset[2] + 200;
         this->m_data.m_geosets[16] = styleRec->m_geoset[3] + 1600;
         this->m_flags |= 0x4;
         this->m_data.m_geosets[17] = styleRec->m_geoset[4] + 1700;
@@ -3703,14 +3703,14 @@ void CCharacterComponent::RemoveItem(ITEM_SLOT itemSlot) {
 
     switch (itemSlot) {
         case ITEMSLOT_HEAD: {
-            this->m_data.m_geosets[0] = GetConditionalGeoset(&this->m_data.m_preferences);
+            this->m_data.m_geosets[CHARGEOSET_HAIR] = GetConditionalGeoset(&this->m_data.m_preferences);
             CCharacterComponent::RemoveLinkpt(this->m_data.m_model, ATTACH_HELM);
             CharacterFacialHairStylesRec* styleRec = GetConditionalFacialHairStyle(&this->m_data.m_preferences);
 
             if (styleRec) {
-                this->m_data.m_geosets[1] = styleRec->m_geoset[0] + 100;
-                this->m_data.m_geosets[3] = styleRec->m_geoset[1] + 300;
-                this->m_data.m_geosets[2] = styleRec->m_geoset[2] + 200;
+                this->m_data.m_geosets[CHARGEOSET_BEARD] = styleRec->m_geoset[0] + 100;
+                this->m_data.m_geosets[CHARGEOSET_MOUSTACHE] = styleRec->m_geoset[1] + 300;
+                this->m_data.m_geosets[CHARGEOSET_SIDEBURN] = styleRec->m_geoset[2] + 200;
                 this->m_data.m_geosets[7] = 702;
                 this->m_data.m_geosets[16] = styleRec->m_geoset[3] + 1600;
                 this->m_data.m_geosets[17] = styleRec->m_geoset[4] + 1700;
@@ -3864,19 +3864,19 @@ void CCharacterComponent::AddHelm(int32_t itemVisual) {
     uint32_t raceMask = 1 << this->m_data.m_preferences.m_raceID;
 
     if (raceMask & visRec->m_hideGeoset[0]) {
-        this->m_data.m_geosets[0] = 1;
+        this->m_data.m_geosets[CHARGEOSET_HAIR] = 1;
     }
 
     if (raceMask & visRec->m_hideGeoset[1]) {
-        this->m_data.m_geosets[1] = 101;
+        this->m_data.m_geosets[CHARGEOSET_BEARD] = 101;
     }
 
     if (raceMask & visRec->m_hideGeoset[2]) {
-        this->m_data.m_geosets[2] = 201;
+        this->m_data.m_geosets[CHARGEOSET_SIDEBURN] = 201;
     }
 
     if (raceMask & visRec->m_hideGeoset[3]) {
-        this->m_data.m_geosets[3] = 301;
+        this->m_data.m_geosets[CHARGEOSET_MOUSTACHE] = 301;
     }
 
     if (raceMask & visRec->m_hideGeoset[4]) {
