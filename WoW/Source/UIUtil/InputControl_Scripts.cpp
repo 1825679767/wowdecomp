@@ -343,7 +343,7 @@ static int32_t Script_TurnOrActionStart(lua_State* L) {
         uint32_t time = CSimpleTop::s_eventTime;
 
         if (!(input->m_flags & INPUT_MOUSE_LOOK_MASK)) {
-            input->m_pendingDefaultAction = PENDING_ACTION_RIGHT;
+            input->m_pendingDefaultAction = INPUT_RELEASE_ACTION;
             CGWorldFrame::s_currentWorldFrame->SetupDefaultAction();
         }
 
@@ -384,7 +384,7 @@ static int32_t Script_CameraOrSelectOrMoveStart(lua_State* L) {
         uint32_t time = CSimpleTop::s_eventTime;
 
         if (!(input->m_flags & INPUT_MOUSE_LOOK_MASK)) {
-            input->m_pendingDefaultAction = PENDING_ACTION_LEFT;
+            input->m_pendingDefaultAction = INPUT_RELEASE_SELECT;
             CGWorldFrame::s_currentWorldFrame->SetupDefaultAction();
         }
 
@@ -421,7 +421,7 @@ static int32_t Script_CameraOrSelectOrMoveStop(lua_State* L) {
 static int32_t Script_MouselookStop(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
     uint32_t time = CSimpleTop::s_eventTime;
-    input->m_pendingDefaultAction = PENDING_ACTION_NONE;
+    input->m_pendingDefaultAction = INPUT_RELEASE_NONE;
 
     if (input->UnsetControlBit(INPUT_TURN_PLAYER, time, 0)) {
         input->UpdatePlayer(time, 1);
@@ -436,7 +436,7 @@ static int32_t Script_MouselookStop(lua_State* L) {
 static int32_t Script_MouselookStart(lua_State* L) {
     CGInputControl* input = CGInputControl::s_inputControl;
     uint32_t time = CSimpleTop::s_eventTime;
-    input->m_pendingDefaultAction = PENDING_ACTION_NONE;
+    input->m_pendingDefaultAction = INPUT_RELEASE_NONE;
 
     if (input->SetControlBit(INPUT_TURN_PLAYER, time)) {
         if ((input->m_flags & INPUT_TURN_PLAYER) && (input->m_flags & INPUT_TURN_CAMERA)) {
@@ -773,7 +773,7 @@ static int32_t Script_MoveAndSteerStart(lua_State* L) {
     uint32_t time = CSimpleTop::s_eventTime;
 
     if (!(input->m_flags & INPUT_MOUSE_LOOK_MASK)) {
-        input->m_pendingDefaultAction = PENDING_ACTION_LEFT;
+        input->m_pendingDefaultAction = INPUT_RELEASE_SELECT;
         CGWorldFrame::s_currentWorldFrame->SetupDefaultAction();
     }
 
@@ -786,7 +786,7 @@ static int32_t Script_MoveAndSteerStart(lua_State* L) {
     }
 
     if (!(input->m_flags & INPUT_MOUSE_LOOK_MASK)) {
-        input->m_pendingDefaultAction = PENDING_ACTION_RIGHT;
+        input->m_pendingDefaultAction = INPUT_RELEASE_ACTION;
         CGWorldFrame::s_currentWorldFrame->SetupDefaultAction();
     }
 

@@ -92,7 +92,7 @@ void CGInputControl::SetMouseCVarHandler(bool enable) {
 
 // VERIFY: 36bc2098 auto
 // OFFSET: 0x005FD1D0
-CGInputControl::CGInputControl() : m_flags(INPUT_NONE), m_lookStartTime(0), m_pendingDefaultAction(PENDING_ACTION_NONE), m_facingOverrideActive(0), m_facingOverride(0.0f), m_vehicleAimValid(0), m_vehicleAim(0.0f), m_mouseModeFlags(3), m_forceCursorOn(0), m_joystickMouseFlags(3), m_joystickLookX(0.0f), m_joystickLookY(0.0f), m_wowMouse(nullptr) {
+CGInputControl::CGInputControl() : m_flags(INPUT_NONE), m_lookStartTime(0), m_pendingDefaultAction(INPUT_RELEASE_NONE), m_facingOverrideActive(0), m_facingOverride(0.0f), m_vehicleAimValid(0), m_vehicleAim(0.0f), m_mouseModeFlags(3), m_forceCursorOn(0), m_joystickMouseFlags(3), m_joystickLookX(0.0f), m_joystickLookY(0.0f), m_wowMouse(nullptr) {
     this->m_time = OsGetAsyncTimeMs();
 }
 
@@ -901,7 +901,7 @@ int32_t CGInputControl::SetControlBit(uint32_t bit, uint32_t time) {
     }
 
     if ((bit & INPUT_MOUSE_LOOK_MASK) && (this->m_flags & INPUT_MOUSE_LOOK_MASK) != bit) {
-        this->m_pendingDefaultAction = PENDING_ACTION_NONE;
+        this->m_pendingDefaultAction = INPUT_RELEASE_NONE;
     }
 
     return 1;
@@ -953,14 +953,14 @@ int32_t CGInputControl::UnsetControlBit(uint32_t bit, uint32_t time, int32_t kee
 
     if (wasMouseDown && !(this->m_flags & INPUT_MOUSE_LOOK_MASK)) {
         if (!this->IsMouseDrag(time)) {
-            if (this->m_pendingDefaultAction == PENDING_ACTION_LEFT) {
+            if (this->m_pendingDefaultAction == INPUT_RELEASE_SELECT) {
                 CGWorldFrame::s_currentWorldFrame->PerformDefaultAction(MOUSE_BUTTON_LEFT);
-            } else if (this->m_pendingDefaultAction == PENDING_ACTION_RIGHT) {
+            } else if (this->m_pendingDefaultAction == INPUT_RELEASE_ACTION) {
                 CGWorldFrame::s_currentWorldFrame->PerformDefaultAction(MOUSE_BUTTON_RIGHT);
             }
         }
 
-        this->m_pendingDefaultAction = PENDING_ACTION_NONE;
+        this->m_pendingDefaultAction = INPUT_RELEASE_NONE;
     }
 
     return 1;
