@@ -1097,8 +1097,8 @@ const char* CGItem_C::GetInventoryArt(int32_t displayId) {
             if (*icon) {
                 char buffer[260];
 
-                if (TextureDiscoverFileType(icon) == TEXFILE_TGA) {
-                    TexturePickAlternateFilename(icon, TEXFILE_TGA, buffer, sizeof(buffer));
+                if (TextureDiscoverFileType(icon) == TEXFILETYPE_TGA) {
+                    TexturePickAlternateFilename(icon, TEXFILETYPE_TGA, buffer, sizeof(buffer));
                     icon = buffer;
                 }
 

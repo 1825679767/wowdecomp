@@ -396,14 +396,14 @@ TEXFILETYPE TextureDiscoverFileType(const char* fileName) {
     const char* extension = SStrChrR(const_cast<char*>(fileName), '.');
 
     if (!extension || SStrLen(extension) != 4) {
-        return TEXFILE_UNKNOWN;
+        return TEXFILETYPE_UNKNOWN;
     }
 
     if (!SStrCmpI(extension, ".TGA", STORM_MAX_STR)) {
-        return TEXFILE_TGA;
+        return TEXFILETYPE_TGA;
     }
 
-    return SStrCmpI(extension, ".BLP", STORM_MAX_STR) ? TEXFILE_UNKNOWN : TEXFILE_BLP;
+    return SStrCmpI(extension, ".BLP", STORM_MAX_STR) ? TEXFILETYPE_UNKNOWN : TEXFILETYPE_BLP;
 }
 
 // VERIFY: 813fa654 manual
@@ -414,7 +414,7 @@ TEXFILETYPE TexturePickAlternateFilename(const char* fileName, TEXFILETYPE type,
     }
 
     if (!type) {
-        return TEXFILE_UNKNOWN;
+        return TEXFILETYPE_UNKNOWN;
     }
 
     char* extension = SStrChrR(buffer, '.');
@@ -423,14 +423,14 @@ TEXFILETYPE TexturePickAlternateFilename(const char* fileName, TEXFILETYPE type,
         *extension = '\0';
     }
 
-    if (type == TEXFILE_TGA) {
+    if (type == TEXFILETYPE_TGA) {
         SStrPack(buffer, ".BLP", size);
-        return TEXFILE_BLP;
+        return TEXFILETYPE_BLP;
     }
 
-    if (type == TEXFILE_BLP) {
+    if (type == TEXFILETYPE_BLP) {
         SStrPack(buffer, ".TGA", size);
-        return TEXFILE_TGA;
+        return TEXFILETYPE_TGA;
     }
 
     return type;
