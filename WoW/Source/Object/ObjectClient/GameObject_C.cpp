@@ -95,16 +95,16 @@ enum ANIMATED_OBJECT_STATE : int32_t {
 };
 
 // STATIC: 0x00A335E8
-static const uint32_t s_oneShotAnims[7] = { 0xFFFFFFFF, 0, 8, 9, 10, 11, 12 };
+static const uint32_t s_oneShotAnims[7] = { 0xFFFFFFFF, ANIMSTATE_SPAWN, ANIMSTATE_CUSTOM0, ANIMSTATE_CUSTOM1, ANIMSTATE_CUSTOM2, ANIMSTATE_CUSTOM3, ANIMSTATE_DESPAWN };
 
 // STATIC: 0x00ADA974
 static uint32_t s_buildingDamageColor = 0xFFFF8400;
 
 // STATIC: 0x00ADA938
-uint32_t CGGameObject_C_TypeAnimated::s_animSequenceIds[13] = { 145, 147, 148, 149, 146, 150, 151, 152, 153, 154, 155, 156, 157 };
+uint32_t CGGameObject_C_TypeAnimated::s_animSequenceIds[NUM_GAMEOBJ_ANIMSTATES] = { 145, 147, 148, 149, 146, 150, 151, 152, 153, 154, 155, 156, 157 };
 
 // STATIC: 0x00ADA978
-const char* CGGameObject_C_TypeAnimated::s_animStateNames[13] = { "Spawn", "Closed", "Opening", "Open", "Closing", "Destroying", "Destroyed", "Rebuilding", "Custom0", "Custom1", "Custom2", "Custom3", "Despawn" };
+const char* CGGameObject_C_TypeAnimated::s_animStateNames[NUM_GAMEOBJ_ANIMSTATES] = { "Spawn", "Closed", "Opening", "Open", "Closing", "Destroying", "Destroyed", "Rebuilding", "Custom0", "Custom1", "Custom2", "Custom3", "Despawn" };
 
 // VERIFY: 82a5bb1b manual
 // OFFSET: 0x00712AE0
@@ -914,7 +914,7 @@ void CGGameObject_C_TypeAnimated::OnUpdateFlags(uint32_t changed) {
 
     int32_t state = this->m_animState;
 
-    if (state != 2 && state != 4 && state != 5 && state != 7) {
+    if (state != ANIMSTATE_OPENING && state != ANIMSTATE_CLOSING && state != ANIMSTATE_DESTROYING && state != ANIMSTATE_REBUILDING) {
         return;
     }
 
@@ -941,7 +941,7 @@ void CGGameObject_C_TypeAnimated::PostInit(bool a1) {
     CGGameObject_C* owner = this->m_owner;
 
     if (owner->IsObjectModelLoaded()) {
-        owner->m_typeData->ActivateOneShotAnim(0);
+        owner->m_typeData->ActivateOneShotAnim(ANIMSTATE_SPAWN);
         owner->m_pendingOneShotAnim = 0;
     } else {
         owner->m_pendingOneShotAnim = 1;
@@ -966,17 +966,17 @@ void CGGameObject_C_TypeAnimated::ResetAnimState() {
 
     switch (owner->m_displayState) {
         case 0: {
-            state = (owner->m_gameObject->m_pathProgress == 0xFFFF) + 2;
+            state = (owner->m_gameObject->m_pathProgress == 0xFFFF) + ANIMSTATE_OPENING;
             break;
         }
 
         case 1: {
-            state = owner->m_gameObject->m_pathProgress != 0xFFFF ? 4 : 1;
+            state = owner->m_gameObject->m_pathProgress != 0xFFFF ? ANIMSTATE_CLOSING : ANIMSTATE_CLOSED;
             break;
         }
 
         case 2: {
-            state = (owner->m_gameObject->m_pathProgress == 0xFFFF) + 5;
+            state = (owner->m_gameObject->m_pathProgress == 0xFFFF) + ANIMSTATE_DESTROYING;
             break;
         }
     }
@@ -990,7 +990,7 @@ void CGGameObject_C_TypeAnimated::ResetAnimState() {
 // VERIFY: 0978367d manual
 // OFFSET: 0x00712510
 bool CGGameObject_C_TypeAnimated::ShouldFadeIn() const {
-    return this->m_animState != 0;
+    return this->m_animState != ANIMSTATE_SPAWN;
 }
 
 // VERIFY: 1c670d12 auto
@@ -1012,9 +1012,9 @@ void CGGameObject_C_TypeAnimated::UpdateState(int32_t oldState, int32_t newState
     switch (newState) {
         case STATE_OPENING: {
             if (oldState == STATE_CLOSING || this->m_owner->m_gameObject->m_pathProgress != 0xFFFF) {
-                this->UpdateAnimState(2);
+                this->UpdateAnimState(ANIMSTATE_OPENING);
             } else {
-                this->UpdateAnimState(3);
+                this->UpdateAnimState(ANIMSTATE_OPEN);
             }
 
             break;
@@ -1025,17 +1025,17 @@ void CGGameObject_C_TypeAnimated::UpdateState(int32_t oldState, int32_t newState
 
             switch (state) {
                 case STATE_OPENING: {
-                    this->UpdateAnimState(4);
+                    this->UpdateAnimState(ANIMSTATE_CLOSING);
                     break;
                 }
 
                 case STATE_DESTROYED: {
-                    this->UpdateAnimState(7);
+                    this->UpdateAnimState(ANIMSTATE_REBUILDING);
                     break;
                 }
 
                 default: {
-                    this->UpdateAnimState(1);
+                    this->UpdateAnimState(ANIMSTATE_CLOSED);
                     break;
                 }
             }
@@ -1045,9 +1045,9 @@ void CGGameObject_C_TypeAnimated::UpdateState(int32_t oldState, int32_t newState
 
         case STATE_DESTROYED: {
             if (oldState == STATE_CLOSING || this->m_owner->m_gameObject->m_pathProgress != 0xFFFF) {
-                this->UpdateAnimState(5);
+                this->UpdateAnimState(ANIMSTATE_DESTROYING);
             } else {
-                this->UpdateAnimState(6);
+                this->UpdateAnimState(ANIMSTATE_DESTROYED);
             }
 
             break;
@@ -2739,7 +2739,7 @@ float CGGameObject_C_TypeBase::GetFacing() const {
 int32_t CGGameObject_C_TypeAnimated::HandleAnimInterrupted() {
     int32_t state = this->m_pendingAnimState;
 
-    if (state == -1 || state == 3 || state == 1 || state == 6) {
+    if (state == -1 || state == ANIMSTATE_OPEN || state == ANIMSTATE_CLOSED || state == ANIMSTATE_DESTROYED) {
         this->m_pendingAnimState = -1;
         return 1;
     }
@@ -2962,7 +2962,7 @@ void CGGameObject_C_TypeAnimated::UpdateAnimState(uint32_t state) {
         if (model && this->m_owner->m_gameObject->m_pathProgress == 0xFFFF) {
             int32_t current = this->m_animState;
 
-            if ((current == 2 && state == 4) || (current == 4 && state == 2) || (current == 5 && state == 7) || (current == 7 && state == 5)) {
+            if ((current == ANIMSTATE_OPENING && state == ANIMSTATE_CLOSING) || (current == ANIMSTATE_CLOSING && state == ANIMSTATE_OPENING) || (current == ANIMSTATE_DESTROYING && state == ANIMSTATE_REBUILDING) || (current == ANIMSTATE_REBUILDING && state == ANIMSTATE_DESTROYING)) {
                 M2BoneSequenceInfo info;
                 model->GetBoneSequenceInfo(0xFFFFFFFF, info);
 
@@ -3100,7 +3100,7 @@ effects:
     int32_t startTime = 0;
     uint32_t keepTime = 0;
 
-    if (state == 2 || state == 4 || state == 5 || state == 7) {
+    if (state == ANIMSTATE_OPENING || state == ANIMSTATE_CLOSING || state == ANIMSTATE_DESTROYING || state == ANIMSTATE_REBUILDING) {
         keepTime = (this->m_owner->m_gameObject->m_flags >> 7) & 1;
         uint16_t progress = this->m_owner->m_gameObject->m_pathProgress;
 
@@ -3110,7 +3110,7 @@ effects:
         }
     }
 
-    model->SetBoneSequence(0xFFFFFFFF, sequence, 0xFFFFFFFF, startTime, speed, this->m_animState != 0, 1);
+    model->SetBoneSequence(0xFFFFFFFF, sequence, 0xFFFFFFFF, startTime, speed, this->m_animState != ANIMSTATE_SPAWN, 1);
 
     if (keepTime) {
         uint32_t time = model->m_scene->m_time;
@@ -3121,7 +3121,7 @@ effects:
 
     state = this->m_animState;
 
-    if (state != 3 && state != 1 && state != 6) {
+    if (state != ANIMSTATE_OPEN && state != ANIMSTATE_CLOSED && state != ANIMSTATE_DESTROYED) {
         ClntObjMgrLockObject(this->m_owner->m_obj->m_guid);
     }
 
@@ -3313,38 +3313,38 @@ void CGGameObject_C_TypeAnimated::HandleAnimFinished() {
     this->m_pendingAnimState = -1;
 
     switch (state) {
-        case 0:
-        case 8:
-        case 9:
-        case 10:
-        case 11:
+        case ANIMSTATE_SPAWN:
+        case ANIMSTATE_CUSTOM0:
+        case ANIMSTATE_CUSTOM1:
+        case ANIMSTATE_CUSTOM2:
+        case ANIMSTATE_CUSTOM3:
             if (!(this->m_owner->m_modelFlags & 0x100000)) {
                 this->UpdateState(this->m_owner->m_displayState, this->m_owner->m_displayState);
             }
 
             break;
 
-        case 1:
-        case 3:
-        case 6:
+        case ANIMSTATE_CLOSED:
+        case ANIMSTATE_OPEN:
+        case ANIMSTATE_DESTROYED:
             this->SetSequence(this->m_owner->m_worldModel);
             break;
 
-        case 2:
-            this->UpdateAnimState(3);
+        case ANIMSTATE_OPENING:
+            this->UpdateAnimState(ANIMSTATE_OPEN);
             break;
 
-        case 4:
-        case 7:
-            this->UpdateAnimState(1);
+        case ANIMSTATE_CLOSING:
+        case ANIMSTATE_REBUILDING:
+            this->UpdateAnimState(ANIMSTATE_CLOSED);
             break;
 
-        case 5:
-            this->UpdateAnimState(6);
+        case ANIMSTATE_DESTROYING:
+            this->UpdateAnimState(ANIMSTATE_DESTROYED);
             break;
     }
 
-    if (pending != -1 && pending != 3 && pending != 1 && pending != 6) {
+    if (pending != -1 && pending != ANIMSTATE_OPEN && pending != ANIMSTATE_CLOSED && pending != ANIMSTATE_DESTROYED) {
         ClntObjMgrUnlockObject(this->m_owner->m_obj->m_guid, __FILE__, __LINE__);
     }
 }
