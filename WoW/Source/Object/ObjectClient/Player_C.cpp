@@ -1,4 +1,5 @@
 #include "Player_C.h"
+#include <cstring>
 #include <malloc.h>
 #include "Engine/Source/Base/CDataStore.h"
 #include "Engine/Source/BlizzardCore/SFile2-Core.h"
@@ -5883,7 +5884,10 @@ int32_t CGPlayer_C::GetModDamageDoneNeg(int32_t school) const {
 // OFFSET: 0x00578290
 float CGPlayer_C::GetModDamageDonePct(int32_t school) const {
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
-        return this->m_player->m_playerFieldModDamageDonePct[school];
+        const uint32_t value = this->m_player->m_playerFieldModDamageDonePct[school];
+        float percent;
+        std::memcpy(&percent, &value, sizeof(percent));
+        return percent;
     }
 
     return 0.0f;
