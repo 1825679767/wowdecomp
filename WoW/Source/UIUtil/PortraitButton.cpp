@@ -558,8 +558,8 @@ void RenderPortraitTexture(CSimpleTexture* texture, CGUnit_C* unit) {
     CCamera* createdCamera = nullptr;
     CCamera* camera;
 
-    if (model->HasCamera(0)) {
-        camera = model->GetCameraById(0);
+    if (model->HasCamera(CAMERA_PORTRAIT)) {
+        camera = model->GetCameraById(CAMERA_PORTRAIT);
     } else {
         camera = CameraCreate();
         createdCamera = camera;

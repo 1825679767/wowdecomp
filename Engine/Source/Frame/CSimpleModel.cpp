@@ -184,7 +184,7 @@ void CSimpleModel::SetCameraByID(uint32_t id) {
         return;
     }
 
-    if (id < 2) {
+    if (id < NUM_OBJECT_CAMERAS) {
         this->SetCamera(this->m_model->GetCameraById(id));
         return;
     }
