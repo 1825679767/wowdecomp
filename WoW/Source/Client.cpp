@@ -1446,7 +1446,7 @@ static void OpenArchives() {
 
                 char title[256];
                 SStrCopy(title, "Missing or corrupted data", STORM_MAX_STR);
-                OsGuiMessageBox(OsGuiGetWindow(2), 0, message, title);
+                OsGuiMessageBox(OsGuiGetWindow(2), OSGUI_MESSAGE_STYLE_OK, message, title);
                 StormExit(SErrGetLastError());
             }
         }
@@ -1793,7 +1793,7 @@ void BeginCloseGame() {
     if (s_closeErrorStringId) {
         Startup_StringsRec* title = g_startup_StringsDB.GetRecord(1);
         Startup_StringsRec* message = g_startup_StringsDB.GetRecord(s_closeErrorStringId);
-        OsGuiMessageBox(nullptr, 0, message ? message->m_message : "Unknown Error", title ? title->m_message : "World of Warcraft");
+        OsGuiMessageBox(nullptr, OSGUI_MESSAGE_STYLE_OK, message ? message->m_message : "Unknown Error", title ? title->m_message : "World of Warcraft");
     }
 }
 

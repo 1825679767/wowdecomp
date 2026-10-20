@@ -159,19 +159,19 @@ int32_t OsGuiMessageBox(OsGuiHandle parentWindow, int32_t style, const char* mes
     UINT type = MB_OK;
 
     switch (style) {
-        case 0:
+        case OSGUI_MESSAGE_STYLE_OK:
             type = MB_OK;
             break;
 
-        case 1:
+        case OSGUI_MESSAGE_STYLE_OKCANCEL:
             type = MB_OKCANCEL;
             break;
 
-        case 2:
+        case OSGUI_MESSAGE_STYLE_YESNO:
             type = MB_YESNO;
             break;
 
-        case 3:
+        case OSGUI_MESSAGE_STYLE_YESNOCANCEL:
             type = MB_YESNOCANCEL;
             break;
 
@@ -182,13 +182,13 @@ int32_t OsGuiMessageBox(OsGuiHandle parentWindow, int32_t style, const char* mes
     switch (MessageBoxW(static_cast<HWND>(parentWindow), reinterpret_cast<const wchar_t*>(wideMessage), reinterpret_cast<const wchar_t*>(wideTitle), type)) {
         case IDOK:
         case IDYES:
-            return 0;
+            return OSGUI_MESSAGE_RESULT_YESOK;
 
         case IDNO:
-            return 1;
+            return OSGUI_MESSAGE_RESULT_NO;
 
         default:
-            return 2;
+            return OSGUI_MESSAGE_RESULT_CANCEL;
     }
 }
 

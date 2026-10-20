@@ -7,6 +7,19 @@
 #include "Engine/Source/Tempest/CImVector.h"
 #include "Engine/Source/Tempest/CiRect.h"
 
+enum : int32_t {
+    OSGUI_MESSAGE_STYLE_OK = 0,
+    OSGUI_MESSAGE_STYLE_OKCANCEL = 1,
+    OSGUI_MESSAGE_STYLE_YESNO = 2,
+    OSGUI_MESSAGE_STYLE_YESNOCANCEL = 3,
+};
+
+enum : int32_t {
+    OSGUI_MESSAGE_RESULT_YESOK = 0,
+    OSGUI_MESSAGE_RESULT_NO = 1,
+    OSGUI_MESSAGE_RESULT_CANCEL = 2,
+};
+
 typedef void* OsGuiHandle;
 typedef void* OsGuiTreeItem;
 
