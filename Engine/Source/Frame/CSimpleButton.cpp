@@ -535,7 +535,7 @@ void CSimpleButton::UpdateTextState(CSimpleButtonState state) {
         }
     }
 
-    if (this->m_drawLayerEnabled[4]) {
+    if (this->m_drawLayerEnabled[DRAWLAYER_HIGHLIGHT]) {
         this->m_fontString->SetFontObject(this->m_highlightFont);
     } else {
         this->m_fontString->SetFontObject(this->m_normalFont);
@@ -1071,7 +1071,7 @@ void CSimpleButton::Enable(int32_t enabled) {
         }
 
         if (this->m_highlightLocked) {
-            this->EnableDrawLayer(4);
+            this->EnableDrawLayer(DRAWLAYER_HIGHLIGHT);
         }
     } else {
         if (this->m_state == BUTTONSTATE_DISABLED) {
@@ -1082,7 +1082,7 @@ void CSimpleButton::Enable(int32_t enabled) {
             this->OnLayerCursorExit(0, 1);
         }
 
-        this->DisableDrawLayer(4);
+        this->DisableDrawLayer(DRAWLAYER_HIGHLIGHT);
         this->SetButtonState(BUTTONSTATE_DISABLED, 0);
     }
 

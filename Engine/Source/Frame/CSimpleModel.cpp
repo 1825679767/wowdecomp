@@ -526,7 +526,7 @@ void CSimpleModel::SetModel(CM2Model* model) {
         this->m_model->SetLoadedCallback(&CSimpleModel::ModelLoaded, this);
     }
 
-    this->NotifyDrawLayerChanged(2);
+    this->NotifyDrawLayerChanged(DRAWLAYER_ARTWORK);
 }
 
 // VERIFY: b15a7a55 auto
