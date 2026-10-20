@@ -268,7 +268,7 @@ int32_t CSimpleTop::OnChar(const void* data, void* param) {
 
     CCharEvent evt;
     evt.m_data = *charData;
-    evt.m_id = 0x40060067;
+    evt.m_id = EVENT_CHAR;
 
     for (int32_t strata = FRAME_STRATA_TOOLTIP; strata >= 0; strata--) {
         if (handled) {
@@ -301,7 +301,7 @@ int32_t CSimpleTop::OnIme(const void* data, void* param) {
 
     CImeEvent evt;
     evt.m_data = *imeData;
-    evt.m_id = 0x40060068;
+    evt.m_id = EVENT_IME;
 
     for (int32_t strata = FRAME_STRATA_TOOLTIP; strata >= 0; strata--) {
         if (handled) {
@@ -335,7 +335,7 @@ int32_t CSimpleTop::OnKeyDown(const void* data, void* param) {
     CKeyEvent evt;
     evt.m_data = *keyData;
     CSimpleTop::s_eventTime = evt.m_data.m_time;
-    evt.m_id = 0x40060064;
+    evt.m_id = EVENT_KEY_DOWN;
 
     if (top->m_keyDownCallback) {
         top->m_keyDownCallback(evt);
@@ -381,7 +381,7 @@ int32_t CSimpleTop::OnKeyUp(const void* data, void* param) {
     if (frame) {
         CKeyEvent evt;
         evt.m_data = *keyData;
-        evt.m_id = 0x40060066;
+        evt.m_id = EVENT_KEY_UP;
         frame->OnLayerKeyUp(evt);
         handled = 1;
     } else if (keyData->m_key == KEY_PRINTSCREEN) {
@@ -404,7 +404,7 @@ int32_t CSimpleTop::OnKeyDownRepeat(const void* data, void* param) {
     if (frame) {
         CKeyEvent evt;
         evt.m_data = *keyData;
-        evt.m_id = 0x40060065;
+        evt.m_id = EVENT_KEY_REPEAT;
         frame->OnLayerKeyDownRepeat(evt);
         handled = 1;
     }
