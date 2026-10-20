@@ -215,7 +215,7 @@ OsJoystickID OsJoystickOpen(OsJoystickID index) {
         return 0xFFFFFFFF;
     }
 
-    if (joystick->m_device->SetDataFormat(&c_dfDIJoystick) >= 0 && joystick->m_device->SetCooperativeLevel(static_cast<HWND>(OsGuiGetWindow(0)), DISCL_EXCLUSIVE | DISCL_FOREGROUND) >= 0 && joystick->m_device->EnumObjects(EnumObjectsCallback, joystick, DIDFT_ALL) >= 0) {
+    if (joystick->m_device->SetDataFormat(&c_dfDIJoystick) >= 0 && joystick->m_device->SetCooperativeLevel(static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX)), DISCL_EXCLUSIVE | DISCL_FOREGROUND) >= 0 && joystick->m_device->EnumObjects(EnumObjectsCallback, joystick, DIDFT_ALL) >= 0) {
         DIPROPDWORD bufferSize;
         bufferSize.diph.dwSize = sizeof(DIPROPDWORD);
         bufferSize.diph.dwHeaderSize = sizeof(DIPROPHEADER);
@@ -401,7 +401,7 @@ static void PollJoystick(uint32_t index, int32_t active) {
             HRESULT acquired = joystick->m_device->Acquire();
 
             if (acquired == DIERR_OTHERAPPHASPRIO) {
-                acquired = joystick->m_device->SetCooperativeLevel(static_cast<HWND>(OsGuiGetWindow(0)), DISCL_EXCLUSIVE | DISCL_FOREGROUND);
+                acquired = joystick->m_device->SetCooperativeLevel(static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX)), DISCL_EXCLUSIVE | DISCL_FOREGROUND);
             }
 
             polled = acquired >= 0 && joystick->m_device->Poll() >= 0;

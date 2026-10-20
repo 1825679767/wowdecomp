@@ -128,13 +128,13 @@ void OsGuiSetWindowTitle(OsGuiHandle window, const char* title) {
 // OFFSET: 0x0086C6A0
 OsGuiHandle OsGuiGetWindow(int32_t type) {
     switch (type) {
-        case 0:
+        case OSGUI_WINDOW_TYPE_GX:
             return s_GxDevWindow;
 
-        case 1:
+        case OSGUI_WINDOW_TYPE_ACTIVE:
             return GetActiveWindow();
 
-        case 2:
+        case OSGUI_WINDOW_TYPE_FRONT:
             return GetForegroundWindow();
 
         default:
@@ -253,7 +253,7 @@ int32_t COsDialog::HasFlag(uint32_t flag) {
 
 // INLINED
 int32_t COsDialog::IsInFront() {
-    return this->m_handle == OsGuiGetWindow(2);
+    return this->m_handle == OsGuiGetWindow(OSGUI_WINDOW_TYPE_FRONT);
 }
 
 // VERIFY: 6ad9fe33 auto
@@ -380,7 +380,7 @@ int32_t OsGuiProcessMessage(void* message) {
             }
 
             HWND window = static_cast<HWND>(s_menubars[i]->m_windowHandle);
-            void* activeWindow = OsGuiGetWindow(1);
+            void* activeWindow = OsGuiGetWindow(OSGUI_WINDOW_TYPE_ACTIVE);
 
             if (window != activeWindow) {
                 COsDialog* dialog = sGetOsGuiPointer(activeWindow);

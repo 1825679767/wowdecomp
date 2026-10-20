@@ -1137,7 +1137,7 @@ static void CALLBACK OsInputCallEventPollProc(HWND hwnd, UINT message, UINT_PTR 
 // OFFSET: 0x00869DB0
 static void CenterMouse() {
     // The offset-editor fix uses the saved cursor point as its relative anchor, keeping the pointer from jumping to screen center.
-    HWND hwnd = static_cast<HWND>(OsGuiGetWindow(0));
+    HWND hwnd = static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX));
     RECT clientRect;
     if (!hwnd || !GetClientRect(hwnd, &clientRect)) {
         return;
@@ -1172,14 +1172,14 @@ static void CenterMouse() {
 int32_t OsInputGet(OSINPUT* id, int32_t* param0, int32_t* param1, int32_t* param2, int32_t* param3) {
     *id = static_cast<OSINPUT>(-1);
 
-    if (s_windowSize && !IsIconic(static_cast<HWND>(OsGuiGetWindow(0)))) {
+    if (s_windowSize && !IsIconic(static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX)))) {
         s_windowSize = 0;
 
         RECT windowRect;
-        GetWindowRect(static_cast<HWND>(OsGuiGetWindow(0)), &windowRect);
+        GetWindowRect(static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX)), &windowRect);
 
         RECT adjust = { 0, 0, 0, 0 };
-        AdjustWindowRectEx(&adjust, GetWindowLongA(static_cast<HWND>(OsGuiGetWindow(0)), GWL_STYLE), FALSE, 0);
+        AdjustWindowRectEx(&adjust, GetWindowLongA(static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX)), GWL_STYLE), FALSE, 0);
 
         int32_t width = (windowRect.right - adjust.right) - (windowRect.left - adjust.left);
         int32_t height = (windowRect.bottom - adjust.bottom) - (windowRect.top - adjust.top);
@@ -1248,7 +1248,7 @@ void OsInputSetMouseMode(OS_MOUSE_MODE mode) {
     }
 
     if (mode == OS_MOUSE_MODE_RELATIVE) {
-        HWND hwnd = static_cast<HWND>(OsGuiGetWindow(0));
+        HWND hwnd = static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX));
         POINT point;
         if (hwnd && GetCursorPos(&point) && ScreenToClient(hwnd, &point)) {
             SaveMouse(hwnd, point);
@@ -1274,7 +1274,7 @@ void OsInputSetMouseSpeed(float speed) {
 
 // OFFSET: 0x0086A0D0
 void OsInputGetMousePosition(int32_t* x, int32_t* y) {
-    HWND hwnd = static_cast<HWND>(OsGuiGetWindow(0));
+    HWND hwnd = static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX));
 
     POINT point;
     GetCursorPos(&point);
@@ -1292,7 +1292,7 @@ void OsInputGetMousePosition(int32_t* x, int32_t* y) {
 
 // OFFSET: 0x0086A130
 void OsInputSetMousePosition(int32_t x, int32_t y) {
-    HWND hwnd = static_cast<HWND>(OsGuiGetWindow(0));
+    HWND hwnd = static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX));
 
     POINT point;
     point.x = x;
@@ -1312,7 +1312,7 @@ int32_t OsGetDefaultWindowRect(tagRECT* rect) {
     }
 
     if (!s_defaultWindowRect.right || !s_defaultWindowRect.bottom) {
-        if (!GetClientRect(static_cast<HWND>(OsGuiGetWindow(0)), &s_defaultWindowRect)) {
+        if (!GetClientRect(static_cast<HWND>(OsGuiGetWindow(OSGUI_WINDOW_TYPE_GX)), &s_defaultWindowRect)) {
             return 0;
         }
     }

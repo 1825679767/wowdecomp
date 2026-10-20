@@ -27,6 +27,13 @@ enum : int32_t {
     OSGUI_NUM_MOD_KEYS = 3,
 };
 
+enum : int32_t {
+    OSGUI_WINDOW_TYPE_GX = 0,
+    OSGUI_WINDOW_TYPE_ACTIVE = 1,
+    OSGUI_WINDOW_TYPE_FRONT = 2,
+    NUM_OSGUI_WINDOW_TYPES = 3,
+};
+
 typedef void* OsGuiHandle;
 typedef void* OsGuiTreeItem;
 

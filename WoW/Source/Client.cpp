@@ -1446,7 +1446,7 @@ static void OpenArchives() {
 
                 char title[256];
                 SStrCopy(title, "Missing or corrupted data", STORM_MAX_STR);
-                OsGuiMessageBox(OsGuiGetWindow(2), OSGUI_MESSAGE_STYLE_OK, message, title);
+                OsGuiMessageBox(OsGuiGetWindow(OSGUI_WINDOW_TYPE_FRONT), OSGUI_MESSAGE_STYLE_OK, message, title);
                 StormExit(SErrGetLastError());
             }
         }
