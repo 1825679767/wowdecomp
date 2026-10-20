@@ -2400,6 +2400,18 @@ uint32_t FindEmptySwapIndex() {
         s_itemSwaps.SetCount(s_itemSwaps.m_count + 1);
     }
 
+    // ITEMSWAP 是 POD，TSGrowableArray::SetCount 用 placement-new 构造时不会清零；
+    // 复用的空闲槽也可能残留上一次的字段。统一初始化，尤其是 m_item：
+    // 若它残留堆上的字符串指针（例如图标路径尾部的 ".blp"），
+    // EquipPendingItem -> ClearPendingEquip 会把它当成 CGItem_C* 解引用而崩溃。
+    ITEMSWAP& swap = s_itemSwaps.m_data[index];
+    swap.m_srcContainer = WOWGUID();
+    swap.m_dstContainer = WOWGUID();
+    swap.m_srcSlot = 0xFFFFFFFF;
+    swap.m_dstSlot = 0xFFFFFFFF;
+    swap.m_itemId = 0;
+    swap.m_item = nullptr;
+
     return index;
 }
 
@@ -10042,6 +10054,7 @@ void CGPlayer_C::SwapItems(WOWGUID item, WOWGUID srcContainer, uint32_t srcSlot,
                 s_itemSwaps.m_data[index].m_dstContainer = dstContainer;
                 s_itemSwaps.m_data[index].m_dstSlot = dstSlot;
                 s_itemSwaps.m_data[index].m_itemId = bagItem->m_obj->m_entryID;
+                s_itemSwaps.m_data[index].m_item = nullptr;
                 return;
             }
 
@@ -10052,6 +10065,7 @@ void CGPlayer_C::SwapItems(WOWGUID item, WOWGUID srcContainer, uint32_t srcSlot,
                 s_itemSwaps.m_data[index].m_dstContainer = dstContainer;
                 s_itemSwaps.m_data[index].m_dstSlot = dstSlot;
                 s_itemSwaps.m_data[index].m_itemId = bagItem->m_obj->m_entryID;
+                s_itemSwaps.m_data[index].m_item = nullptr;
                 FrameScript_SignalEvent(SCRIPT_EVENT_EQUIP_BIND_CONFIRM, "%d", index);
                 return;
             }
@@ -10217,6 +10231,7 @@ void CGPlayer_C::AutoEquipCursorItem(int32_t ignoreBind) {
                 s_itemSwaps.m_data[index].m_dstContainer = WOWGUID();
                 s_itemSwaps.m_data[index].m_dstSlot = 0;
                 s_itemSwaps.m_data[index].m_itemId = itemObject->m_obj->m_entryID;
+                s_itemSwaps.m_data[index].m_item = nullptr;
                 FrameScript_SignalEvent(SCRIPT_EVENT_AUTOEQUIP_BIND_CONFIRM, "%d", index);
                 return;
             }
@@ -11215,6 +11230,8 @@ void CGPlayer_C::AutoEquipItemToSlot(CGItem_C* item, uint32_t slot, int32_t igno
             s_itemSwaps.m_data[index].m_item = item;
             s_itemSwaps.m_data[index].m_srcSlot = slot;
             s_itemSwaps.m_data[index].m_srcContainer = item->m_item->m_itemFieldContained;
+            s_itemSwaps.m_data[index].m_dstContainer = WOWGUID();
+            s_itemSwaps.m_data[index].m_dstSlot = 0xFFFFFFFF;
             s_itemSwaps.m_data[index].m_itemId = item->m_obj->m_entryID;
             return;
         }
@@ -11226,6 +11243,8 @@ void CGPlayer_C::AutoEquipItemToSlot(CGItem_C* item, uint32_t slot, int32_t igno
             s_itemSwaps.m_data[index].m_item = item;
             s_itemSwaps.m_data[index].m_srcSlot = slot;
             s_itemSwaps.m_data[index].m_srcContainer = item->m_item->m_itemFieldContained;
+            s_itemSwaps.m_data[index].m_dstContainer = WOWGUID();
+            s_itemSwaps.m_data[index].m_dstSlot = 0xFFFFFFFF;
             s_itemSwaps.m_data[index].m_itemId = item->m_obj->m_entryID;
             FrameScript_SignalEvent(SCRIPT_EVENT_EQUIP_BIND_CONFIRM, "%d", index);
             return;
@@ -11248,6 +11267,12 @@ void CGPlayer_C::ClearPendingEquip(uint32_t index, int32_t equip) {
     }
 
     ITEMSWAP* swap = &s_itemSwaps.m_data[index];
+
+    // 空槽位（三个容器/物品字段都为空）不可能是待确认的装备操作，
+    // 直接返回，避免把残留的 m_item 当作有效物品对象。
+    if (!swap->m_srcContainer && !swap->m_dstContainer && !swap->m_item) {
+        return;
+    }
 
     if (equip) {
         if (swap->m_item) {
@@ -14548,6 +14573,7 @@ void __stdcall CGPlayer_C::ServerBindConfirm(WOWGUID item, uint64_t srcContainer
     swap->m_dstContainer.m_guid = dstContainer;
     swap->m_dstSlot = dstSlot;
     swap->m_itemId = object->m_obj->m_entryID;
+    swap->m_item = nullptr;
     FrameScript_SignalEvent(SCRIPT_EVENT_AUTOEQUIP_BIND_CONFIRM, "%d", index);
 }
 
