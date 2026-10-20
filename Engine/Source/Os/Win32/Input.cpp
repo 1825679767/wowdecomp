@@ -1505,7 +1505,7 @@ intptr_t OsWindowProc(void* window, uint32_t message, uintptr_t wparam, intptr_t
 
             OsQueuePut(down ? OS_INPUT_KEY_DOWN : OS_INPUT_KEY_UP, key, LOWORD(lparam), 0, 0);
 
-            if (key == KEY_F4 && OsGuiIsModifierKeyDown(2)) {
+            if (key == KEY_F4 && OsGuiIsModifierKeyDown(OSGUI_KEY_ALT)) {
                 break;
             }
 

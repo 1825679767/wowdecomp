@@ -20,6 +20,13 @@ enum : int32_t {
     OSGUI_MESSAGE_RESULT_CANCEL = 2,
 };
 
+enum : int32_t {
+    OSGUI_KEY_CONTROL = 0,
+    OSGUI_KEY_SHIFT = 1,
+    OSGUI_KEY_ALT = 2,
+    OSGUI_NUM_MOD_KEYS = 3,
+};
+
 typedef void* OsGuiHandle;
 typedef void* OsGuiTreeItem;
 

@@ -203,13 +203,13 @@ int32_t OsGuiMessageBox(OsGuiHandle parentWindow, int32_t style, const char* mes
 // OFFSET: 0x0086C7D0
 int32_t OsGuiIsModifierKeyDown(int32_t key) {
     switch (key) {
-        case 0:
+        case OSGUI_KEY_CONTROL:
             return (GetKeyState(VK_CONTROL) & 0xF000) != 0;
 
-        case 1:
+        case OSGUI_KEY_SHIFT:
             return (GetKeyState(VK_SHIFT) & 0xF000) != 0;
 
-        case 2:
+        case OSGUI_KEY_ALT:
             return (GetKeyState(VK_MENU) & 0xF000) != 0;
 
         default:
@@ -281,7 +281,7 @@ int32_t COsDialog::OnCancel() {
 // VERIFY: f2de4205 manual
 // OFFSET: 0x0086C900
 int32_t COsTabControl::OnControlTab() {
-    int32_t shift = OsGuiIsModifierKeyDown(1);
+    int32_t shift = OsGuiIsModifierKeyDown(OSGUI_KEY_SHIFT);
     int32_t value = this->GetValue();
     int32_t count = this->GetNumItems();
 
@@ -354,7 +354,7 @@ int32_t COsDialog::ProcessMessage(void* message) {
         }
     }
 
-    if (this->IsInFront() && msg->wParam == VK_TAB && msg->message == WM_KEYDOWN && OsGuiIsModifierKeyDown(0) && this->OnControlTab()) {
+    if (this->IsInFront() && msg->wParam == VK_TAB && msg->message == WM_KEYDOWN && OsGuiIsModifierKeyDown(OSGUI_KEY_CONTROL) && this->OnControlTab()) {
         return 1;
     }
 
