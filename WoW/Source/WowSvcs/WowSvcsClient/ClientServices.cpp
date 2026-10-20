@@ -705,8 +705,8 @@ int32_t SendBugOpcode(uint32_t suggestion, const char* text) {
     int32_t vendor;
     OsGetProcessorFeaturesEx(vendor);
 
-    if (static_cast<uint32_t>(vendor) > 4) {
-        vendor = 0;
+    if (static_cast<uint32_t>(vendor) > OS_PROCESSOR_VENDOR_CPUID_FAILED) {
+        vendor = OS_PROCESSOR_VENDOR_UNKNOWN;
     }
 
     SStrPrintf(line, sizeof(line), "Processor vendor:\t%s\n", s_processorVendors[vendor]);
