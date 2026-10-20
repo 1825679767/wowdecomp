@@ -1359,7 +1359,7 @@ intptr_t OsWindowProc(void* window, uint32_t message, uintptr_t wparam, intptr_t
             return 0;
 
         case WM_INPUTLANGCHANGE: {
-            OsQueuePut(OS_INPUT_IME, 0, 0, 0, 0);
+            OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_NOTIFYLANGUAGE, 0, 0, 0);
 
             CHARSETINFO charset;
             if (TranslateCharsetInfo(reinterpret_cast<DWORD*>(wparam), &charset, TCI_SRCCHARSET)) {
@@ -1369,11 +1369,11 @@ intptr_t OsWindowProc(void* window, uint32_t message, uintptr_t wparam, intptr_t
         }
 
         case WM_IME_STARTCOMPOSITION:
-            OsQueuePut(OS_INPUT_IME, 1, 0, 0, 0);
+            OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_STARTCOMPOSITION, 0, 0, 0);
             return 1;
 
         case WM_IME_ENDCOMPOSITION:
-            OsQueuePut(OS_INPUT_IME, 6, 0, 0, 0);
+            OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_ENDCOMPOSITION, 0, 0, 0);
             return 1;
 
         case WM_IME_COMPOSITION: {
@@ -1388,7 +1388,7 @@ intptr_t OsWindowProc(void* window, uint32_t message, uintptr_t wparam, intptr_t
                 flags |= 4;
             }
 
-            OsQueuePut(OS_INPUT_IME, 2, 0, flags, 0);
+            OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_COMPOSITION, 0, flags, 0);
             return 1;
         }
 
@@ -1598,32 +1598,32 @@ intptr_t OsWindowProc(void* window, uint32_t message, uintptr_t wparam, intptr_t
         }
 
         case WM_IME_SETCONTEXT:
-            OsQueuePut(OS_INPUT_IME, 0, 0, 0, 0);
+            OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_NOTIFYLANGUAGE, 0, 0, 0);
             lparam = 0;
             break;
 
         case WM_IME_NOTIFY:
             switch (wparam) {
                 case IMN_CHANGECANDIDATE:
-                    OsQueuePut(OS_INPUT_IME, 4, 0, static_cast<int32_t>(lparam), 0);
+                    OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_CHANGECANDIDATES, 0, static_cast<int32_t>(lparam), 0);
                     break;
 
                 case IMN_CLOSECANDIDATE:
-                    OsQueuePut(OS_INPUT_IME, 5, 0, 0, 0);
+                    OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_CLOSECANDIDATES, 0, 0, 0);
                     break;
 
                 case IMN_OPENCANDIDATE:
-                    OsQueuePut(OS_INPUT_IME, 3, 0, static_cast<int32_t>(lparam), 0);
+                    OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_OPENCANDIDATES, 0, static_cast<int32_t>(lparam), 0);
                     break;
 
                 case IMN_SETCONVERSIONMODE:
                     OsQueuePut(OS_INPUT_KEY_UP, KEY_LSHIFT, 0, 0, 0);
                     OsQueuePut(OS_INPUT_KEY_UP, KEY_RSHIFT, 0, 0, 0);
-                    OsQueuePut(OS_INPUT_IME, 0, 0, 0, 0);
+                    OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_NOTIFYLANGUAGE, 0, 0, 0);
                     break;
 
                 case IMN_SETOPENSTATUS:
-                    OsQueuePut(OS_INPUT_IME, 0, 0, 0, 0);
+                    OsQueuePut(OS_INPUT_IME, OS_INPUT_IME_NOTIFYLANGUAGE, 0, 0, 0);
                     break;
 
                 default:
