@@ -152,7 +152,7 @@ class CCharacterComponent {
     /* 0014 */ EGxTexFormat m_gxTexFormat;
     /* 0018 */ ComponentData m_data;
     /* 0190 */ CTexture* m_baseSkinTexture;
-    /* 0194 */ CharacterBaseVariation m_baseVariation [5];
+    /* 0194 */ CharacterBaseVariation m_baseVariation [CHARTEXTUREVARIATIONS_NUM];
     /* 01D0 */ CharacterSection m_section [10];
     /* 0428 */ uint32_t m_itemDisplayID [12];
     /* 0458 */ uint32_t m_handItemDisplayID [3];
@@ -193,12 +193,12 @@ class CCharacterComponent {
     int32_t GetHelmModelFilePath(ItemDisplayInfoRec& rec, const ItemDisplayInfoRec*& displayRec);
     void GetPreferences(CharacterPreferences* preferences);
     int32_t GetQuiverModelFilePath(ItemDisplayInfoRec& rec, const ItemDisplayInfoRec*& displayRec);
-    CharSectionsRec* GetSectionsRecord(COMPONENT_VARIATIONS variation, int32_t variationIndex, int32_t colorIndex, bool* found);
+    CharSectionsRec* GetSectionsRecord(CHARTEXTUREVARIATIONS variation, int32_t variationIndex, int32_t colorIndex, bool* found);
     bool Init(ComponentData* data, const char* debug);
     bool IsHelmModelCorrect();
     bool IsQuiverModelCorrect();
     bool ItemsLoaded(int32_t wait);
-    void LoadBaseVariation(COMPONENT_VARIATIONS variation, int32_t textureIndex, int32_t variationIndex, int32_t colorIndex, COMPONENT_SECTIONS section, const char* debug);
+    void LoadBaseVariation(CHARTEXTUREVARIATIONS variation, int32_t textureIndex, int32_t variationIndex, int32_t colorIndex, COMPONENT_SECTIONS section, const char* debug);
     HTEXTURECACHE LoadItemComponentTexture(const ItemDisplayInfoRec* displayRec, COMPONENT_SECTIONS section);
     void Prep();
     void PrepSections();
