@@ -358,30 +358,11 @@ static float s_trackingDefaultInteractDistanceSq = s_trackingFollowDistance * s_
 // STATIC: 0x00ADAC18
 static uint32_t s_spellInterruptTrackingMask = 1;
 
-namespace {
+// STATIC: 0x00ADBFDC
+static const char* s_combatTextTokens[MISS_NUMMISSTYPES] = { "COMBAT_TEXT_NONE", "COMBAT_TEXT_MISS", "COMBAT_TEXT_RESIST", "COMBAT_TEXT_DODGE", "COMBAT_TEXT_PARRY", "COMBAT_TEXT_BLOCK", "COMBAT_TEXT_EVADE", "COMBAT_TEXT_IMMUNE", "COMBAT_TEXT_IMMUNE", "COMBAT_TEXT_DEFLECT", "COMBAT_TEXT_ABSORB", "COMBAT_TEXT_REFLECT" };
 
-struct WORLDTEXTINFO {
-    const char* m_token;
-    WORLDTEXT_STYLE m_style;
-};
-
-// Original 3.3.5 tables: tokens at 0x00ADBFDC; styles at 0x00A34C20.
-static const WORLDTEXTINFO s_combatTextInfo[MISS_NUMMISSTYPES] = {
-    { "COMBAT_TEXT_NONE", NUM_WORLDTEXTTYPES },
-    { "COMBAT_TEXT_MISS", WT_MISS },
-    { "COMBAT_TEXT_RESIST", WT_MISS },
-    { "COMBAT_TEXT_DODGE", WT_MISS },
-    { "COMBAT_TEXT_PARRY", WT_MISS },
-    { "COMBAT_TEXT_BLOCK", WT_MISS },
-    { "COMBAT_TEXT_EVADE", WT_MISS },
-    { "COMBAT_TEXT_IMMUNE", WT_MISS },
-    { "COMBAT_TEXT_IMMUNE", WT_MISS },
-    { "COMBAT_TEXT_DEFLECT", WT_MISS },
-    { "COMBAT_TEXT_ABSORB", WT_ABSORB },
-    { "COMBAT_TEXT_REFLECT", WT_MISS },
-};
-
-}
+// STATIC: 0x00A34C20
+static const WORLDTEXT_STYLE s_combatTextTypes[MISS_NUMMISSTYPES] = { NUM_WORLDTEXTTYPES, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_ABSORB, WT_MISS };
 
 
 // STATIC: 0x00ADAA6C
@@ -15084,11 +15065,10 @@ void CGUnit_C::AddWorldText(const WOWGUID& source, MISS_REASON reason, const Spe
         color = reinterpret_cast<const CImVector*>(&s_petSpellDamageColor);
     }
 
-    const WORLDTEXTINFO& info = s_combatTextInfo[reason];
-    const char* text = FrameScript_GetText(info.m_token, -1, GENDER_NOT_APPLICABLE);
+    const char* text = FrameScript_GetText(s_combatTextTokens[reason], -1, GENDER_NOT_APPLICABLE);
 
     if (text && *text) {
-        PlayerNameCreateText(this->m_nameDesc, info.m_style, text, color, nullptr);
+        PlayerNameCreateText(this->m_nameDesc, s_combatTextTypes[reason], text, color, nullptr);
     }
 }
 
