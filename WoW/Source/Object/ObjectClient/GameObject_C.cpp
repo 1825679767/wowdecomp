@@ -813,7 +813,7 @@ void CGGameObject_C::UpdateInteractIconAttach() {
 // INLINED
 CGGameObject_C_TypeBase::CGGameObject_C_TypeBase(CGGameObject_C* owner) {
     this->m_owner = owner;
-    this->m_useErrorType = 234;
+    this->m_useErrorType = ERR_USE_LOCKED;
     this->m_interactDistance = MAX_LOOT_DISTANCE;
 }
 
