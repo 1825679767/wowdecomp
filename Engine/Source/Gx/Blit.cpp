@@ -486,7 +486,7 @@ void DxtDecodeBlock(const Dxt3Block* block, CImVector** rows, const DxtRect& rec
     DxtMakeTable(&block->m_color, colors);
 
     for (uint32_t y = rect.top; y <= rect.bottom; y++) {
-        uint32_t colorBits = block->m_color.m_indices[y] >> (2 * rect.left);
+        uint32_t colorBits = block->m_color.m_indices[y] >> (DxtColorBlock::BPP * rect.left);
         uint32_t alphaBits = block->m_alpha[y] >> (4 * rect.left);
 
         for (uint32_t x = rect.left; x <= rect.right; x++) {
@@ -495,10 +495,10 @@ void DxtDecodeBlock(const Dxt3Block* block, CImVector** rows, const DxtRect& rec
 
             CImVector& pixel = rows[y][x];
             pixel.a = a;
-            pixel.r = colors[colorBits & 3].r;
-            pixel.g = colors[colorBits & 3].g;
-            pixel.b = colors[colorBits & 3].b;
-            colorBits >>= 2;
+            pixel.r = colors[colorBits & DxtColorBlock::PIXEL_LSB_MASK].r;
+            pixel.g = colors[colorBits & DxtColorBlock::PIXEL_LSB_MASK].g;
+            pixel.b = colors[colorBits & DxtColorBlock::PIXEL_LSB_MASK].b;
+            colorBits >>= DxtColorBlock::BPP;
         }
 
         rows[y] += rect.width;
@@ -514,12 +514,12 @@ void DxtDecodeBlock(const Dxt3Block* block, CArgb4444** rows, const DxtRect& rec
     DxtMakeTable(&block->m_color, colors);
 
     for (uint32_t y = rect.top; y <= rect.bottom; y++) {
-        uint32_t colorBits = block->m_color.m_indices[y] >> (2 * rect.left);
+        uint32_t colorBits = block->m_color.m_indices[y] >> (DxtColorBlock::BPP * rect.left);
         uint32_t alphaBits = block->m_alpha[y] >> (4 * rect.left);
 
         for (uint32_t x = rect.left; x <= rect.right; x++) {
-            rows[y][x].m_value = (alpha(alphaBits & 0xF) << 12) | (colors[colorBits & 3].m_value & 0xFFF);
-            colorBits >>= 2;
+            rows[y][x].m_value = (alpha(alphaBits & 0xF) << 12) | (colors[colorBits & DxtColorBlock::PIXEL_LSB_MASK].m_value & 0xFFF);
+            colorBits >>= DxtColorBlock::BPP;
             alphaBits >>= 4;
         }
 
@@ -544,13 +544,13 @@ void DxtDecodeBlock(const Dxt5Block* block, CImVector** rows, const DxtRect& rec
 
     for (uint32_t y = rect.top; y <= rect.bottom; y++) {
         uint32_t bit = rowBit;
-        uint32_t colorBits = block->m_color.m_indices[y] >> (2 * rect.left);
+        uint32_t colorBits = block->m_color.m_indices[y] >> (DxtColorBlock::BPP * rect.left);
 
         for (uint32_t x = rect.left; x <= rect.right; x++) {
-            const CImVector& color = colors[colorBits & 3];
+            const CImVector& color = colors[colorBits & DxtColorBlock::PIXEL_LSB_MASK];
             uint32_t index = ((block->m_alphaIndices[bit >> 3] >> (bit & 7)) | (block->m_alphaIndices[(bit >> 3) + 1] << (8 - (bit & 7)))) & 7;
             uint8_t a = alpha(alphas[index]);
-            colorBits >>= 2;
+            colorBits >>= DxtColorBlock::BPP;
 
             CImVector& pixel = rows[y][x];
             pixel.a = a;
@@ -582,12 +582,12 @@ void DxtDecodeBlock(const Dxt5Block* block, CArgb4444** rows, const DxtRect& rec
 
     for (uint32_t y = rect.top; y <= rect.bottom; y++) {
         uint32_t bit = rowBit;
-        uint32_t colorBits = block->m_color.m_indices[y] >> (2 * rect.left);
+        uint32_t colorBits = block->m_color.m_indices[y] >> (DxtColorBlock::BPP * rect.left);
 
         for (uint32_t x = rect.left; x <= rect.right; x++) {
             uint32_t index = ((block->m_alphaIndices[bit >> 3] >> (bit & 7)) | (block->m_alphaIndices[(bit >> 3) + 1] << (8 - (bit & 7)))) & 7;
-            rows[y][x].m_value = (alpha(alphas[index]) << 12) | (colors[colorBits & 3].m_value & 0xFFF);
-            colorBits >>= 2;
+            rows[y][x].m_value = (alpha(alphas[index]) << 12) | (colors[colorBits & DxtColorBlock::PIXEL_LSB_MASK].m_value & 0xFFF);
+            colorBits >>= DxtColorBlock::BPP;
             bit += 3;
         }
 
@@ -605,11 +605,11 @@ void DxtDecodeBlock(const Dxt1Block* block, CRgb565** rows, const DxtRect& rect)
     DxtMakeTableAlpha(&block->m_color, colors);
 
     for (uint32_t y = rect.top; y <= rect.bottom; y++) {
-        uint32_t bits = block->m_color.m_indices[y] >> (2 * rect.left);
+        uint32_t bits = block->m_color.m_indices[y] >> (DxtColorBlock::BPP * rect.left);
 
         for (uint32_t x = rect.left; x <= rect.right; x++) {
-            rows[y][x] = colors[bits & 3];
-            bits >>= 2;
+            rows[y][x] = colors[bits & DxtColorBlock::PIXEL_LSB_MASK];
+            bits >>= DxtColorBlock::BPP;
         }
 
         rows[y] += rect.width;
@@ -625,11 +625,11 @@ void DxtDecodeBlock(const Dxt1Block* block, CArgb1555** rows, const DxtRect& rec
     DxtMakeTableAlpha(&block->m_color, colors);
 
     for (uint32_t y = rect.top; y <= rect.bottom; y++) {
-        uint32_t bits = block->m_color.m_indices[y] >> (2 * rect.left);
+        uint32_t bits = block->m_color.m_indices[y] >> (DxtColorBlock::BPP * rect.left);
 
         for (uint32_t x = rect.left; x <= rect.right; x++) {
-            rows[y][x] = colors[bits & 3];
-            bits >>= 2;
+            rows[y][x] = colors[bits & DxtColorBlock::PIXEL_LSB_MASK];
+            bits >>= DxtColorBlock::BPP;
         }
 
         rows[y] += rect.width;
@@ -645,11 +645,11 @@ void DxtDecodeBlock(const Dxt1Block* block, CImVector** rows, const DxtRect& rec
     DxtMakeTableAlpha(&block->m_color, colors);
 
     for (uint32_t y = rect.top; y <= rect.bottom; y++) {
-        uint32_t bits = block->m_color.m_indices[y] >> (2 * rect.left);
+        uint32_t bits = block->m_color.m_indices[y] >> (DxtColorBlock::BPP * rect.left);
 
         for (uint32_t x = rect.left; x <= rect.right; x++) {
-            rows[y][x] = colors[bits & 3];
-            bits >>= 2;
+            rows[y][x] = colors[bits & DxtColorBlock::PIXEL_LSB_MASK];
+            bits >>= DxtColorBlock::BPP;
         }
 
         rows[y] += rect.width;

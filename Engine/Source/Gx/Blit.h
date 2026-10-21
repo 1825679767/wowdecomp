@@ -57,6 +57,11 @@ class CArgb4444 {
 
 class DxtColorBlock {
     public:
+    enum : uint32_t {
+        BPP = 2,
+        PIXEL_LSB_MASK = 3,
+    };
+
     class Tables {
         public:
         /* 0000 */ uint16_t m_oneThird5[32];
