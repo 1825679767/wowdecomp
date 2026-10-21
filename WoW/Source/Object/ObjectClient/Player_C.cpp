@@ -2790,7 +2790,7 @@ CGPlayer_C::CGPlayer_C(uint32_t time, const CClientObjCreate& create)
     bool activePlayer = this->m_obj->m_guid == ClntObjMgrGetActivePlayer();
     this->m_bag.m_guid = this->m_obj->m_guid;
     this->m_bag.m_hasBank = 1;
-    this->m_bag.m_numSlots = activePlayer ? 150 : 0;
+    this->m_bag.m_numSlots = activePlayer ? PLAYER_INVENTORY_SLOTS : 0;
     this->m_bag.m_slots = reinterpret_cast<WOWGUID*>(player->m_playerFieldInvSlotHead);
     this->m_combatTarget.m_guid = 0;
 
