@@ -3830,7 +3830,7 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
 
             break;
 
-        case Unk84:
+        case GxRs_BlendFactor:
             if (glExtBlendColor) {
                 glBlendColorEXT(value.m_data.f[0], value.m_data.f[0], value.m_data.f[0], value.m_data.f[0]);
             }

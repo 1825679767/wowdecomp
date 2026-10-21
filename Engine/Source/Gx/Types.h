@@ -365,7 +365,7 @@ enum EGxRenderState {
     GxRs_PointScaleMin = 81,
     GxRs_PointScaleMax = 82,
     GxRs_PointSprite = 83,
-    Unk84 = 84,
+    GxRs_BlendFactor = 84,
     GxRs_ColorMaterial = 85,
     GxRenderStates_Last = 86,
 };

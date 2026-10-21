@@ -1403,7 +1403,7 @@ void CGxDevice::IRsInit() {
     this->m_appRenderStates[GxRs_PointScaleMin].m_value.m_data.f[0] = 0.0f;
     this->m_appRenderStates[GxRs_PointScaleMax].m_value.m_data.f[0] = 1.0f;
     this->m_appRenderStates[GxRs_PointSprite].m_value.m_data.i[0] = 0;
-    this->m_appRenderStates[Unk84].m_value.m_data.f[0] = 0.0f;
+    this->m_appRenderStates[GxRs_BlendFactor].m_value.m_data.f[0] = 0.0f;
     this->m_appRenderStates[GxRs_ColorMaterial].m_value.m_data.i[0] = 0;
 }
 
@@ -2102,7 +2102,7 @@ void CGxDevice::RsInit() {
     this->RsSet(GxRs_PointScaleMin, 0.0f);
     this->RsSet(GxRs_PointScaleMax, 1.0f);
     this->RsSet(GxRs_PointSprite, 0);
-    this->RsSet(Unk84, 0.0f);
+    this->RsSet(GxRs_BlendFactor, 0.0f);
     this->RsSet(GxRs_ColorMaterial, 0);
 }
 
