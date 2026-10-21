@@ -25,6 +25,13 @@ class CRgb565 {
 
 class CArgb1555 {
     public:
+    enum : uint32_t {
+        eAlphaS = 15,
+        eRedS = 10,
+        eGreenS = 5,
+        eBlueS = 0,
+    };
+
     /* 0000 */ uint16_t m_value;
 
     CArgb1555();

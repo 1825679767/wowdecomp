@@ -108,7 +108,7 @@ static void Blit_Argb8888_Argb4444(const C2iVector& size, const void* in, uint32
 // VERIFY: efe01b4f auto
 // OFFSET: 0x006ABE30
 static void Blit_Argb8888_Argb1555(const C2iVector& size, const void* in, uint32_t inStride, void* out, uint32_t outStride) {
-    ConvertTexels3216(static_cast<const uint8_t*>(in), out, size, inStride, outStride, 7, 3, 3, 3, 15, 10, 5, 0);
+    ConvertTexels3216(static_cast<const uint8_t*>(in), out, size, inStride, outStride, 7, 3, 3, 3, CArgb1555::eAlphaS, CArgb1555::eRedS, CArgb1555::eGreenS, CArgb1555::eBlueS);
 }
 
 // VERIFY: 34d329d7 auto
@@ -380,31 +380,31 @@ void DxtMakeTableAlpha<CArgb1555>(const DxtColorBlock* block, CArgb1555* colors)
     const DxtColorBlock::Tables& t = DxtColorBlock::s_tables;
 
     if (block->m_color0 <= block->m_color1) {
-        colors[0].m_value = 0x8000 | (((block->m_color0 >> 11) & 0x1F) << 10) | (((block->m_color0 >> 5) & 0x3E) << 4) | (block->m_color0 & 0x1F);
-        colors[1].m_value = 0x8000 | (((block->m_color1 >> 11) & 0x1F) << 10) | (((block->m_color1 >> 5) & 0x3E) << 4) | (block->m_color1 & 0x1F);
+        colors[0].m_value = 0x8000 | (((block->m_color0 >> 11) & 0x1F) << CArgb1555::eRedS) | (((block->m_color0 >> 5) & 0x3E) << 4) | (block->m_color0 & 0x1F);
+        colors[1].m_value = 0x8000 | (((block->m_color1 >> 11) & 0x1F) << CArgb1555::eRedS) | (((block->m_color1 >> 5) & 0x3E) << 4) | (block->m_color1 & 0x1F);
 
         int32_t r = ((block->m_color0 >> 11) + (block->m_color1 >> 11)) / 2;
         int32_t g = (((block->m_color0 >> 5) & 0x3F) + ((block->m_color1 >> 5) & 0x3F)) / 2;
         int32_t b = ((block->m_color0 & 0x1F) + (block->m_color1 & 0x1F)) / 2;
-        colors[2].m_value = 0x8000 | (r << 10) | ((g & 0xFE) << 4) | b;
+        colors[2].m_value = 0x8000 | (r << CArgb1555::eRedS) | ((g & 0xFE) << 4) | b;
         colors[3].m_value = 0;
     } else {
-        colors[0].m_value = 0x8000 | (((block->m_color0 >> 11) & 0x1F) << 10) | (((block->m_color0 >> 5) & 0x3E) << 4) | (block->m_color0 & 0x1F);
-        colors[1].m_value = 0x8000 | (((block->m_color1 >> 11) & 0x1F) << 10) | (((block->m_color1 >> 5) & 0x3E) << 4) | (block->m_color1 & 0x1F);
+        colors[0].m_value = 0x8000 | (((block->m_color0 >> 11) & 0x1F) << CArgb1555::eRedS) | (((block->m_color0 >> 5) & 0x3E) << 4) | (block->m_color0 & 0x1F);
+        colors[1].m_value = 0x8000 | (((block->m_color1 >> 11) & 0x1F) << CArgb1555::eRedS) | (((block->m_color1 >> 5) & 0x3E) << 4) | (block->m_color1 & 0x1F);
 
         uint32_t c0 = block->m_color0;
         uint32_t c1 = block->m_color1;
         uint32_t r = (t.m_oneThird5[c1 >> 11] + t.m_twoThirds5[c0 >> 11]) >> 8;
         uint32_t g = (t.m_oneThird6[(c1 >> 5) & 0x3F] + t.m_twoThirds6[(c0 >> 5) & 0x3F]) >> 8;
         uint32_t b = (t.m_oneThird5[c1 & 0x1F] + t.m_twoThirds5[c0 & 0x1F]) >> 8;
-        colors[2].m_value = 0x8000 | (r << 10) | ((g & 0xFE) << 4) | b;
+        colors[2].m_value = 0x8000 | (r << CArgb1555::eRedS) | ((g & 0xFE) << 4) | b;
 
         c0 = block->m_color0;
         c1 = block->m_color1;
         r = (t.m_oneThird5[c0 >> 11] + t.m_twoThirds5[c1 >> 11]) >> 8;
         g = (t.m_oneThird6[(c0 >> 5) & 0x3F] + t.m_twoThirds6[(c1 >> 5) & 0x3F]) >> 8;
         b = (t.m_oneThird5[c0 & 0x1F] + t.m_twoThirds5[c1 & 0x1F]) >> 8;
-        colors[3].m_value = 0x8000 | (r << 10) | ((g & 0xFE) << 4) | b;
+        colors[3].m_value = 0x8000 | (r << CArgb1555::eRedS) | ((g & 0xFE) << 4) | b;
     }
 }
 
