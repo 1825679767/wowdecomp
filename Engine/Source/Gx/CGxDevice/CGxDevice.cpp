@@ -1672,7 +1672,7 @@ void CGxDevice::DeviceCreatePools() {
 // OFFSET: 0x00684970
 void CGxDevice::IShaderLoad(CGxShader** shaders, EGxShTarget target, const char* path, const char* name, uint32_t permutations) {
     enum : uint32_t {
-        Magic = 0x47585348,
+        Magic = 0x47585348, // 'GXSH'
         Version = 0x10003,
     };
 
@@ -1693,11 +1693,11 @@ void CGxDevice::IShaderLoad(CGxShader** shaders, EGxShTarget target, const char*
             uint32_t magic;
             SFileReadFile(file, &magic, 4, nullptr, nullptr, 0);
 
-            if (magic == Magic) {
+            if (magic == 'GXSH') {
                 uint32_t version;
                 SFileReadFile(file, &version, 4, nullptr, nullptr, 0);
 
-                if (version == Version) {
+                if (version == 0x10003) {
                     uint32_t unknown;
                     SFileReadFile(file, &unknown, 4, nullptr, nullptr, 0);
 
