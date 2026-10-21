@@ -111,10 +111,11 @@ struct TEXTURECACHE {
     TEXTURECACHE();
     ~TEXTURECACHE();
     CHARCODEDESC* AllocateNewGlyph(GLYPHBITMAPDATA* data);
-    void CreateTexture(int32_t filter);
+    void CreateTexture(int32_t filter, bool highResolution);
     void Destroy();
     void Initialize(CGxFont* face, uint32_t cellHeight);
     void PasteGlyphNonOutlinedAA(const GLYPHBITMAPDATA& data, uint16_t* dest);
+    void PasteGlyphNonOutlinedAAHighResolution(const GLYPHBITMAPDATA& data, uint32_t* dest);
     void PasteGlyphNonOutlinedMonochrome(const GLYPHBITMAPDATA& data, uint16_t* dest);
     void PasteGlyphOutlinedAA(const GLYPHBITMAPDATA& data, uint16_t* dest);
     void PasteGlyphOutlinedMonochrome(const GLYPHBITMAPDATA& data, uint16_t* dest);

@@ -74,6 +74,14 @@ int32_t CGxFont::UpdateDimensions() {
         DebugLog("Error, font %s being created with height %g at screen res of %dx%d which is %d pixels!", this->m_fontName, height, g_widthPixels, g_heightPixels, pixelSize);
     }
 
+    // Damage numbers are rendered as world text and are commonly enlarged by
+    // the camera projection.  Rasterize this opt-in font at twice the normal
+    // atlas size, then scale its metrics back down during geometry generation.
+    // This preserves layout while giving FreeType more samples for the edge.
+    if (this->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION) {
+        pixelSize *= 2;
+    }
+
     this->m_pixelSize = pixelSize;
 
     int32_t units = face->ascender + abs(face->descender);
@@ -355,7 +363,7 @@ CHARCODEDESC* CGxFont::NewCodeDesc(uint32_t code) {
 
         if (!current->m_texture || !TextureGetGxTex(current->m_texture, 1, nullptr)) {
             cache = current;
-            cache->CreateTexture(this->m_fontFlags & 4);
+            cache->CreateTexture(this->m_fontFlags & GXU_FONT_FLAG_LINEAR_FILTER, this->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION);
             cache->Initialize(this, this->m_cellHeight);
             desc = cache->AllocateNewGlyph(&data);
             break;

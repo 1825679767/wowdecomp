@@ -28,6 +28,12 @@ struct FONTHASHOBJ : public CHandleObject, public TSHashObject<FONTHASHOBJ, HASH
     virtual ~FONTHASHOBJ();
 };
 
+// This is an internal flag for fonts that need smoother scaling than the
+// legacy UI bitmap path.  It is intentionally not exposed as a Lua font flag.
+enum : uint32_t {
+    TEXTBLOCK_FONT_FLAG_HIGH_RESOLUTION = 0x10,
+};
+
 void TextBlockAddShadow(HTEXTBLOCK string, CImVector color, const C2Vector& offset);
 HTEXTBLOCK TextBlockCreate(HTEXTFONT font, const char* text, const CImVector& color, const C3Vector& position, float fontHeight, float blockWidth, float blockHeight, uint32_t flags, float charSpacing, float lineSpacing, float scale);
 HTEXTFONT TextBlockGenerateFont(const char* fontName, uint32_t fontFlags, float fontHeight);

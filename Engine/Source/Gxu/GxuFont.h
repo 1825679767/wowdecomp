@@ -27,6 +27,14 @@ extern const int32_t g_quotedCodeLengths[NUM_QUOTEDCODES];
 extern TSList<CGxString, TSGetLink<CGxString> > g_strings;
 extern uint32_t g_widthPixels;
 
+// Internal font flags used by the bitmap atlas implementation.  The linear
+// filter flag already exists in the original renderer; the high-resolution
+// flag is used for world text that is displayed at a larger scale.
+enum : uint32_t {
+    GXU_FONT_FLAG_LINEAR_FILTER = 0x4,
+    GXU_FONT_FLAG_HIGH_RESOLUTION = 0x10,
+};
+
 QUOTEDCODE GxuDetermineQuotedCode(const char* text, int32_t& advance, CImVector* color, uint32_t flags, uint32_t& wide);
 void GxuFontAddShadow(CGxString* string, const CImVector& color, const C2Vector& offset);
 int32_t GxuFontAddToBatch(CGxStringBatch* batch, CGxString* string);

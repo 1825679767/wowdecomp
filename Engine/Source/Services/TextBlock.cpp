@@ -366,6 +366,12 @@ HTEXTFONT TextBlockGenerateFont(const char* fontName, uint32_t fontFlags, float 
         gxFlags |= 0x8;
     }
 
+    if (fontFlags & TEXTBLOCK_FONT_FLAG_HIGH_RESOLUTION) {
+        // Keep the normal outline flags unchanged, but ask the Gxu bitmap
+        // atlas to use linear sampling and a 2x rasterization size.
+        gxFlags |= GXU_FONT_FLAG_LINEAR_FILTER | GXU_FONT_FLAG_HIGH_RESOLUTION;
+    }
+
     if (fontFlags & 0x2) {
         gxFlags |= 0x2;
     }

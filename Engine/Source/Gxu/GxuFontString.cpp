@@ -495,7 +495,17 @@ void CGxString::InitializeTextLine(const char* text, uint32_t numBytes, CImVecto
                     vert.m_vc.z = pos.z;
                     vert.m_tc.x = 0.0f;
                     vert.m_tc.y = 0.0f;
-                    vert.m_vc.x = this->m_currentFace->GetGlyphBearing(desc, (flags >> 7) & 1, this->m_currentFontHeight) + pos.x;
+                    float bearing = this->m_currentFace->GetGlyphBearing(desc, (flags >> 7) & 1, this->m_currentFontHeight);
+
+                    // High-resolution glyphs retain their native atlas metrics
+                    // for extent and wrapping calculations.  Geometry is built
+                    // in the current display size, so apply the same ratio as
+                    // the glyph quad width when the string uses screen units.
+                    if ((this->m_currentFace->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION) && !(flags & 0x80)) {
+                        bearing *= scale;
+                    }
+
+                    vert.m_vc.x = bearing + pos.x;
 
                     float width = desc->m_bitmapData.m_glyphCellWidth * scale;
 
@@ -527,7 +537,7 @@ void CGxString::InitializeTextLine(const char* text, uint32_t numBytes, CImVecto
 
                     CRect coords = desc->m_bitmapData.m_textureCoords;
 
-                    if (this->m_flags & 0x80) {
+                    if ((this->m_flags & 0x80) || (this->m_currentFace->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION)) {
                         coords.minY = coords.minY + pixelAdjustments.minY;
                         coords.minX = coords.minX + pixelAdjustments.minX;
                         coords.maxY = coords.maxY + pixelAdjustments.maxY;

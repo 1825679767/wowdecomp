@@ -571,7 +571,11 @@ void WorldTextRenderBatch() {
 // OFFSET: 0x007E7BB0
 void WorldTextInitialize() {
     const char* fontName = FrameScript_GetText("DAMAGE_TEXT_FONT", -1, GENDER_NOT_APPLICABLE);
-    s_worldTextFont = TextBlockGenerateFont(fontName, 0, DDCToNDCHeight(0.018333333f));
+    // World text is scaled by the camera and is especially sensitive to the
+    // legacy nearest-filtered, 32-pixel glyph atlas.  Use the opt-in high
+    // resolution path for damage numbers while keeping regular UI fonts
+    // byte-for-byte on their existing rendering path.
+    s_worldTextFont = TextBlockGenerateFont(fontName, TEXTBLOCK_FONT_FLAG_HIGH_RESOLUTION, DDCToNDCHeight(0.018333333f));
     s_worldTextBatch = GxuFontCreateBatch(false, false);
 
     CStatus status;

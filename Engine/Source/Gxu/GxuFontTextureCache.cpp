@@ -4,6 +4,7 @@
 #include "Engine/Source/Base/Handle.h"
 #include "Engine/Source/Gx/CGxTexFlags.h"
 #include "Engine/Source/Gx/Gx.h"
+#include "Engine/Source/Gxu/GxuFont.h"
 #include "Engine/Source/Gxu/GxuFontFont.h"
 #include "Engine/Source/Gxu/GxuFontMiscClasses.h"
 #include "Engine/Source/Gxu/GxuFontUtil.h"
@@ -12,6 +13,8 @@
 
 // STATIC: 0x00C7D328
 static uint16_t s_textureData[256 * 256];
+static uint32_t s_highResolutionTextureData[256 * 256];
+static constexpr uint32_t kMaxFontCellHeight = 68;
 
 // VERIFY: 7a9fdc75 manual
 // OFFSET: 0x006C8E70
@@ -19,7 +22,7 @@ void TEXTURECACHE::PasteGlyphOutlinedMonochrome(const GLYPHBITMAPDATA& data, uin
     const uint8_t* source = static_cast<const uint8_t*>(data.m_data);
     uint32_t thick = this->m_theFace->m_fontFlags & 8;
 
-    uint16_t buffer[256 * 36];
+    uint16_t buffer[256 * kMaxFontCellHeight];
     memset(buffer, 0, sizeof(buffer));
 
     uint32_t yStart = data.m_yStart;
@@ -161,9 +164,9 @@ void TEXTURECACHE::PasteGlyphOutlinedAA(const GLYPHBITMAPDATA& data, uint16_t* d
     const uint8_t* source = static_cast<const uint8_t*>(data.m_data);
     uint32_t thick = this->m_theFace->m_fontFlags & 8;
 
-    uint16_t alpha[256 * 36];
-    uint16_t coverage[256 * 36];
-    uint16_t state[256 * 36];
+    uint16_t alpha[256 * kMaxFontCellHeight];
+    uint16_t coverage[256 * kMaxFontCellHeight];
+    uint16_t state[256 * kMaxFontCellHeight];
 
     memset(state, 0, sizeof(state));
     memset(coverage, 0, sizeof(coverage));
@@ -334,6 +337,29 @@ void TEXTURECACHE::PasteGlyphNonOutlinedAA(const GLYPHBITMAPDATA& data, uint16_t
     }
 }
 
+void TEXTURECACHE::PasteGlyphNonOutlinedAAHighResolution(const GLYPHBITMAPDATA& data, uint32_t* dest) {
+    const uint8_t* source = static_cast<const uint8_t*>(data.m_data);
+    const uint32_t cellHeight = this->m_theFace->m_cellHeight;
+    const uint32_t cellWidth = data.m_glyphCellWidth;
+    const uint32_t firstGlyphRow = data.m_yStart;
+    const uint32_t lastGlyphRow = firstGlyphRow + data.m_glyphHeight;
+
+    for (uint32_t y = 0; y < cellHeight; y++) {
+        uint32_t* row = dest + (y << 8);
+        memset(row, 0, cellWidth * sizeof(uint32_t));
+
+        if (y < firstGlyphRow || y >= lastGlyphRow) {
+            continue;
+        }
+
+        for (uint32_t x = 0; x < data.m_glyphWidth; x++) {
+            row[x] = (static_cast<uint32_t>(source[x]) << 24) | 0x00FFFFFF;
+        }
+
+        source += data.m_glyphPitch;
+    }
+}
+
 // VERIFY: d9c18e4c auto
 // OFFSET: 0x006C9D50
 void TEXTURECACHE::UpdateDirty() {
@@ -368,6 +394,11 @@ void TEXTURECACHE::TextureCallback(EGxTexCommand command, uint32_t width, uint32
     }
 
     TEXTURECACHE* cache = static_cast<TEXTURECACHE*>(userArg);
+    const bool highResolution = cache->m_theFace && (cache->m_theFace->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION);
+
+    if (highResolution) {
+        memset(s_highResolutionTextureData, 0, sizeof(s_highResolutionTextureData));
+    }
 
     for (uint32_t row = cache->m_textureRows.m_count; row > 0; row--) {
         TEXTURECACHEROW& cacheRow = cache->m_textureRows.m_data[row - 1];
@@ -378,7 +409,14 @@ void TEXTURECACHE::TextureCallback(EGxTexCommand command, uint32_t width, uint32
             }
 
             CGxFont* font = cache->m_theFace;
-            uint16_t* dest = &s_textureData[glyph->m_glyphStartPixel + ((glyph->m_rowNumber * font->m_cellHeight) << 8)];
+            uint32_t offset = glyph->m_glyphStartPixel + ((glyph->m_rowNumber * font->m_cellHeight) << 8);
+
+            if (highResolution && !(font->m_fontFlags & (1 | 2 | 8))) {
+                cache->PasteGlyphNonOutlinedAAHighResolution(glyph->m_bitmapData, &s_highResolutionTextureData[offset]);
+                continue;
+            }
+
+            uint16_t* dest = &s_textureData[offset];
 
             if (font->m_fontFlags & 1) {
                 if (font->m_fontFlags & 2) {
@@ -391,18 +429,38 @@ void TEXTURECACHE::TextureCallback(EGxTexCommand command, uint32_t width, uint32
             } else {
                 cache->PasteGlyphNonOutlinedAA(glyph->m_bitmapData, dest);
             }
+
+            if (highResolution) {
+                for (uint32_t y = 0; y < font->m_cellHeight; y++) {
+                    for (uint32_t x = 0; x < glyph->m_bitmapData.m_glyphCellWidth; x++) {
+                        uint32_t pixelIndex = offset + (y << 8) + x;
+                        uint16_t pixel = s_textureData[pixelIndex];
+                        uint32_t alpha = ((pixel >> 12) & 0xF) * 17;
+                        uint32_t red = ((pixel >> 8) & 0xF) * 17;
+                        uint32_t green = ((pixel >> 4) & 0xF) * 17;
+                        uint32_t blue = (pixel & 0xF) * 17;
+                        s_highResolutionTextureData[pixelIndex] = (alpha << 24) | (red << 16) | (green << 8) | blue;
+                    }
+                }
+            }
         }
     }
 
-    texelStrideInBytes = 512;
-    texels = s_textureData;
+    if (highResolution) {
+        texelStrideInBytes = 1024;
+        texels = s_highResolutionTextureData;
+    } else {
+        texelStrideInBytes = 512;
+        texels = s_textureData;
+    }
 }
 
 // VERIFY: 0f656a97 auto
 // OFFSET: 0x006CA050
-void TEXTURECACHE::CreateTexture(int32_t filter) {
+void TEXTURECACHE::CreateTexture(int32_t filter, bool highResolution) {
     CGxTexFlags flags(static_cast<EGxTexFilter>(filter != 0), 0, 0, 0, 0, 0, 1, 0, 0, 0);
-    this->m_texture = TextureCreate(256, 256, GxTex_Argb4444, GxTex_Argb4444, flags, this, TEXTURECACHE::TextureCallback, "GxuFont", 0);
+    EGxTexFormat format = highResolution ? GxTex_Argb8888 : GxTex_Argb4444;
+    this->m_texture = TextureCreate(256, 256, format, format, flags, this, TEXTURECACHE::TextureCallback, "GxuFont", 0);
 }
 
 // VERIFY: ba005b39 manual
