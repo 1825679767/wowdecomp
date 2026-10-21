@@ -97,7 +97,7 @@ struct TEXTURECACHEROW {
 
     TEXTURECACHEROW();
     CHARCODEDESC* CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t rowNumber, uint32_t cellHeight);
-    void EvictGlyph(CHARCODEDESC* desc);
+    void EvictGlyph(CHARCODEDESC* desc, CGxFont* font);
 };
 
 struct TEXTURECACHE {

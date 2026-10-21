@@ -195,6 +195,8 @@ void CGxString::ClearInstanceData() {
     this->m_lastGradientStart = -1;
     this->m_lastGradientLength = -1;
     this->m_numLines = 0;
+    this->m_texturePagesUsed = 0;
+    this->m_textureEvicted = 0;
 
     for (uint32_t i = 0; i < 8; i++) {
         if (this->m_textLines[i]) {
@@ -453,6 +455,7 @@ void CGxString::InitializeTextLine(const char* text, uint32_t numBytes, CImVecto
 
                     uint32_t texturePage = desc->m_textureNumber;
                     *texturePagesUsed |= 1 << texturePage;
+                    this->m_texturePagesUsed |= 1 << texturePage;
 
                     if (!this->m_textLines[texturePage]) {
                         this->m_textLines[texturePage] = TEXTLINETEXTURE::NewTextLineTexture();
@@ -571,10 +574,7 @@ void CGxString::AddShadow(const C2Vector& offset, const CImVector& color) {
 // OFFSET: 0x006C7480
 int32_t CGxString::CheckGeometry() {
     if (this->m_textureEvicted) {
-        if (!this->m_currentFace->CheckStringGlyphs(this->m_text)) {
-            this->ClearInstanceData();
-        }
-
+        this->ClearInstanceData();
         this->m_textureEvicted = 0;
     }
 

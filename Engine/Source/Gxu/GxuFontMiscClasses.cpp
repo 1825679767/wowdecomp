@@ -376,7 +376,7 @@ TEXTLINETEXTURE* TEXTLINETEXTURE::NewTextLineTexture() {
 
 // VERIFY: be22d63b manual
 // OFFSET: 0x006C4F80
-void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC* desc) {
+void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC* desc, CGxFont* font) {
     uint32_t needed = desc->m_bitmapData.m_glyphCellWidth;
 
     CHARCODEDESC* glyph = this->m_glyphlist.Head();
@@ -392,11 +392,15 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC* desc) {
         uint32_t gap = next ? next->m_glyphStartPixel - desc->m_glyphEndPixel - 1 : 255 - desc->m_glyphEndPixel;
         freed += desc->m_glyphEndPixel - desc->m_glyphStartPixel + 1 + gap;
 
+        font->m_activeCharacterCache.UnlinkNode(desc);
+        font->m_activeCharacters.Unlink(desc);
         desc = this->m_glyphlist.DeleteNode(desc);
 
         if (!desc) {
             for (CHARCODEDESC* last = this->m_glyphlist.Tail(); last && freed < needed; ) {
                 freed += last->m_glyphEndPixel - last->m_glyphStartPixel + 1 + last->GapToPrevious();
+                font->m_activeCharacterCache.UnlinkNode(last);
+                font->m_activeCharacters.Unlink(last);
                 last = this->m_glyphlist.DeleteNode(last);
             }
 

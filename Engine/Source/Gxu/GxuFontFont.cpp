@@ -380,7 +380,7 @@ CHARCODEDESC* CGxFont::NewCodeDesc(uint32_t code) {
             cache = &this->m_textureCache[textureNumber];
             TEXTURECACHEROW* row = &cache->m_textureRows.m_data[rowNumber];
 
-            row->EvictGlyph(oldest);
+            row->EvictGlyph(oldest, this);
             this->RegisterEvictNotice(textureNumber);
 
             desc = row->CreateNewDesc(&data, rowNumber, this->m_cellHeight);
