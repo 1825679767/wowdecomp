@@ -9971,16 +9971,22 @@ static void SwapItemsStatsCallback(int32_t id, const WOWGUID& guid, void* param,
             continue;
         }
 
+        WOWGUID srcContainer = swap.m_srcContainer;
+        uint32_t srcSlot = swap.m_srcSlot;
+        WOWGUID dstContainer = swap.m_dstContainer;
+        uint32_t dstSlot = swap.m_dstSlot;
+
         if (stats && player) {
-            player->SwapItems(WOWGUID(), swap.m_srcContainer, swap.m_srcSlot, swap.m_dstContainer, swap.m_dstSlot, 0);
+            player->SwapItems(WOWGUID(), srcContainer, srcSlot, dstContainer, dstSlot, 0);
         }
 
-        swap.m_srcContainer = WOWGUID();
-        swap.m_dstContainer = WOWGUID();
-        swap.m_srcSlot = 0xFFFFFFFF;
-        swap.m_dstSlot = 0xFFFFFFFF;
-        swap.m_itemId = 0;
-        swap.m_item = 0;
+        ITEMSWAP& entry = s_itemSwaps.m_data[i];
+        entry.m_srcContainer = WOWGUID();
+        entry.m_dstContainer = WOWGUID();
+        entry.m_srcSlot = 0xFFFFFFFF;
+        entry.m_dstSlot = 0xFFFFFFFF;
+        entry.m_itemId = 0;
+        entry.m_item = nullptr;
     }
 }
 
