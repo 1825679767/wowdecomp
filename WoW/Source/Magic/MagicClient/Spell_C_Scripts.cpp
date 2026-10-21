@@ -1,5 +1,5 @@
 #include "Spell_C.h"
-#include "SpellEnums.h"
+#include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include <cstdint>
 #include "Engine/Source/FrameScript/FrameScript.h"
 #include "Engine/Source/FrameScript/FrameScript_Object.h"

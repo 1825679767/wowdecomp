@@ -325,7 +325,7 @@ enum SPELL_AURA : uint32_t
     TOTAL_AURAS
 };
 
-enum SPELL_EFFECT
+enum SPELL_EFFECT : int32_t
 {
     SPELL_EFFECT_NONE                               = 0,
     SPELL_EFFECT_INSTAKILL                          = 1,
