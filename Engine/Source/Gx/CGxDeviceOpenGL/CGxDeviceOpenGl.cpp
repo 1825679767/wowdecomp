@@ -5120,7 +5120,7 @@ void CGxDeviceOpenGl::IBindVertexShader(CGxShader* shader) {
             case 8:
             case 9:
                 glBindProgramNV(GL_VERTEX_PROGRAM_ARB, static_cast<GLuint>(reinterpret_cast<uintptr_t>(shader->m_apiSpecific)));
-                this->DsSet(Ds_Unk83, 1, 0);
+                this->DsSet(Ds_VertexProgramNV, 1, 0);
                 break;
 
             default:
@@ -5135,7 +5135,7 @@ void CGxDeviceOpenGl::IBindVertexShader(CGxShader* shader) {
 
             case 8:
             case 9:
-                this->DsSet(Ds_Unk83, 0, 0);
+                this->DsSet(Ds_VertexProgramNV, 0, 0);
                 break;
 
             default:
