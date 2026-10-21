@@ -1671,6 +1671,10 @@ void CGxDevice::DeviceCreatePools() {
 // VERIFY: 3ce50085 manual
 // OFFSET: 0x00684970
 void CGxDevice::IShaderLoad(CGxShader** shaders, EGxShTarget target, const char* path, const char* name, uint32_t permutations) {
+    enum : uint32_t {
+        Magic = 0x47585348,
+    };
+
     int32_t profile = this->m_caps.m_shaderTargets[target];
 
     if (profile <= 0) {
@@ -1688,7 +1692,7 @@ void CGxDevice::IShaderLoad(CGxShader** shaders, EGxShTarget target, const char*
             uint32_t magic;
             SFileReadFile(file, &magic, 4, nullptr, nullptr, 0);
 
-            if (magic == 'GXSH') {
+            if (magic == Magic) {
                 uint32_t version;
                 SFileReadFile(file, &version, 4, nullptr, nullptr, 0);
 
