@@ -354,7 +354,7 @@ void CGDressUpModelFrame::TryOnWithVisual(int32_t itemId, int32_t visual, int32_
             ItemDisplayInfoRec display;
 
             if (g_itemDisplayInfoDB.GetRecord(stats->m_displayId, &display) && (display.m_flags & 0x1)) {
-                CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+                CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPE_PLAYER, __FILE__, __LINE__));
 
                 if (player) {
                     int32_t emblemStyle;
@@ -511,7 +511,7 @@ void CGDressUpModelFrame::SetModel(CM2Model* model) {
         return;
     }
 
-    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPEMASK_PLAYER, __FILE__, __LINE__));
+    CGPlayer_C* player = static_cast<CGPlayer_C*>(ClntObjMgrObjectPtr(this->m_unitGuid, TYPE_PLAYER, __FILE__, __LINE__));
 
     if (player) {
         this->m_component = CCharacterComponent::AllocComponent();
@@ -573,7 +573,7 @@ void CGDressUpModelFrame::SetModel(CM2Model* model) {
             }
         }
 
-        const CGUnitVirtualItem* mainHand = player->GetVirtualItem(0, true);
+        const CGUnitVirtualItem* mainHand = player->GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, true);
 
         if (mainHand) {
             this->m_mainHand = *mainHand;
@@ -581,7 +581,7 @@ void CGDressUpModelFrame::SetModel(CM2Model* model) {
             memset(&this->m_mainHand, 0, sizeof(this->m_mainHand));
         }
 
-        const CGUnitVirtualItem* offHand = player->GetVirtualItem(1, true);
+        const CGUnitVirtualItem* offHand = player->GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, true);
 
         if (offHand) {
             this->m_offHand = *offHand;
