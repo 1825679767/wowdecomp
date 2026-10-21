@@ -117,6 +117,11 @@ enum EGxTexCommand {
     GxTexCommands_Last = 4,
 };
 
+enum EGx : int32_t {
+    Gx_SizeMinimized = 1,
+    Gx_SizeMaxHide = 2,
+};
+
 enum EGxWM {
     GxWM_Size = 0,
     GxWM_DisplayChange = 1,
