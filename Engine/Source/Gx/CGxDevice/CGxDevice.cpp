@@ -1673,6 +1673,7 @@ void CGxDevice::DeviceCreatePools() {
 void CGxDevice::IShaderLoad(CGxShader** shaders, EGxShTarget target, const char* path, const char* name, uint32_t permutations) {
     enum : uint32_t {
         Magic = 0x47585348,
+        Version = 0x10003,
     };
 
     int32_t profile = this->m_caps.m_shaderTargets[target];
@@ -1696,7 +1697,7 @@ void CGxDevice::IShaderLoad(CGxShader** shaders, EGxShTarget target, const char*
                 uint32_t version;
                 SFileReadFile(file, &version, 4, nullptr, nullptr, 0);
 
-                if (version == 0x10003) {
+                if (version == Version) {
                     uint32_t unknown;
                     SFileReadFile(file, &unknown, 4, nullptr, nullptr, 0);
 
