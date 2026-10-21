@@ -177,14 +177,14 @@ void CGxDevice::ScenePresent() {
 // OFFSET: 0x00682F70
 void CGxDevice::PrimNormal(const C3Vector& n) {
     this->m_primNormal = n;
-    this->m_primMask |= 0x200;
+    this->m_primMask |= PrimMask_Normal;
 }
 
 // VERIFY: c4ffca2f auto
 // OFFSET: 0x00682FA0
 void CGxDevice::PrimTexCoord(uint32_t tmu, const C2Vector& t) {
     this->m_primTexCoord[tmu] = t;
-    this->m_primMask |= 2 << tmu;
+    this->m_primMask |= PrimMask_TexCoord << tmu;
 }
 
 // VERIFY: c119ac3a manual
@@ -305,7 +305,7 @@ void CGxDevice::NotifyOnStereoChanged() {
 // OFFSET: 0x00684590
 void CGxDevice::PrimColor(const CImVector& c) {
     this->m_primColor = c;
-    this->m_primMask |= 0x400;
+    this->m_primMask |= PrimMask_Color;
 }
 
 // VERIFY: df433744 auto
@@ -401,7 +401,7 @@ void CGxDevice::PrimBegin(EGxPrim primType) {
 // OFFSET: 0x00685640
 void CGxDevice::PrimVertex(const C3Vector& v) {
     this->m_primVertex = v;
-    this->m_primMask |= 0x1;
+    this->m_primMask |= PrimMask_Vertex;
 
     uint16_t index = static_cast<uint16_t>(this->m_primVertexArray.Count());
     *this->m_primIndexArray.New() = index;
