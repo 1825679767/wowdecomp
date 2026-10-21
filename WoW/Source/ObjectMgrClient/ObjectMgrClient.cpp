@@ -340,7 +340,6 @@ void ClntObjMgrUnsetTypeMirrorHandler(OBJECT_TYPE_ID typeId, uint32_t fieldOffse
 // OFFSET: 0x004D3C40
 static OBJECT_TYPE_ID IncTypeId(CGObject_C* object, OBJECT_TYPE_ID typeId) {
     switch (object->m_obj->m_type) {
-        case HEIR_TYPE_OBJECT:
         case HEIR_TYPE_ITEM:
         case HEIR_TYPE_CONTAINER: {
             if (typeId == ID_OBJECT) {
