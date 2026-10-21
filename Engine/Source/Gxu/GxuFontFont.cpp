@@ -122,7 +122,7 @@ bool CGxFont::GetGlyphData(GLYPHBITMAPDATA* data, uint32_t code) {
         padding = 2;
     }
 
-    return IGxuFontGlyphRenderGlyph(face, this->m_pixelSize, code, this->m_baseline, data, this->m_fontFlags & 2, padding);
+    return IGxuFontGlyphRenderGlyph(face, this->m_pixelSize, code, this->m_baseline, data, this->m_fontFlags & 2, padding, this->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION);
 }
 
 // VERIFY: 3597e899 auto

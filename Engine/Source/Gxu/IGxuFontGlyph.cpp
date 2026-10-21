@@ -15,10 +15,29 @@
 // the behaviour the original client shows.
 // VERIFY: fff26b99 manual
 // OFFSET: 0x006C8C10
-static int32_t FREETYPE_RenderGlyph(FT_Face face, uint32_t code, bool monochrome) {
+static int32_t FREETYPE_RenderGlyph(FT_Face face, uint32_t code, bool monochrome, bool highResolution) {
     FT_UInt index = FT_Get_Char_Index(face, code);
 
-    if (!index || FT_Load_Glyph(face, index, monochrome ? FT_LOAD_LINEAR_DESIGN | FT_LOAD_PEDANTIC | FT_LOAD_CROP_BITMAP | FT_LOAD_NO_HINTING | FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH : FT_LOAD_LINEAR_DESIGN | FT_LOAD_PEDANTIC | FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING | FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH)) {
+    FT_Int32 loadFlags = FT_LOAD_LINEAR_DESIGN | FT_LOAD_PEDANTIC | FT_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH;
+
+    if (monochrome) {
+        loadFlags |= FT_LOAD_CROP_BITMAP;
+    } else {
+        loadFlags |= FT_LOAD_NO_BITMAP;
+    }
+
+    if (highResolution) {
+        // The high-resolution world-text atlas benefits from the FreeType
+        // auto-hinter: thin strokes are aligned to the 2x pixel grid before
+        // they are filtered down by the camera.  Keep the legacy no-hinting
+        // path for regular UI fonts so their existing metrics and appearance
+        // remain unchanged.
+        loadFlags |= FT_LOAD_FORCE_AUTOHINT;
+    } else {
+        loadFlags |= FT_LOAD_NO_HINTING;
+    }
+
+    if (!index || FT_Load_Glyph(face, index, loadFlags)) {
         return 0;
     }
 
@@ -59,7 +78,7 @@ static void CalculateYOffset(uint32_t pixelSize, int32_t baseline, FT_Face face,
 
 // VERIFY: 86715750 manual
 // OFFSET: 0x006C8CC0
-bool IGxuFontGlyphRenderGlyph(FT_Face face, uint32_t pixelSize, uint32_t code, uint32_t baseline, GLYPHBITMAPDATA* dataPtr, int32_t monochrome, uint32_t padding) {
+bool IGxuFontGlyphRenderGlyph(FT_Face face, uint32_t pixelSize, uint32_t code, uint32_t baseline, GLYPHBITMAPDATA* dataPtr, int32_t monochrome, uint32_t padding, bool highResolution) {
     if (!face || !pixelSize || !dataPtr) {
         SErrSetLastError(STORM_ERROR_INVALID_PARAMETER);
         return false;
@@ -69,7 +88,7 @@ bool IGxuFontGlyphRenderGlyph(FT_Face face, uint32_t pixelSize, uint32_t code, u
         return false;
     }
 
-    if (!FREETYPE_RenderGlyph(face, code, monochrome != 0)) {
+    if (!FREETYPE_RenderGlyph(face, code, monochrome != 0, highResolution)) {
         return false;
     }
 
