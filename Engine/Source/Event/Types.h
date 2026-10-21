@@ -6,7 +6,7 @@
 #include "Engine/Source/Tempest/C2Vector.h"
 
 enum KEY : uint32_t {
-    KEY_NONE = 0xFFFFFFFFFFFFFFFF,
+    KEY_NONE = 0xFFFFFFFF,
     KEY_LSHIFT = 0,
     KEY_RSHIFT = 1,
     KEY_LCONTROL = 2,
