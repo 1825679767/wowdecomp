@@ -26,6 +26,17 @@ class CRgb565 {
 class CArgb1555 {
     public:
     enum : uint32_t {
+        eAlphaMask = 0x8000,
+        eNotAlphaMask = 0xFFFF7FFF,
+        eRedMask = 0x7C00,
+        eNotRedMask = 0xFFFF83FF,
+        eGreenMask = 0x3E0,
+        eNotGreenMask = 0xFFFFFC1F,
+        eBlueMask = 0x1F,
+        eNotBlueMask = 0xFFFFFFE0,
+    };
+
+    enum : uint32_t {
         eAlphaS = 15,
         eRedS = 10,
         eGreenS = 5,
