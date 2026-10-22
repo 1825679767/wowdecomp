@@ -4299,7 +4299,7 @@ void CGxDeviceD3d9Ex::ITexForceRecreation(int32_t all) {
 
             uint32_t texelStrideInBytes;
             const void* texels;
-            texId->m_userFunc(GxTex_3, texId->m_width, texId->m_height, 0, 0, texId->m_userArg, texelStrideInBytes, texels);
+            texId->m_userFunc(GxTex_Recreate, texId->m_width, texId->m_height, 0, 0, texId->m_userArg, texelStrideInBytes, texels);
         }
     }
 

@@ -113,7 +113,7 @@ enum EGxTexCommand {
     GxTex_Lock = 0,
     GxTex_Latch = 1,
     GxTex_Unlock = 2,
-    GxTex_3 = 3,
+    GxTex_Recreate = 3,
     GxTexCommands_Last = 4,
 };
 
