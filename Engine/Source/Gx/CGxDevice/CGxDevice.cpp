@@ -1276,27 +1276,27 @@ void CGxDevice::MasterEnableSet(EGxMasterEnables state, int32_t enable) {
     this->m_appMasterEnables = ((enable & 1) << state) | (this->m_appMasterEnables & ~(1 << state));
 
     switch (state) {
-        case 0:
+        case GxMasterEnable_Lighting:
             this->IRsForceUpdate(GxRs_Lighting);
             break;
 
-        case 1:
+        case GxMasterEnable_Fog:
             this->IRsForceUpdate(GxRs_Fog);
             break;
 
-        case 2:
+        case GxMasterEnable_DepthTest:
             this->IRsForceUpdate(GxRs_DepthTest);
             break;
 
-        case 3:
+        case GxMasterEnable_DepthWrite:
             this->IRsForceUpdate(GxRs_DepthWrite);
             break;
 
-        case 4:
+        case GxMasterEnable_ColorWrite:
             this->IRsForceUpdate(GxRs_ColorWrite);
             break;
 
-        case 5:
+        case GxMasterEnable_Culling:
             this->IRsForceUpdate(GxRs_Culling);
             break;
 
