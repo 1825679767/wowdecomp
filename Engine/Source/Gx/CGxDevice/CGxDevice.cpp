@@ -15,6 +15,7 @@
 #include "Engine/Source/Os/OsFile.h"
 #include "Engine/Source/Os/Processor.h"
 #include "Engine/Source/Os/TimeManager.h"
+#include "Engine/Source/ShaderEffect/Types.h"
 
 // STATIC: 0x00A2DAF8
 const uint32_t CGxDevice::s_texFormatBitDepth[GxTexFormats_Last] = { 0, 32, 32, 16, 16, 16, 4, 8, 8, 16, 32, 32, 32 };
@@ -472,8 +473,8 @@ void CGxDevice::ICursorDraw() {
     GxRsSet(GxRs_ClipPlaneMask, 0);
     GxRsSet(GxRs_Texture0, this->m_cursorTexture);
     GxRsSet(GxRs_Texture1, nullptr);
-    GxRsSet(GxRs_ColorOp0, 0);
-    GxRsSet(GxRs_AlphaOp0, 0);
+    GxRsSet(GxRs_ColorOp0, GxTexOp_Mod);
+    GxRsSet(GxRs_AlphaOp0, GxTexOp_Mod);
     GxRsSet(GxRs_TexGen0, 0);
     GxRsSet(GxRs_TextureShader0, 0);
 
@@ -1383,8 +1384,8 @@ void CGxDevice::IRsInit() {
 
     for (uint32_t i = 0; i < 8; i++) {
         this->m_appRenderStates[GxRs_Texture0 + i].m_value.m_data.i[0] = 0;
-        this->m_appRenderStates[GxRs_ColorOp0 + i].m_value.m_data.i[0] = 0;
-        this->m_appRenderStates[GxRs_AlphaOp0 + i].m_value.m_data.i[0] = 0;
+        this->m_appRenderStates[GxRs_ColorOp0 + i].m_value.m_data.i[0] = GxTexOp_Mod;
+        this->m_appRenderStates[GxRs_AlphaOp0 + i].m_value.m_data.i[0] = GxTexOp_Mod;
         this->m_appRenderStates[GxRs_TexGen0 + i].m_value.m_data.i[0] = 0;
         this->m_appRenderStates[GxRs_TextureShader0 + i].m_value.m_data.i[0] = 0;
         this->m_appRenderStates[GxRs_TextureCoord0 + i].m_value.m_data.i[0] = i;
@@ -2084,8 +2085,8 @@ void CGxDevice::RsInit() {
 
     for (tmu = 0; tmu < 8; tmu++) {
         this->RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), nullptr);
-        this->RsSet(static_cast<EGxRenderState>(GxRs_ColorOp0 + tmu), 0);
-        this->RsSet(static_cast<EGxRenderState>(GxRs_AlphaOp0 + tmu), 0);
+        this->RsSet(static_cast<EGxRenderState>(GxRs_ColorOp0 + tmu), GxTexOp_Mod);
+        this->RsSet(static_cast<EGxRenderState>(GxRs_AlphaOp0 + tmu), GxTexOp_Mod);
         this->RsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), 0);
         this->RsSet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), 0);
         this->RsSet(static_cast<EGxRenderState>(GxRs_TextureCoord0 + tmu), static_cast<int32_t>(tmu));

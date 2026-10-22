@@ -13,6 +13,7 @@
 #include "Engine/Source/Gx/CGxTex.h"
 #include "Engine/Source/Gx/Gx.h"
 #include "Engine/Source/Storm/H/storm.h"
+#include "Engine/Source/ShaderEffect/Types.h"
 
 static const uint32_t kNullTmu = 0xFFFFFFFF;
 
@@ -62,7 +63,7 @@ struct GlTexEnvOp {
 };
 
 // STATIC: 0x00AD8DF0
-static GlTexEnvOp s_texEnvOps[6] = {
+static GlTexEnvOp s_texEnvOps[GxTexOps_Last] = {
     { GL_REPLACE, 1.0f, 0x8578, GL_TEXTURE, 0x8576, GL_MODULATE },
     { GL_MODULATE, 2.0f, 0x8578, GL_TEXTURE, 0x8576, GL_MODULATE },
     { GL_ADD, 1.0f, 0x8578, GL_TEXTURE, 0x8576, GL_ADD },
