@@ -43,6 +43,7 @@
 #include "WoW/Source/Game/GameClient/PlayerName.h"
 #include "WoW/Source/Game/GameClient/WorldText.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
+#include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/MagicClient/SpellVisuals.h"
 #include "WoW/Source/Net/NetClient/NetClient.h"
 #include "WoW/Source/Net/Types.h"
@@ -358,30 +359,11 @@ static float s_trackingDefaultInteractDistanceSq = s_trackingFollowDistance * s_
 // STATIC: 0x00ADAC18
 static uint32_t s_spellInterruptTrackingMask = 1;
 
-namespace {
+// STATIC: 0x00ADBFDC
+static const char* s_combatTextTokens[MISS_NUMMISSTYPES] = { "COMBAT_TEXT_NONE", "COMBAT_TEXT_MISS", "COMBAT_TEXT_RESIST", "COMBAT_TEXT_DODGE", "COMBAT_TEXT_PARRY", "COMBAT_TEXT_BLOCK", "COMBAT_TEXT_EVADE", "COMBAT_TEXT_IMMUNE", "COMBAT_TEXT_IMMUNE", "COMBAT_TEXT_DEFLECT", "COMBAT_TEXT_ABSORB", "COMBAT_TEXT_REFLECT" };
 
-struct WORLDTEXTINFO {
-    const char* m_token;
-    WORLDTEXT_STYLE m_style;
-};
-
-// Original 3.3.5 tables: tokens at 0x00ADBFDC; styles at 0x00A34C20.
-static const WORLDTEXTINFO s_combatTextInfo[MISS_NUMMISSTYPES] = {
-    { "COMBAT_TEXT_NONE", NUM_WORLDTEXTTYPES },
-    { "COMBAT_TEXT_MISS", WT_MISS },
-    { "COMBAT_TEXT_RESIST", WT_MISS },
-    { "COMBAT_TEXT_DODGE", WT_MISS },
-    { "COMBAT_TEXT_PARRY", WT_MISS },
-    { "COMBAT_TEXT_BLOCK", WT_MISS },
-    { "COMBAT_TEXT_EVADE", WT_MISS },
-    { "COMBAT_TEXT_IMMUNE", WT_MISS },
-    { "COMBAT_TEXT_IMMUNE", WT_MISS },
-    { "COMBAT_TEXT_DEFLECT", WT_MISS },
-    { "COMBAT_TEXT_ABSORB", WT_ABSORB },
-    { "COMBAT_TEXT_REFLECT", WT_MISS },
-};
-
-}
+// STATIC: 0x00A34C20
+static const WORLDTEXT_STYLE s_combatTextTypes[MISS_NUMMISSTYPES] = { NUM_WORLDTEXTTYPES, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_MISS, WT_ABSORB, WT_MISS };
 
 
 // STATIC: 0x00ADAA6C
@@ -5010,7 +4992,7 @@ void CGUnit_C::OnRightClick() {
                 g_spellDB.GetRecord(CGSpellBook::GetSkinningSpell(this), &spell);
 
                 for (uint32_t i = 0; i < 3; i++) {
-                    if (spell.m_effect[i] == 95) {
+                    if (spell.m_effect[i] == SPELL_EFFECT_SKINNING) {
                         Spell_C_GetMinMaxPoints(&spell, i, &minPoints, &maxPoints, 0, 0, 0, 0);
                         break;
                     }
@@ -8563,7 +8545,7 @@ SummonPropertiesRec* CGUnit_C::GetSummonProperties() const {
 
     if (g_spellDB.GetRecord(this->m_unit->m_unitCreatedBySpell, &spell)) {
         for (int32_t i = 0; i < 3; i++) {
-            if (spell.m_effect[i] == 28) {
+            if (spell.m_effect[i] == SPELL_EFFECT_SUMMON) {
                 return g_summonPropertiesDB.GetRecord(spell.m_effectMiscValueB[i]);
             }
         }
@@ -11741,7 +11723,7 @@ bool CGUnit_C::ProcessCastNotInterruptible(const SpellRec* spell) {
         }
 
         if (interrupt || interruptSpecial || silence || silenceSpecial) {
-            if (this->HasAuraEffect(39) || this->HasAuraEffect(77) || this->HasAuraEffect(37) || this->HasAuraEffect(38)) {
+            if (this->HasAuraEffect(SPELL_AURA_SCHOOL_IMMUNITY) || this->HasAuraEffect(SPELL_AURA_MECHANIC_IMMUNITY) || this->HasAuraEffect(SPELL_AURA_EFFECT_IMMUNITY) || this->HasAuraEffect(SPELL_AURA_STATE_IMMUNITY)) {
                 SpellRec auraSpell;
 
                 for (uint32_t i = 0; i < this->GetAuraCount(); i++) {
@@ -11757,7 +11739,7 @@ bool CGUnit_C::ProcessCastNotInterruptible(const SpellRec* spell) {
 
                     for (uint32_t j = 0; j < 3; j++) {
                         switch (auraSpell.m_effectAura[j]) {
-                            case 37:
+                            case SPELL_AURA_EFFECT_IMMUNITY:
                                 if (auraSpell.m_effectMiscValue[j] == 68) {
                                     interrupt = 0;
                                     interruptSpecial = 0;
@@ -11765,7 +11747,7 @@ bool CGUnit_C::ProcessCastNotInterruptible(const SpellRec* spell) {
 
                                 break;
 
-                            case 38:
+                            case SPELL_AURA_STATE_IMMUNITY:
                                 if (auraSpell.m_effectMiscValue[j] == 27) {
                                     silence = 0;
                                     silenceSpecial = 0;
@@ -11773,7 +11755,7 @@ bool CGUnit_C::ProcessCastNotInterruptible(const SpellRec* spell) {
 
                                 break;
 
-                            case 39: {
+                            case SPELL_AURA_SCHOOL_IMMUNITY: {
                                 uint32_t mask = auraSpell.m_effectMiscValue[j];
 
                                 if (mask & interrupt) {
@@ -11795,7 +11777,7 @@ bool CGUnit_C::ProcessCastNotInterruptible(const SpellRec* spell) {
                                 break;
                             }
 
-                            case 77:
+                            case SPELL_AURA_MECHANIC_IMMUNITY:
                                 if (auraSpell.m_effectMiscValue[j] == 9) {
                                     silence = 0;
                                     silenceSpecial = 0;
@@ -12008,13 +11990,13 @@ bool CGUnit_C::IgnoresAuraState(const SpellRec* spell) const {
         unit = creator;
     }
 
-    return unit->AffectedByAura(262, spell);
+    return unit->AffectedByAura(SPELL_AURA_ABILITY_IGNORE_AURASTATE, spell);
 }
 
 // VERIFY: 9a4ea4e4 auto
 // OFFSET: 0x0072BC20
 bool CGUnit_C::CheckStealthRules(const SpellRec* spell, int32_t* reason) const {
-    if (!(spell->m_attributes & 0x20000) || (this->m_unit->m_unitFieldBytes1[2] & 0x2) || this->AffectedByAura(275, spell)) {
+    if (!(spell->m_attributes & 0x20000) || (this->m_unit->m_unitFieldBytes1[2] & 0x2) || this->AffectedByAura(SPELL_AURA_MOD_IGNORE_SHAPESHIFT, spell)) {
         return true;
     }
 
@@ -12025,7 +12007,7 @@ bool CGUnit_C::CheckStealthRules(const SpellRec* spell, int32_t* reason) const {
 // VERIFY: 2d1553ba manual
 // OFFSET: 0x0072A000
 const char* CGUnit_C::GetUnitName(const char** realm, int32_t followOverride) {
-    if (followOverride && this->HasAuraEffect(279)) {
+    if (followOverride && this->HasAuraEffect(SPELL_AURA_INITIALIZE_IMAGES)) {
         SpellRec spell;
 
         for (uint32_t i = 0; i < this->GetAuraCount(); i++) {
@@ -12036,7 +12018,7 @@ const char* CGUnit_C::GetUnitName(const char** realm, int32_t followOverride) {
             }
 
             for (uint32_t j = 0; j < sizeof(spell.m_effectAura) / sizeof(spell.m_effectAura[0]); j++) {
-                if (spell.m_effectAura[j] == 279 && ((1 << j) & aura->m_flags)) {
+                if (spell.m_effectAura[j] == SPELL_AURA_INITIALIZE_IMAGES && ((1 << j) & aura->m_flags)) {
                     CGUnit_C* creator = static_cast<CGUnit_C*>(ClntObjMgrObjectPtr(aura->m_creator, TYPE_UNIT, __FILE__, __LINE__));
 
                     if (creator) {
@@ -15084,11 +15066,10 @@ void CGUnit_C::AddWorldText(const WOWGUID& source, MISS_REASON reason, const Spe
         color = reinterpret_cast<const CImVector*>(&s_petSpellDamageColor);
     }
 
-    const WORLDTEXTINFO& info = s_combatTextInfo[reason];
-    const char* text = FrameScript_GetText(info.m_token, -1, GENDER_NOT_APPLICABLE);
+    const char* text = FrameScript_GetText(s_combatTextTokens[reason], -1, GENDER_NOT_APPLICABLE);
 
     if (text && *text) {
-        PlayerNameCreateText(this->m_nameDesc, info.m_style, text, color, nullptr);
+        PlayerNameCreateText(this->m_nameDesc, s_combatTextTypes[reason], text, color, nullptr);
     }
 }
 
@@ -15787,15 +15768,15 @@ bool CGUnit_C::HasDispellableAura(int32_t dispelType, int32_t harmful, bool mech
         if (charmed) {
             bool charm = false;
 
-            if ((spell.m_effect[0] == 6 || spell.m_effect[0] == 177 || spell.m_effect[0] == 2) && (this->m_auras[i].m_flags & 0x1)) {
+            if ((spell.m_effect[0] == SPELL_AURA_MOD_CHARM || spell.m_effect[0] == SPELL_AURA_AOE_CHARM || spell.m_effect[0] == SPELL_AURA_MOD_POSSESS) && (this->m_auras[i].m_flags & 0x1)) {
                 charm = true;
             }
 
-            if ((spell.m_effect[1] == 6 || spell.m_effect[1] == 177 || spell.m_effect[1] == 2) && (this->m_auras[i].m_flags & 0x2)) {
+            if ((spell.m_effect[1] == SPELL_AURA_MOD_CHARM || spell.m_effect[1] == SPELL_AURA_AOE_CHARM || spell.m_effect[1] == SPELL_AURA_MOD_POSSESS) && (this->m_auras[i].m_flags & 0x2)) {
                 charm = true;
             }
 
-            if ((spell.m_effect[2] == 6 || spell.m_effect[2] == 177 || spell.m_effect[2] == 2) && (this->m_auras[i].m_flags & 0x4)) {
+            if ((spell.m_effect[2] == SPELL_AURA_MOD_CHARM || spell.m_effect[2] == SPELL_AURA_AOE_CHARM || spell.m_effect[2] == SPELL_AURA_MOD_POSSESS) && (this->m_auras[i].m_flags & 0x4)) {
                 charm = true;
             }
 
@@ -15924,7 +15905,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
     for (uint32_t i = 0; i < sizeof(spell->m_effect) / sizeof(spell->m_effect[0]); i++) {
         int32_t effect = spell->m_effect[i];
 
-        if (effect == 36) {
+        if (effect == SPELL_EFFECT_LEARN_SPELL) {
             int32_t learn = spell->m_effectTriggerSpell[i];
 
             if (!learn) {
@@ -15954,7 +15935,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(PendingSpellCast* cast, const Spe
             }
         }
 
-        if (effect == 56 || effect == 55 || spell->m_effectAura[i] == 6 || spell->m_effectAura[i] == 2) {
+        if (effect == SPELL_EFFECT_SUMMON_PET || effect == SPELL_EFFECT_TAMECREATURE || spell->m_effectAura[i] == SPELL_AURA_MOD_CHARM || spell->m_effectAura[i] == SPELL_AURA_MOD_POSSESS) {
             const WOWGUID* controlled = &this->m_unit->m_unitFieldCharm;
 
             if (!*controlled) {
@@ -16587,24 +16568,24 @@ store:
     if (this->IsActivePlayer()) {
         for (uint32_t i = 0; i < 3; i++) {
             switch (spell->m_effectAura[i]) {
-                case 76:
+                case SPELL_AURA_FAR_SIGHT:
                     CGWorldFrame::GetActiveCamera()->SetTelescope(spell->m_effectMiscValue[i]);
                     break;
 
-                case 233:
+                case SPELL_AURA_CHANGE_MODEL_FOR_ALL_HUMANOIDS:
                     EnumVisibleForAuraEffect(spell, spell->m_effectMiscValue[i], spell->m_effectMiscValueB[i]);
                     break;
 
-                case 260:
+                case SPELL_AURA_SCREEN_EFFECT:
                     CGWorldFrame::UpdateScreenEffect();
                     break;
 
-                case 262:
-                case 275:
+                case SPELL_AURA_ABILITY_IGNORE_AURASTATE:
+                case SPELL_AURA_MOD_IGNORE_SHAPESHIFT:
                     CGSpellBook::UpdateUsable();
                     break;
 
-                case 273:
+                case SPELL_AURA_X_RAY:
                     CGPlayer_C::UpdateXRayVision(spell);
                     break;
 
@@ -16615,7 +16596,7 @@ store:
     }
 
     for (uint32_t i = 0; i < 3; i++) {
-        if (spell->m_effectAura[i] == 78) {
+        if (spell->m_effectAura[i] == SPELL_AURA_MOUNTED) {
             CGSpellBook::SendCompanionUpdate(1);
 
             if (visualIds[0]) {
@@ -16626,7 +16607,7 @@ store:
                     this->m_mountAnimBehaviorId = kit->m_animID;
                 }
             }
-        } else if (spell->m_effectAura[i] == 279) {
+        } else if (spell->m_effectAura[i] == SPELL_AURA_INITIALIZE_IMAGES) {
             WOWGUID guid = this->m_obj->m_guid;
             CGGameUI::UnitNameUpdate(guid);
         }
@@ -16636,7 +16617,7 @@ store:
 
     if (this->GetControllingPlayer() == player || this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         for (uint32_t i = 0; i < 3; i++) {
-            if (spell->m_effectAura[i] == 48) {
+            if (spell->m_effectAura[i] == SPELL_AURA_PERIODIC_TRIGGER_SPELL_FROM_CLIENT) {
                 int32_t period = spell->m_effectAuraPeriod[i];
                 Spell_C_ModifySpellValue(spell, period, 19);
                 Spell_C_AddPeriodicClientTrigger(this->m_obj->m_guid, spell->m_id, spell->m_effectTriggerSpell[i], period);
@@ -16695,11 +16676,11 @@ void CGUnit_C::RemoveAuraEffect(uint32_t index, const SpellRec* spell) {
     if (this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         for (uint32_t i = 0; i < 3; i++) {
             switch (spell->m_effectAura[i]) {
-                case 76:
+                case SPELL_AURA_FAR_SIGHT:
                     CGWorldFrame::GetActiveCamera()->SetTelescope(0);
                     break;
 
-                case 78: {
+                case SPELL_AURA_MOUNTED: {
                     CGSpellBook::SendCompanionUpdate(1);
 
                     if (spell->m_spellVisualID[0]) {
@@ -16717,24 +16698,24 @@ void CGUnit_C::RemoveAuraEffect(uint32_t index, const SpellRec* spell) {
                     break;
                 }
 
-                case 233:
+                case SPELL_AURA_CHANGE_MODEL_FOR_ALL_HUMANOIDS:
                     EnumVisibleForAuraEffect(spell, 0, 0);
                     break;
 
-                case 260:
+                case SPELL_AURA_SCREEN_EFFECT:
                     CGWorldFrame::UpdateScreenEffect();
                     break;
 
-                case 262:
-                case 275:
+                case SPELL_AURA_ABILITY_IGNORE_AURASTATE:
+                case SPELL_AURA_MOD_IGNORE_SHAPESHIFT:
                     CGSpellBook::UpdateUsable();
                     break;
 
-                case 273:
+                case SPELL_AURA_X_RAY:
                     CGPlayer_C::UpdateXRayVision(spell);
                     break;
 
-                case 292:
+                case SPELL_AURA_OPEN_STABLE:
                     CGStableInfo::CloseStables(true);
                     break;
 
@@ -16745,7 +16726,7 @@ void CGUnit_C::RemoveAuraEffect(uint32_t index, const SpellRec* spell) {
     }
 
     for (uint32_t i = 0; i < 3; i++) {
-        if (spell->m_effectAura[i] == 279) {
+        if (spell->m_effectAura[i] == SPELL_AURA_INITIALIZE_IMAGES) {
             WOWGUID guid = this->m_obj->m_guid;
             CGGameUI::UnitNameUpdate(guid);
         }
@@ -16755,7 +16736,7 @@ void CGUnit_C::RemoveAuraEffect(uint32_t index, const SpellRec* spell) {
 
     if (this->GetControllingPlayer() == player || this->m_obj->m_guid == ClntObjMgrGetActivePlayer()) {
         for (uint32_t i = 0; i < 3; i++) {
-            if (spell->m_effectAura[i] == 48) {
+            if (spell->m_effectAura[i] == SPELL_AURA_PERIODIC_TRIGGER_SPELL_FROM_CLIENT) {
                 Spell_C_RemovePeriodicClientTrigger(this->m_obj->m_guid, spell->m_id);
             }
         }
@@ -17426,7 +17407,7 @@ bool CGUnit_C::CheckShapeshiftRules(const SpellRec* spell, int32_t* reason) {
     int32_t form = this->m_shapeshiftSuppressed ? 0 : this->m_unit->m_unitFieldBytes2[3];
 
     if (SpellRec::NotUsableInShapeshiftForm(spell, form - 1)) {
-        if (!this->AffectedByAura(275, spell)) {
+        if (!this->AffectedByAura(SPELL_AURA_MOD_IGNORE_SHAPESHIFT, spell)) {
             *reason = 68;
             return false;
         }
@@ -17442,7 +17423,7 @@ bool CGUnit_C::CheckShapeshiftRules(const SpellRec* spell, int32_t* reason) {
 
     if (this->IsShapeShifted()) {
         if (spell->m_attributes & 0x10000) {
-            if (!this->AffectedByAura(275, spell)) {
+            if (!this->AffectedByAura(SPELL_AURA_MOD_IGNORE_SHAPESHIFT, spell)) {
                 *reason = 68;
                 return false;
             }
@@ -17454,7 +17435,7 @@ bool CGUnit_C::CheckShapeshiftRules(const SpellRec* spell, int32_t* reason) {
         SpellShapeshiftFormRec* shapeshift = g_spellShapeshiftFormDB.GetRecord(form);
 
         if (shapeshift && (shapeshift->m_flags & 0x400)) {
-            if (!this->AffectedByAura(275, spell)) {
+            if (!this->AffectedByAura(SPELL_AURA_MOD_IGNORE_SHAPESHIFT, spell)) {
                 *reason = 68;
                 return false;
             }
@@ -17465,7 +17446,7 @@ bool CGUnit_C::CheckShapeshiftRules(const SpellRec* spell, int32_t* reason) {
         return true;
     }
 
-    if ((spell->m_shapeshiftMask[0] || spell->m_shapeshiftMask[1]) && !this->AffectedByAura(275, spell)) {
+    if ((spell->m_shapeshiftMask[0] || spell->m_shapeshiftMask[1]) && !this->AffectedByAura(SPELL_AURA_MOD_IGNORE_SHAPESHIFT, spell)) {
         *reason = 94;
         return false;
     }
@@ -19912,7 +19893,7 @@ int32_t CGUnit_C::UpdateObjectNameStringForUnit(CGUnit_C* unit, int32_t flags, c
             }
 
             for (int32_t effect = 0; effect < 3; effect++) {
-                if (spellRec.m_effectAura[effect] != 279 || !(aura->m_flags & (1 << effect))) {
+                if (spellRec.m_effectAura[effect] != SPELL_AURA_INITIALIZE_IMAGES || !(aura->m_flags & (1 << effect))) {
                     continue;
                 }
 
@@ -20195,7 +20176,7 @@ void CGUnit_C::UnitNameplatesReposition(CGWorldFrame* worldFrame) {
 // VERIFY: fb0e4f71 manual
 // OFFSET: 0x00726E10
 void CGUnit_C::CancelOpenStable() {
-    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer() || !this->HasAuraEffect(292)) {
+    if (this->m_obj->m_guid != ClntObjMgrGetActivePlayer() || !this->HasAuraEffect(SPELL_AURA_OPEN_STABLE)) {
         return;
     }
 
@@ -20211,7 +20192,7 @@ void CGUnit_C::CancelOpenStable() {
         }
 
         for (uint32_t j = 0; j < 3; j++) {
-            if (spell.m_effectAura[j] == 292) {
+            if (spell.m_effectAura[j] == SPELL_AURA_OPEN_STABLE) {
                 Spell_C_CancelAura(&spell, this, -1);
             }
         }
@@ -20239,7 +20220,7 @@ void CGUnit_C::CancelShapeshiftForMount() {
         }
 
         for (uint32_t effect = 0; effect < 3; effect++) {
-            if (spell.m_effectAura[effect] != 36) {
+            if (spell.m_effectAura[effect] != SPELL_AURA_MOD_SHAPESHIFT) {
                 continue;
             }
 
@@ -21924,7 +21905,7 @@ void CGUnit_C::CancelShapeshift() {
         }
 
         for (uint32_t j = 0; j < 3; j++) {
-            if (spell.m_effectAura[j] == 36 && spell.m_effectMiscValue[j] == static_cast<int32_t>(this->GetShapeshiftForm())) {
+            if (spell.m_effectAura[j] == SPELL_AURA_MOD_SHAPESHIFT && spell.m_effectMiscValue[j] == static_cast<int32_t>(this->GetShapeshiftForm())) {
                 Spell_C_CancelAura(&spell, this, -1);
             }
         }
@@ -23589,7 +23570,7 @@ bool CGUnit_C::CheckSelfResurrect() {
         }
 
         for (uint32_t effect = 0; effect < 3; effect++) {
-            if (spell.m_effectAura[effect] == 314) {
+            if (spell.m_effectAura[effect] == SPELL_AURA_PREVENT_RESURRECTION) {
                 char buffer[1024];
                 GetCustomSpellFailedString(buffer, sizeof(buffer), spell.m_effectMiscValue[effect]);
                 return false;
@@ -23611,7 +23592,7 @@ void CGUnit_C::CheckApplyPeriodicClientTriggers() {
         }
 
         for (uint32_t effect = 0; effect < 3; effect++) {
-            if (spell.m_effectAura[effect] == 48) {
+            if (spell.m_effectAura[effect] == SPELL_AURA_PERIODIC_TRIGGER_SPELL_FROM_CLIENT) {
                 int32_t period = spell.m_effectAuraPeriod[effect];
                 Spell_C_ModifySpellValue(&spell, period, 19);
                 Spell_C_AddPeriodicClientTrigger(this->m_obj->m_guid, spell.m_id, spell.m_effectTriggerSpell[effect], period);

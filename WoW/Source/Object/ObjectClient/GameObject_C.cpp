@@ -30,6 +30,7 @@
 #include "WoW/Source/Game/GameClient/PlayerName.h"
 #include "WoW/Source/Game/GameClient/WorldText.h"
 #include "WoW/Source/LoadingScreen.h"
+#include "WoW/Source/Magic/MagicClient/SpellEnums.h"
 #include "WoW/Source/Magic/MagicClient/Spell_C.h"
 #include "WoW/Source/Object/GameObjectDef.h"
 #include "WoW/Source/Object/GameObjectStats.h"
@@ -2777,7 +2778,7 @@ bool CGGameObject_C::IsValidTargetForSpell(const WOWGUID& item, int32_t spellId)
     CGItem_C* key = static_cast<CGItem_C*>(ClntObjMgrObjectPtr(item, TYPE_ITEM, __FILE__, __LINE__));
 
     for (uint32_t i = 0; i < 3; i++) {
-        if (spell.m_effect[i] != 33) {
+        if (spell.m_effect[i] != SPELL_EFFECT_OPEN_LOCK) {
             continue;
         }
 
@@ -3677,7 +3678,7 @@ bool CGGameObject_C::IsLocked(int32_t* spellId, int32_t* skillValue, int32_t* re
                 g_spellDB.GetRecord(s_openLockSpells.m_data[j], &spell);
 
                 for (uint32_t effect = 0; effect < 3; effect++) {
-                    if (spell.m_effect[effect] != 33 || spell.m_effectMiscValue[effect] != lock->m_index[i]) {
+                    if (spell.m_effect[effect] != SPELL_EFFECT_OPEN_LOCK || spell.m_effectMiscValue[effect] != lock->m_index[i]) {
                         continue;
                     }
 
@@ -3713,7 +3714,7 @@ bool CGGameObject_C::IsLocked(int32_t* spellId, int32_t* skillValue, int32_t* re
                     g_spellDB.GetRecord(targetingSpell, &targeting);
 
                     for (uint32_t effect = 0; effect < 3; effect++) {
-                        if (targeting.m_effect[effect] != 33 || targeting.m_effectMiscValue[effect] != lock->m_index[i]) {
+                        if (targeting.m_effect[effect] != SPELL_EFFECT_OPEN_LOCK || targeting.m_effectMiscValue[effect] != lock->m_index[i]) {
                             continue;
                         }
 
@@ -3755,7 +3756,7 @@ bool CGGameObject_C::IsLocked(int32_t* spellId, int32_t* skillValue, int32_t* re
             g_spellDB.GetRecord(lock->m_index[i], &spell);
 
             for (uint32_t effect = 0; effect < 3; effect++) {
-                if (spell.m_effect[effect] == 33) {
+                if (spell.m_effect[effect] == SPELL_EFFECT_OPEN_LOCK) {
                     if (spellId) {
                         *spellId = spell.m_id;
                     }

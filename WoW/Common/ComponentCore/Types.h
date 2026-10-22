@@ -7,7 +7,7 @@
 struct CharColorList;
 class CharSectionsRec;
 
-enum CHARACTER_GEOSET_SECTIONS : uint32_t {
+enum CHARACTER_GEOSET_SECTIONS : int32_t {
     CHARGEOSET_HAIR = 0,
     CHARGEOSET_BEARD = 1,
     CHARGEOSET_SIDEBURN = 2,

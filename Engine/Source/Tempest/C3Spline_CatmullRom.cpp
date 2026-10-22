@@ -28,7 +28,7 @@ SPLINE_MODE C3Spline_CatmullRom::GetSplineMode() {
 // VERIFY: f3bb76de manual
 // OFFSET: 0x004C3FD0
 void C3Spline_CatmullRom::Evaluate(uint32_t seg, float t, C3Vector& pos) {
-    if (this->splineMode == MODE_CATMULLROM) {
+    if (this->splineMode != MODE_LINEAR) {
         C3Spline::Evaluate(seg, t, s_catmullRomBasis, pos);
         return;
     }
@@ -44,7 +44,7 @@ void C3Spline_CatmullRom::Evaluate(uint32_t seg, float t, C3Vector& pos) {
 // VERIFY: f0c48125 manual
 // OFFSET: 0x004C40B0
 float C3Spline_CatmullRom::SegLength(uint32_t seg) {
-    if (this->splineMode == MODE_CATMULLROM) {
+    if (this->splineMode != MODE_LINEAR) {
         return C3Spline::SegLength(seg, s_catmullRomBasis);
     }
 
@@ -165,7 +165,7 @@ void C3Spline_CatmullRom::IFrameArclength(float t, C44Matrix& frame) {
         dir.z = inv * dir.z;
     }
 
-    if (this->splineMode == MODE_CATMULLROM) {
+    if (this->splineMode != MODE_LINEAR) {
         C3Vector vel(0.0f, 0.0f, 0.0f);
         C3Spline::EvaluateDer1(seg, segT, C44Matrix(s_catmullRomDer1), vel);
 
