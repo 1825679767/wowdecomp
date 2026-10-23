@@ -12,9 +12,38 @@
 #include "Engine/Source/Storm/H/storm.h"
 
 // STATIC: 0x00C7D328
-static uint16_t s_textureData[256 * 256];
-static uint32_t s_highResolutionTextureData[256 * 256];
-static constexpr uint32_t kMaxFontCellHeight = 68;
+static uint16_t s_textureData[GXU_FONT_LEGACY_ATLAS_SIZE * GXU_FONT_LEGACY_ATLAS_SIZE];
+
+// The high-resolution page is 512x512 ARGB8888.  Glyphs are rasterized at their display
+// size, so a cell can be several hundred rows tall; a 256-row page could not hold one.
+static uint32_t s_highResolutionTextureData[GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE * GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE];
+
+// The legacy paste routines below address the 256x256 page with hard-coded row strides and
+// fixed stack scratch buffers, so their cell height stays bounded by the original limit.
+static constexpr uint32_t kMaxFontCellHeight = GXU_FONT_LEGACY_CELL_HEIGHT_LIMIT;
+
+// INLINED
+uint32_t TEXTURECACHE::GetAtlasSize() const {
+    return this->m_theFace && this->m_theFace->IsHighResolution() ? GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE : GXU_FONT_LEGACY_ATLAS_SIZE;
+}
+
+// Scratch buffer for the outlined high-resolution paste.  Sized for the largest cell a
+// 512-row page can hold; reused by every glyph because pasting is single-threaded.
+static uint8_t* AcquireHighResolutionOutlineState(uint32_t bytes) {
+    static uint8_t* s_state = nullptr;
+    static uint32_t s_stateSize = 0;
+
+    if (bytes > s_stateSize) {
+        if (s_state) {
+            SMemFree(s_state, __FILE__, __LINE__, 0);
+        }
+
+        s_state = static_cast<uint8_t*>(SMemAlloc(bytes, __FILE__, __LINE__, 0));
+        s_stateSize = s_state ? bytes : 0;
+    }
+
+    return s_state;
+}
 
 // VERIFY: 7a9fdc75 manual
 // OFFSET: 0x006C8E70
@@ -337,26 +366,154 @@ void TEXTURECACHE::PasteGlyphNonOutlinedAA(const GLYPHBITMAPDATA& data, uint16_t
     }
 }
 
-void TEXTURECACHE::PasteGlyphNonOutlinedAAHighResolution(const GLYPHBITMAPDATA& data, uint32_t* dest) {
+// Writes one glyph cell into the 8-bit page.  The glyph is rasterized at its display size, so
+// its coverage values are copied straight into the alpha channel with no 4-bit quantisation.
+// Outline and monochrome fonts keep the shape the legacy path produces (a dilated edge whose
+// alpha comes from the number of filled neighbours) but at 8-bit precision.
+void TEXTURECACHE::PasteGlyphHighResolution(const GLYPHBITMAPDATA& data, uint32_t* dest, uint32_t fontFlags) {
+    static const uint8_t s_outlineAlpha[] = { 0, 1, 1, 3, 5, 7, 9, 11, 13, 15 };
+
     const uint8_t* source = static_cast<const uint8_t*>(data.m_data);
+    const uint32_t atlasSize = GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE;
     const uint32_t cellHeight = this->m_theFace->m_cellHeight;
-    const uint32_t cellWidth = data.m_glyphCellWidth;
+    // A cell wider than the page would bleed into the next row; the allocator never hands one
+    // out, but the paste itself stays inside the page either way.
+    const uint32_t cellWidth = data.m_glyphCellWidth > atlasSize ? atlasSize : data.m_glyphCellWidth;
     const uint32_t firstGlyphRow = data.m_yStart;
     const uint32_t lastGlyphRow = firstGlyphRow + data.m_glyphHeight;
+    const bool monochrome = (fontFlags & 2) != 0;
+    const bool outlined = (fontFlags & (1 | 8)) != 0;
+    const uint32_t outlinePasses = (fontFlags & 8) ? 2 : (outlined ? 1 : 0);
 
+    // dest already points at the first texel of the cell inside the page.  Clearing the full
+    // cell also clears the transparent column that separates it from the next glyph.
     for (uint32_t y = 0; y < cellHeight; y++) {
-        uint32_t* row = dest + (y << 8);
-        memset(row, 0, cellWidth * sizeof(uint32_t));
+        memset(dest + y * atlasSize, 0, cellWidth * sizeof(uint32_t));
+    }
 
-        if (y < firstGlyphRow || y >= lastGlyphRow) {
-            continue;
+    if (!outlinePasses) {
+        for (uint32_t y = 0; y < data.m_glyphHeight && firstGlyphRow + y < cellHeight; y++) {
+            uint32_t* row = dest + (firstGlyphRow + y) * atlasSize;
+
+            for (uint32_t x = 0; x < data.m_glyphWidth && x < cellWidth; x++) {
+                uint8_t value = monochrome ? static_cast<uint8_t>(((source[x >> 3] >> (7 - (x & 7))) & 1) * 0xFF) : source[x];
+
+                if (value) {
+                    row[x] = (static_cast<uint32_t>(value) << 24) | 0x00FFFFFF;
+                }
+            }
+
+            source += data.m_glyphPitch;
         }
 
-        for (uint32_t x = 0; x < data.m_glyphWidth; x++) {
-            row[x] = (static_cast<uint32_t>(source[x]) << 24) | 0x00FFFFFF;
+        return;
+    }
+
+    // Outlined path: mark the glyph in a per-cell state buffer, grow it outwards, then shade
+    // the grown ring from the number of filled neighbours so the edge keeps its anti-aliasing.
+    uint8_t* state = AcquireHighResolutionOutlineState(atlasSize * cellHeight);
+
+    if (!state) {
+        return;
+    }
+
+    memset(state, 0, atlasSize * cellHeight);
+
+    for (uint32_t y = 0; y < data.m_glyphHeight && firstGlyphRow + y < cellHeight; y++) {
+        uint8_t* stateRow = state + (firstGlyphRow + y) * atlasSize;
+
+        for (uint32_t x = 0; x < data.m_glyphWidth && x < cellWidth; x++) {
+            uint8_t value = monochrome ? static_cast<uint8_t>(((source[x >> 3] >> (7 - (x & 7))) & 1) * 0xFF) : source[x];
+
+            if (value) {
+                stateRow[x] = 1;
+                dest[(firstGlyphRow + y) * atlasSize + x] = (static_cast<uint32_t>(value) << 24) | 0x00FFFFFF;
+            }
         }
 
         source += data.m_glyphPitch;
+    }
+
+    for (uint32_t pass = 0; pass < outlinePasses; pass++) {
+        uint8_t value = static_cast<uint8_t>(pass + 2);
+        uint8_t mask = static_cast<uint8_t>((1 << (pass + 1)) | 1);
+
+        for (uint32_t y = 0; y < cellHeight; y++) {
+            uint8_t* row = state + y * atlasSize;
+
+            for (uint32_t x = 0; x < cellWidth; x++) {
+                if (row[x] & mask) {
+                    continue;
+                }
+
+                bool found = false;
+
+                for (int32_t dy = -1; dy <= 1 && !found; dy++) {
+                    int32_t ny = static_cast<int32_t>(y) + dy;
+
+                    if (ny < 0 || ny >= static_cast<int32_t>(cellHeight)) {
+                        continue;
+                    }
+
+                    const uint8_t* neighbour = state + ny * atlasSize;
+
+                    for (int32_t dx = -1; dx <= 1; dx++) {
+                        int32_t nx = static_cast<int32_t>(x) + dx;
+
+                        if (nx < 0 || nx >= static_cast<int32_t>(cellWidth)) {
+                            continue;
+                        }
+
+                        if (neighbour[nx] & mask) {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (found) {
+                    row[x] = value;
+                }
+            }
+        }
+    }
+
+    for (uint32_t y = 0; y < cellHeight; y++) {
+        const uint8_t* stateRow = state + y * atlasSize;
+        uint32_t* destRow = dest + y * atlasSize;
+
+        for (uint32_t x = 0; x < cellWidth; x++) {
+            if (stateRow[x] < 2) {
+                continue;
+            }
+
+            uint32_t filled = 0;
+
+            for (int32_t dy = -1; dy <= 1; dy++) {
+                int32_t ny = static_cast<int32_t>(y) + dy;
+
+                if (ny < 0 || ny >= static_cast<int32_t>(cellHeight)) {
+                    continue;
+                }
+
+                const uint8_t* neighbour = state + ny * atlasSize;
+
+                for (int32_t dx = -1; dx <= 1; dx++) {
+                    int32_t nx = static_cast<int32_t>(x) + dx;
+
+                    if (nx < 0 || nx >= static_cast<int32_t>(cellWidth)) {
+                        continue;
+                    }
+
+                    if (neighbour[nx]) {
+                        filled++;
+                    }
+                }
+            }
+
+            uint32_t alpha = static_cast<uint32_t>(s_outlineAlpha[filled]) * 17;
+            destRow[x] = (alpha << 24) | 0x00FFFFFF;
+        }
     }
 }
 
@@ -365,7 +522,8 @@ void TEXTURECACHE::PasteGlyphNonOutlinedAAHighResolution(const GLYPHBITMAPDATA& 
 void TEXTURECACHE::UpdateDirty() {
     if (this->m_anyDirtyGlyphs && this->m_texture) {
         CGxTex* gxTex = TextureGetGxTex(this->m_texture, 1, nullptr);
-        GxTexUpdate(gxTex, 0, 0, 256, 256, 1);
+        uint32_t atlasSize = this->GetAtlasSize();
+        GxTexUpdate(gxTex, 0, 0, atlasSize, atlasSize, 1);
         this->m_anyDirtyGlyphs = 0;
     }
 }
@@ -376,7 +534,7 @@ CHARCODEDESC* TEXTURECACHE::AllocateNewGlyph(GLYPHBITMAPDATA* data) {
     uint32_t count = this->m_textureRows.m_count;
 
     for (uint32_t i = 0; i < count; i++) {
-        CHARCODEDESC* desc = this->m_textureRows.m_data[i].CreateNewDesc(data, i, this->m_theFace->m_cellHeight);
+        CHARCODEDESC* desc = this->m_textureRows.m_data[i].CreateNewDesc(data, i, this->m_theFace->m_cellHeight, this->GetAtlasSize());
 
         if (desc) {
             return desc;
@@ -394,7 +552,9 @@ void TEXTURECACHE::TextureCallback(EGxTexCommand command, uint32_t width, uint32
     }
 
     TEXTURECACHE* cache = static_cast<TEXTURECACHE*>(userArg);
-    const bool highResolution = cache->m_theFace && (cache->m_theFace->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION);
+    CGxFont* font = cache->m_theFace;
+    const bool highResolution = font && font->IsHighResolution();
+    const uint32_t atlasSize = highResolution ? GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE : GXU_FONT_LEGACY_ATLAS_SIZE;
 
     if (highResolution) {
         memset(s_highResolutionTextureData, 0, sizeof(s_highResolutionTextureData));
@@ -404,15 +564,14 @@ void TEXTURECACHE::TextureCallback(EGxTexCommand command, uint32_t width, uint32
         TEXTURECACHEROW& cacheRow = cache->m_textureRows.m_data[row - 1];
 
         for (CHARCODEDESC* glyph = cacheRow.m_glyphlist.Head(); glyph; glyph = cacheRow.m_glyphlist.Next(glyph)) {
-            if (!cache->m_texture || !cache->m_theFace || !cache->m_theFace->m_cellHeight) {
+            if (!cache->m_texture || !font || !font->m_cellHeight) {
                 continue;
             }
 
-            CGxFont* font = cache->m_theFace;
-            uint32_t offset = glyph->m_glyphStartPixel + ((glyph->m_rowNumber * font->m_cellHeight) << 8);
+            uint32_t offset = glyph->m_glyphStartPixel + glyph->m_rowNumber * font->m_cellHeight * atlasSize;
 
-            if (highResolution && !(font->m_fontFlags & (1 | 2 | 8))) {
-                cache->PasteGlyphNonOutlinedAAHighResolution(glyph->m_bitmapData, &s_highResolutionTextureData[offset]);
+            if (highResolution) {
+                cache->PasteGlyphHighResolution(glyph->m_bitmapData, &s_highResolutionTextureData[offset], font->m_fontFlags);
                 continue;
             }
 
@@ -429,28 +588,14 @@ void TEXTURECACHE::TextureCallback(EGxTexCommand command, uint32_t width, uint32
             } else {
                 cache->PasteGlyphNonOutlinedAA(glyph->m_bitmapData, dest);
             }
-
-            if (highResolution) {
-                for (uint32_t y = 0; y < font->m_cellHeight; y++) {
-                    for (uint32_t x = 0; x < glyph->m_bitmapData.m_glyphCellWidth; x++) {
-                        uint32_t pixelIndex = offset + (y << 8) + x;
-                        uint16_t pixel = s_textureData[pixelIndex];
-                        uint32_t alpha = ((pixel >> 12) & 0xF) * 17;
-                        uint32_t red = ((pixel >> 8) & 0xF) * 17;
-                        uint32_t green = ((pixel >> 4) & 0xF) * 17;
-                        uint32_t blue = (pixel & 0xF) * 17;
-                        s_highResolutionTextureData[pixelIndex] = (alpha << 24) | (red << 16) | (green << 8) | blue;
-                    }
-                }
-            }
         }
     }
 
     if (highResolution) {
-        texelStrideInBytes = 1024;
+        texelStrideInBytes = atlasSize * sizeof(uint32_t);
         texels = s_highResolutionTextureData;
     } else {
-        texelStrideInBytes = 512;
+        texelStrideInBytes = atlasSize * sizeof(uint16_t);
         texels = s_textureData;
     }
 }
@@ -460,18 +605,20 @@ void TEXTURECACHE::TextureCallback(EGxTexCommand command, uint32_t width, uint32
 void TEXTURECACHE::CreateTexture(int32_t filter, bool highResolution) {
     CGxTexFlags flags(static_cast<EGxTexFilter>(filter != 0), 0, 0, 0, 0, 0, 1, 0, 0, 0);
     EGxTexFormat format = highResolution ? GxTex_Argb8888 : GxTex_Argb4444;
-    this->m_texture = TextureCreate(256, 256, format, format, flags, this, TEXTURECACHE::TextureCallback, "GxuFont", 0);
+    uint32_t atlasSize = highResolution ? GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE : GXU_FONT_LEGACY_ATLAS_SIZE;
+    this->m_texture = TextureCreate(atlasSize, atlasSize, format, format, flags, this, TEXTURECACHE::TextureCallback, "GxuFont", 0);
 }
 
 // VERIFY: ba005b39 manual
 // OFFSET: 0x006CA130
 void TEXTURECACHE::Initialize(CGxFont* face, uint32_t cellHeight) {
     this->m_theFace = face;
-    uint32_t rows = 256 / cellHeight;
+    uint32_t atlasSize = this->GetAtlasSize();
+    uint32_t rows = atlasSize / cellHeight;
     this->m_textureRows.SetCount(rows);
 
     for (uint32_t i = 0; i < rows; i++) {
-        this->m_textureRows.m_data[i].m_widestFreeSlot = 256;
+        this->m_textureRows.m_data[i].m_widestFreeSlot = atlasSize;
     }
 }
 

@@ -15,6 +15,7 @@
 #include "Engine/Source/Gx/Types.h"
 #include "Engine/Source/Gxu/Gxu.h"
 #include "Engine/Source/Gxu/GxuFont.h"
+#include "Engine/Source/Gxu/GxuFontUtil.h"
 #include "Engine/Source/Gxu/Types.h"
 #include "Engine/Source/Os/TimeManager.h"
 #include "Engine/Source/Services/TextBlock.h"
@@ -79,6 +80,19 @@ static CGxStringBatch* s_worldTextBatch;
 // STATIC: 0x00D380CC
 static HTEXTFONT s_worldTextFont;
 
+// World text grows from a small number to several times that size over its lifetime, and the
+// camera then draws it on top of the world.  One font rasterized at a fixed size is either
+// stretched (blurry) or squeezed (losing strokes) for most of that range, so each string is
+// drawn with a font whose glyphs were rasterized at the size it is currently displayed at.
+// The sizes form a ladder to bound the number of atlases, and each display size picks the
+// nearest rung, so the glyphs are resampled by at most half a step: with these rungs that is
+// about ten percent, which is invisible, while the fixed 2x font used to stretch a critical
+// hit from 64 to 99 pixels.  Each bucket costs one 512x512 8-bit page (1 MB) once a glyph is
+// rasterized into it, and a critical hit climbs through roughly a dozen of them.
+static constexpr uint32_t s_worldTextBucketPixels[] = { 16, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256 };
+static constexpr uint32_t s_numWorldTextBuckets = sizeof(s_worldTextBucketPixels) / sizeof(s_worldTextBucketPixels[0]);
+static HTEXTFONT s_worldTextFonts[s_numWorldTextBuckets];
+
 // STATIC: 0x00D380D0
 static CTexture* s_pvpRankTextures[15];
 
@@ -128,6 +142,42 @@ float WorldTextGetAscendDistance(uint32_t type) {
     return s_worldTextTypes[type].m_ascendDistance;
 }
 
+// The bucket a display height in DDC falls into: the rung closest to the requested number of
+// pixels.  Rounding to the nearest rung instead of the next one up halves the worst-case
+// resampling and keeps every string within a few percent of its raster size.
+static uint32_t WorldTextBucketForHeight(float fontHeightDdc) {
+    float pixels = ScreenToPixelHeight(0, DDCToNDCHeight(fontHeightDdc));
+    uint32_t bucket = 0;
+
+    while (bucket + 1 < s_numWorldTextBuckets) {
+        float current = static_cast<float>(s_worldTextBucketPixels[bucket]);
+        float next = static_cast<float>(s_worldTextBucketPixels[bucket + 1]);
+
+        if (pixels - current <= next - pixels) {
+            break;
+        }
+
+        bucket++;
+    }
+
+    return bucket;
+}
+
+// Returns the font whose glyphs were rasterized for the given display height, creating it on
+// first use.  Falls back to the smallest bucket if that font could not be created.
+static HTEXTFONT WorldTextGetFontForHeight(float fontHeightDdc) {
+    uint32_t bucket = WorldTextBucketForHeight(fontHeightDdc);
+    HTEXTFONT& font = s_worldTextFonts[bucket];
+
+    if (!font) {
+        const char* fontName = FrameScript_GetText("DAMAGE_TEXT_FONT", -1, GENDER_NOT_APPLICABLE);
+        float bucketDdc = NDCToDDCHeight(static_cast<float>(s_worldTextBucketPixels[bucket]) / static_cast<float>(g_heightPixels));
+        font = TextBlockGenerateFont(fontName, TEXTBLOCK_FONT_FLAG_HIGH_RESOLUTION, bucketDdc);
+    }
+
+    return font ? font : s_worldTextFont;
+}
+
 // VERIFY: 271233c4 auto
 // OFFSET: 0x007E66F0
 void WORLDTEXTSTRING::RecreateString() {
@@ -137,7 +187,7 @@ void WORLDTEXTSTRING::RecreateString() {
 
     this->m_string = nullptr;
 
-    CGxFont* font = TextBlockGetFontPtr(s_worldTextFont);
+    CGxFont* font = TextBlockGetFontPtr(WorldTextGetFontForHeight(this->m_fontHeight));
     float fontHeight = DDCToNDCHeight(this->m_fontHeight);
 
     C2Vector shadow;
@@ -146,7 +196,9 @@ void WORLDTEXTSTRING::RecreateString() {
     DDCToNDC(s_shadowOffset.x, s_shadowOffset.y, &shadow.x, &shadow.y);
 
     float extent;
-    GxuFontGetTextExtent(font, this->m_text, SStrLen(this->m_text), fontHeight, &extent, shadow.x, 1.0f, 0.0f, 0);
+    // m_text is a fixed 64-byte buffer that SStrCopy truncates, so its length always fits the
+    // uint32_t byte count the font API takes; the cast only silences the size_t narrowing.
+    GxuFontGetTextExtent(font, this->m_text, static_cast<uint32_t>(SStrLen(this->m_text)), fontHeight, &extent, shadow.x, 1.0f, 0.0f, 0);
     float textHeight = GxuFontGetWrappedTextHeight(font, this->m_text, fontHeight, extent, shadow, 1.0f, 0.0f, 0);
 
     C3Vector position(0.0f, 0.0f, 1.0f);
@@ -217,6 +269,13 @@ void WORLDTEXTSTRING::CalculateNewColor(uint32_t elapsed) {
 void WorldTextShutdown() {
     if (s_worldTextFont) {
         HandleClose(reinterpret_cast<HOBJECT>(s_worldTextFont));
+    }
+
+    for (uint32_t i = 0; i < s_numWorldTextBuckets; i++) {
+        if (s_worldTextFonts[i]) {
+            HandleClose(reinterpret_cast<HOBJECT>(s_worldTextFonts[i]));
+            s_worldTextFonts[i] = nullptr;
+        }
     }
 
     s_freeStrings.Clear(typeid(WORLDTEXTSTRING).raw_name(), SLOG_OBJECT, 1);
@@ -293,6 +352,9 @@ void WORLDTEXTSTRING::CalculateTextHeight(uint32_t elapsed) {
     }
 
     if (this->m_fontHeight != height) {
+        // The glyph geometry is built in pixels at the current display size, so the string has
+        // to be rebuilt whenever that size changes; the raster size only changes when the
+        // bucket changes, which keeps the same atlas pages in use for the whole animation.
         this->m_fontHeight = height;
         this->RecreateString();
     }
@@ -574,7 +636,9 @@ void WorldTextInitialize() {
     // World text is scaled by the camera and is especially sensitive to the
     // legacy nearest-filtered, 32-pixel glyph atlas.  Use the opt-in high
     // resolution path for damage numbers while keeping regular UI fonts
-    // byte-for-byte on their existing rendering path.
+    // byte-for-byte on their existing rendering path.  The per-size fonts are
+    // created on demand by WorldTextGetFontForHeight; this one is the fallback
+    // used when a bucket font cannot be created.
     s_worldTextFont = TextBlockGenerateFont(fontName, TEXTBLOCK_FONT_FLAG_HIGH_RESOLUTION, DDCToNDCHeight(0.018333333f));
     s_worldTextBatch = GxuFontCreateBatch(false, false);
 

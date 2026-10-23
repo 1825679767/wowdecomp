@@ -79,17 +79,20 @@ GLYPHBITMAPDATA::~GLYPHBITMAPDATA() {
 
 // VERIFY: d966ef03 manual
 // OFFSET: 0x006C4380
-void CHARCODEDESC::GenerateTextureCoords(uint32_t rowNumber, uint32_t cellHeight) {
+void CHARCODEDESC::GenerateTextureCoords(uint32_t rowNumber, uint32_t cellHeight, uint32_t atlasSize) {
     int32_t top = rowNumber * cellHeight;
     float left = this->m_glyphStartPixel;
 
+    // Normalised coordinates: the high-resolution page is 512 texels wide, the legacy one 256.
+    float oneOverAtlasSize = 1.0f / static_cast<float>(atlasSize);
+
     CRect coords;
-    coords.minY = top * ONEOVERTEXSIZE;
-    coords.minX = left * ONEOVERTEXSIZE;
-    coords.maxY = (top + cellHeight) * ONEOVERTEXSIZE;
+    coords.minY = top * oneOverAtlasSize;
+    coords.minX = left * oneOverAtlasSize;
+    coords.maxY = (top + cellHeight) * oneOverAtlasSize;
 
     float right = left + this->m_bitmapData.m_glyphCellWidth;
-    coords.maxX = ONEOVERTEXSIZE * right;
+    coords.maxX = oneOverAtlasSize * right;
 
     this->m_bitmapData.m_textureCoords = coords;
 }
@@ -378,8 +381,9 @@ TEXTLINETEXTURE* TEXTLINETEXTURE::NewTextLineTexture() {
 
 // VERIFY: be22d63b manual
 // OFFSET: 0x006C4F80
-void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC* desc, CGxFont* font) {
+void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC* desc, CGxFont* font, uint32_t atlasSize) {
     uint32_t needed = desc->m_bitmapData.m_glyphCellWidth;
+    uint32_t lastPixel = atlasSize - 1;
 
     CHARCODEDESC* glyph = this->m_glyphlist.Head();
 
@@ -391,7 +395,7 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC* desc, CGxFont* font) {
 
     while (freed < needed) {
         CHARCODEDESC* next = this->m_glyphlist.Next(desc);
-        uint32_t gap = next ? next->m_glyphStartPixel - desc->m_glyphEndPixel - 1 : 255 - desc->m_glyphEndPixel;
+        uint32_t gap = next ? next->m_glyphStartPixel - desc->m_glyphEndPixel - 1 : lastPixel - desc->m_glyphEndPixel;
         freed += desc->m_glyphEndPixel - desc->m_glyphStartPixel + 1 + gap;
 
         font->m_activeCharacterCache.UnlinkNode(desc);
@@ -415,7 +419,7 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC* desc, CGxFont* font) {
 
     for (glyph = this->m_glyphlist.Head(); glyph; glyph = this->m_glyphlist.Next(glyph)) {
         CHARCODEDESC* next = this->m_glyphlist.Next(glyph);
-        uint32_t gap = next ? next->m_glyphStartPixel - glyph->m_glyphEndPixel - 1 : 255 - glyph->m_glyphEndPixel;
+        uint32_t gap = next ? next->m_glyphStartPixel - glyph->m_glyphEndPixel - 1 : lastPixel - glyph->m_glyphEndPixel;
 
         if (gap > this->m_widestFreeSlot) {
             this->m_widestFreeSlot = gap;
@@ -425,8 +429,9 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC* desc, CGxFont* font) {
 
 // VERIFY: 2ccd62da manual
 // OFFSET: 0x006C5120
-CHARCODEDESC* TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t rowNumber, uint32_t cellHeight) {
+CHARCODEDESC* TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t rowNumber, uint32_t cellHeight, uint32_t atlasSize) {
     uint32_t width = data->m_glyphCellWidth;
+    uint32_t lastPixel = atlasSize - 1;
 
     if (this->m_widestFreeSlot < width) {
         return nullptr;
@@ -442,7 +447,7 @@ CHARCODEDESC* TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t row
         desc->m_glyphEndPixel = width - 1;
         desc->m_rowNumber = rowNumber;
         desc->m_bitmapData.CopyFrom(data);
-        desc->GenerateTextureCoords(rowNumber, cellHeight);
+        desc->GenerateTextureCoords(rowNumber, cellHeight, atlasSize);
 
         return desc;
     }
@@ -456,14 +461,14 @@ CHARCODEDESC* TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t row
         desc->m_glyphStartPixel = desc->m_glyphEndPixel - width + 1;
         desc->m_rowNumber = rowNumber;
         desc->m_bitmapData.CopyFrom(data);
-        desc->GenerateTextureCoords(rowNumber, cellHeight);
+        desc->GenerateTextureCoords(rowNumber, cellHeight, atlasSize);
 
         CHARCODEDESC* first = this->m_glyphlist.Head();
         this->m_widestFreeSlot = first ? first->GapToPrevious() : 0;
 
         for (CHARCODEDESC* glyph = this->m_glyphlist.Head(); glyph; glyph = this->m_glyphlist.Next(glyph)) {
             CHARCODEDESC* next = this->m_glyphlist.Next(glyph);
-            uint32_t gap = next ? next->m_glyphStartPixel - glyph->m_glyphEndPixel - 1 : 255 - glyph->m_glyphEndPixel;
+            uint32_t gap = next ? next->m_glyphStartPixel - glyph->m_glyphEndPixel - 1 : lastPixel - glyph->m_glyphEndPixel;
 
             if (gap > this->m_widestFreeSlot) {
                 this->m_widestFreeSlot = gap;
@@ -478,7 +483,7 @@ CHARCODEDESC* TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t row
 
     for (CHARCODEDESC* glyph = head; glyph; ) {
         CHARCODEDESC* next = this->m_glyphlist.Next(glyph);
-        uint32_t gap = next ? next->m_glyphStartPixel - glyph->m_glyphEndPixel - 1 : 255 - glyph->m_glyphEndPixel;
+        uint32_t gap = next ? next->m_glyphStartPixel - glyph->m_glyphEndPixel - 1 : lastPixel - glyph->m_glyphEndPixel;
 
         if (inserted) {
             if (gap > this->m_widestFreeSlot) {
@@ -491,7 +496,7 @@ CHARCODEDESC* TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t row
             desc->m_glyphEndPixel = glyph->m_glyphEndPixel + width;
             desc->m_rowNumber = rowNumber;
             desc->m_bitmapData.CopyFrom(data);
-            desc->GenerateTextureCoords(rowNumber, cellHeight);
+            desc->GenerateTextureCoords(rowNumber, cellHeight, atlasSize);
             inserted = 1;
             next = desc;
         } else if (!next) {

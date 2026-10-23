@@ -45,7 +45,7 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
     /* 0038 */ GLYPHBITMAPDATA m_bitmapData;
 
     CHARCODEDESC();
-    void GenerateTextureCoords(uint32_t rowNumber, uint32_t cellHeight);
+    void GenerateTextureCoords(uint32_t rowNumber, uint32_t cellHeight, uint32_t atlasSize);
     uint32_t GapToPrevious();
 };
 
@@ -96,8 +96,8 @@ struct TEXTURECACHEROW {
     /* 0004 */ TSExplicitList<CHARCODEDESC, offsetof(CHARCODEDESC, m_textureRowLink)> m_glyphlist;
 
     TEXTURECACHEROW();
-    CHARCODEDESC* CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t rowNumber, uint32_t cellHeight);
-    void EvictGlyph(CHARCODEDESC* desc, CGxFont* font);
+    CHARCODEDESC* CreateNewDesc(GLYPHBITMAPDATA* data, uint32_t rowNumber, uint32_t cellHeight, uint32_t atlasSize);
+    void EvictGlyph(CHARCODEDESC* desc, CGxFont* font, uint32_t atlasSize);
 };
 
 struct TEXTURECACHE {
@@ -115,11 +115,15 @@ struct TEXTURECACHE {
     void Destroy();
     void Initialize(CGxFont* face, uint32_t cellHeight);
     void PasteGlyphNonOutlinedAA(const GLYPHBITMAPDATA& data, uint16_t* dest);
-    void PasteGlyphNonOutlinedAAHighResolution(const GLYPHBITMAPDATA& data, uint32_t* dest);
+    void PasteGlyphHighResolution(const GLYPHBITMAPDATA& data, uint32_t* dest, uint32_t fontFlags);
     void PasteGlyphNonOutlinedMonochrome(const GLYPHBITMAPDATA& data, uint16_t* dest);
     void PasteGlyphOutlinedAA(const GLYPHBITMAPDATA& data, uint16_t* dest);
     void PasteGlyphOutlinedMonochrome(const GLYPHBITMAPDATA& data, uint16_t* dest);
     void UpdateDirty();
+
+    // Atlas width and height of this page: 512 for the 8-bit high-resolution page, the
+    // original 256 otherwise.  The glyph packing code indexes the page with these values.
+    uint32_t GetAtlasSize() const;
 };
 
 #endif

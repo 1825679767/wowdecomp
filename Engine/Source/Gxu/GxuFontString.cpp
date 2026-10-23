@@ -271,7 +271,16 @@ void CGxString::InitializeTextLine(const char* text, uint32_t numBytes, CImVecto
         parseInfo.m_hyperlink.m_right = pos.x;
     }
 
+    // Half a texel, so the quad's edges land on texel centres instead of texel corners.
+    // The legacy page is 256 texels wide, which makes this 1/512; the high-resolution page
+    // is twice that, so it needs 1/1024 or the glyph loses a whole texel on every side.
     static CRect pixelAdjustments = { 1.0f / 512.0f, 1.0f / 512.0f, -1.0f / 512.0f, -1.0f / 512.0f };
+    static CRect highResolutionPixelAdjustments = {
+        1.0f / (2.0f * GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE),
+        1.0f / (2.0f * GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE),
+        -1.0f / (2.0f * GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE),
+        -1.0f / (2.0f * GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE),
+    };
 
     float step = 0.0f;
     float x = 0.0f;
@@ -496,12 +505,13 @@ void CGxString::InitializeTextLine(const char* text, uint32_t numBytes, CImVecto
                     vert.m_tc.x = 0.0f;
                     vert.m_tc.y = 0.0f;
                     float bearing = this->m_currentFace->GetGlyphBearing(desc, (flags >> 7) & 1, this->m_currentFontHeight);
+                    const bool highResolution = (this->m_currentFace->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION) && !(flags & 0x80);
 
                     // High-resolution glyphs retain their native atlas metrics
                     // for extent and wrapping calculations.  Geometry is built
                     // in the current display size, so apply the same ratio as
                     // the glyph quad width when the string uses screen units.
-                    if ((this->m_currentFace->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION) && !(flags & 0x80)) {
+                    if (highResolution) {
                         bearing *= scale;
                     }
 
@@ -513,6 +523,16 @@ void CGxString::InitializeTextLine(const char* text, uint32_t numBytes, CImVecto
                         width = floor(width);
                     }
 
+                    if (highResolution) {
+                        // Snap both edges to whole pixels.  The pen position is already an
+                        // integer, but the bearing and the scaled cell width are not, and a
+                        // quad that starts on a fractional pixel is resampled with a phase
+                        // that differs from glyph to glyph: some digits look crisp and their
+                        // neighbours look soft, and the pattern changes as the number grows.
+                        vert.m_vc.x = floor(vert.m_vc.x + 0.5f);
+                        width = floor(width + 0.5f);
+                    }
+
                     if (this->m_currentFace->m_fontFlags & 8) {
                         vert.m_vc.y = vert.m_vc.y - 2.0;
                     } else if (this->m_currentFace->m_fontFlags & 1) {
@@ -520,6 +540,13 @@ void CGxString::InitializeTextLine(const char* text, uint32_t numBytes, CImVecto
                     }
 
                     vert.m_vc.y = desc->m_bitmapData.m_yOffset * scale + vert.m_vc.y;
+
+                    if (highResolution) {
+                        // Same reasoning as the horizontal edges: the baseline offset is
+                        // fractional, and a quad that starts on a fractional row blurs just as
+                        // much as one that starts on a fractional column.
+                        vert.m_vc.y = floor(vert.m_vc.y + 0.5f);
+                    }
 
                     uint32_t vertIndex = textLine->m_verts.Add(4, 0, &vert);
                     VERT* verts = &textLine->m_verts.m_data[vertIndex];
@@ -537,11 +564,14 @@ void CGxString::InitializeTextLine(const char* text, uint32_t numBytes, CImVecto
 
                     CRect coords = desc->m_bitmapData.m_textureCoords;
 
-                    if ((this->m_flags & 0x80) || (this->m_currentFace->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION)) {
-                        coords.minY = coords.minY + pixelAdjustments.minY;
-                        coords.minX = coords.minX + pixelAdjustments.minX;
-                        coords.maxY = coords.maxY + pixelAdjustments.maxY;
-                        coords.maxX = coords.maxX + pixelAdjustments.maxX;
+                    const bool highResolutionFace = (this->m_currentFace->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION) != 0;
+
+                    if ((this->m_flags & 0x80) || highResolutionFace) {
+                        const CRect& adjustments = highResolutionFace ? highResolutionPixelAdjustments : pixelAdjustments;
+                        coords.minY = coords.minY + adjustments.minY;
+                        coords.minX = coords.minX + adjustments.minX;
+                        coords.maxY = coords.maxY + adjustments.maxY;
+                        coords.maxX = coords.maxX + adjustments.maxX;
                     }
 
                     verts[2].m_tc.y = coords.maxY;

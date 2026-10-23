@@ -37,6 +37,11 @@ uint32_t CGxFont::GetPixelSize() {
     return this->m_pixelSize;
 }
 
+// INLINED
+bool CGxFont::IsHighResolution() const {
+    return (this->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION) != 0;
+}
+
 // VERIFY: 3c5dbf73 manual
 // OFFSET: 0x006C2280
 float CGxFont::FindNearestFixedSize(FT_Face face, float height) {
@@ -68,18 +73,33 @@ int32_t CGxFont::UpdateDimensions() {
 
     uint32_t pixelSize = static_cast<uint32_t>(ScreenToPixelHeight(0, height));
 
-    if (pixelSize > 32) {
-        pixelSize = 32;
-    } else if (pixelSize == 0) {
-        DebugLog("Error, font %s being created with height %g at screen res of %dx%d which is %d pixels!", this->m_fontName, height, g_widthPixels, g_heightPixels, pixelSize);
-    }
-
-    // Damage numbers are rendered as world text and are commonly enlarged by
-    // the camera projection.  Rasterize this opt-in font at twice the normal
-    // atlas size, then scale its metrics back down during geometry generation.
-    // This preserves layout while giving FreeType more samples for the edge.
     if (this->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION) {
-        pixelSize *= 2;
+        // High-resolution fonts are created for one display size, so the raster size is the
+        // display size and no resampling happens later.  The legacy 32-pixel ceiling exists
+        // because the old page cannot hold taller cells; the 512-row page has no such limit,
+        // it only has to keep one cell inside the page.  Outlined fonts add up to four rows
+        // below, so the clamp has to leave that room or the page ends up with zero rows.
+        uint32_t maxPixelSize = GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE;
+
+        if (this->m_fontFlags & 8) {
+            maxPixelSize -= 4;
+        } else if (this->m_fontFlags & 1) {
+            maxPixelSize -= 2;
+        }
+
+        if (pixelSize > maxPixelSize) {
+            pixelSize = maxPixelSize;
+        }
+
+        if (pixelSize == 0) {
+            pixelSize = 1;
+        }
+    } else {
+        if (pixelSize > 32) {
+            pixelSize = 32;
+        } else if (pixelSize == 0) {
+            DebugLog("Error, font %s being created with height %g at screen res of %dx%d which is %d pixels!", this->m_fontName, height, g_widthPixels, g_heightPixels, pixelSize);
+        }
     }
 
     this->m_pixelSize = pixelSize;
@@ -120,6 +140,15 @@ bool CGxFont::GetGlyphData(GLYPHBITMAPDATA* data, uint32_t code) {
         padding = 4;
     } else if (this->m_fontFlags & 1) {
         padding = 2;
+    }
+
+    if (this->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION) {
+        // High-resolution glyphs are sampled linearly at their native size, so the cell keeps
+        // one transparent column between neighbours; otherwise the filter reads across the
+        // cell boundary at the quad edge and the glyph picks up a faint fringe.
+        if (padding < GXU_FONT_HIGH_RESOLUTION_PADDING) {
+            padding = GXU_FONT_HIGH_RESOLUTION_PADDING;
+        }
     }
 
     return IGxuFontGlyphRenderGlyph(face, this->m_pixelSize, code, this->m_baseline, data, this->m_fontFlags & 2, padding, this->m_fontFlags & GXU_FONT_FLAG_HIGH_RESOLUTION);
@@ -388,10 +417,12 @@ CHARCODEDESC* CGxFont::NewCodeDesc(uint32_t code) {
             cache = &this->m_textureCache[textureNumber];
             TEXTURECACHEROW* row = &cache->m_textureRows.m_data[rowNumber];
 
-            row->EvictGlyph(oldest, this);
+            uint32_t atlasSize = cache->GetAtlasSize();
+
+            row->EvictGlyph(oldest, this, atlasSize);
             this->RegisterEvictNotice(textureNumber);
 
-            desc = row->CreateNewDesc(&data, rowNumber, this->m_cellHeight);
+            desc = row->CreateNewDesc(&data, rowNumber, this->m_cellHeight, atlasSize);
 
             if (desc) {
                 desc->m_rowNumber = rowNumber;

@@ -35,6 +35,20 @@ enum : uint32_t {
     GXU_FONT_FLAG_HIGH_RESOLUTION = 0x10,
 };
 
+// High-resolution fonts rasterize their glyphs at the size they are actually drawn, so a
+// glyph texel covers exactly one screen pixel and no resampling is needed.  Two changes make
+// that possible:
+//   - the atlas page grows to 512x512, because a glyph cell can now be far taller than the
+//     256-row page and because an 8-bit page has four times the bytes of the legacy one;
+//   - one transparent pixel is reserved on the right of every cell, so linear sampling at a
+//     quad edge cannot reach the neighbouring glyph.
+// The legacy path keeps the original 256x256 page, ARGB4444 texels and zero padding so that
+// ordinary UI text stays byte-for-byte identical.
+static constexpr uint32_t GXU_FONT_HIGH_RESOLUTION_ATLAS_SIZE = 512;
+static constexpr uint32_t GXU_FONT_HIGH_RESOLUTION_PADDING = 1;
+static constexpr uint32_t GXU_FONT_LEGACY_ATLAS_SIZE = 256;
+static constexpr uint32_t GXU_FONT_LEGACY_CELL_HEIGHT_LIMIT = 68;
+
 QUOTEDCODE GxuDetermineQuotedCode(const char* text, int32_t& advance, CImVector* color, uint32_t flags, uint32_t& wide);
 void GxuFontAddShadow(CGxString* string, const CImVector& color, const C2Vector& offset);
 int32_t GxuFontAddToBatch(CGxStringBatch* batch, CGxString* string);
