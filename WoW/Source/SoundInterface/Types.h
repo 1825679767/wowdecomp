@@ -4,6 +4,19 @@
 #include <cstddef>
 #include <cstdint>
 
+enum WEAPONSWINGTYPES : int32_t {
+    SWING_NORMAL = 0,
+    SWING_CRITICAL = 1,
+    NUM_SWINGTYPES = 2,
+};
+
+enum WEAPONSWING_SOUNDTYPES : int32_t {
+    WEAPONSWING_LIGHT = 0,
+    WEAPONSWING_MEDIUM = 1,
+    WEAPONSWING_HEAVY = 2,
+    NUM_WEAPONSWINGSOUNDTYPES = 3,
+};
+
 enum ITEMSOUNDTYPE : int32_t {
     ITEMSOUND_PICKUP = 0,
     ITEMSOUND_DROP = 1,

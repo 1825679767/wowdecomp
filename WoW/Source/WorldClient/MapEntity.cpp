@@ -165,7 +165,7 @@ CMapEntity::CMapEntity() {
     this->m_targetAmbientColor.r = 0x00;
     this->m_targetAmbientColor.a = 0x00;
     this->m_targetDiffuseLightScale = 0.0f;
-    this->m_type |= 0x20;
+    this->m_type |= CMapBaseObj::Type_Entity;
 }
 
 // VERIFY: 515c7062 manual
@@ -391,7 +391,7 @@ void CMapEntity::QueryLiquidSounds(TSGrowableArray<World::LiquidQueryResult>& re
     for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
         CMapBaseObj* ref = link->m_ref;
 
-        if (!(ref->m_type & 0x10)) {
+        if (!(ref->m_type & CMapBaseObj::Type_MapObjDefGroup)) {
             continue;
         }
 
@@ -518,7 +518,7 @@ bool CMapStaticEntity::GetMapObjAndGroup(CMapObjDef** mapObjDef, CMapObj** mapOb
     for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
         CMapBaseObj* ref = link->m_ref;
 
-        if (!(ref->m_type & 0x10)) {
+        if (!(ref->m_type & CMapBaseObj::Type_MapObjDefGroup)) {
             continue;
         }
 
@@ -697,7 +697,7 @@ bool CMapEntity::QueryMapObjAreaTable(WMOAreaTableRec** groupRec, WMOAreaTableRe
     for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
         CMapBaseObj* ref = link->m_ref;
 
-        if (ref->m_type & 0x4) {
+        if (ref->m_type & CMapBaseObj::Type_Chunk) {
             break;
         }
 
@@ -724,7 +724,7 @@ bool CMapEntity::QueryMapObjIDs(int32_t* wmoId, int32_t* wmoHash, int32_t* group
     for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
         CMapBaseObj* ref = link->m_ref;
 
-        if (ref->m_type & 0x4) {
+        if (ref->m_type & CMapBaseObj::Type_Chunk) {
             break;
         }
 
@@ -750,7 +750,7 @@ int32_t CMapEntity::QueryInterior() {
     for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
         CMapBaseObj* ref = link->m_ref;
 
-        if (ref->m_type & 0x4) {
+        if (ref->m_type & CMapBaseObj::Type_Chunk) {
             break;
         }
 
@@ -778,7 +778,7 @@ int32_t CMapEntity::QueryMapObjFileName(const char** fileName) {
     for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
         CMapBaseObj* ref = link->m_ref;
 
-        if (ref->m_type & 0x4) {
+        if (ref->m_type & CMapBaseObj::Type_Chunk) {
             *fileName = nullptr;
             return 0;
         }
@@ -803,7 +803,7 @@ bool CMapEntity::QueryMapObjMinimap(CAaBox* box, TSStackArray<MINIMAPQUADINFO>* 
     for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
         CMapBaseObj* ref = link->m_ref;
 
-        if (ref->m_type & 0x4) {
+        if (ref->m_type & CMapBaseObj::Type_Chunk) {
             return false;
         }
 
@@ -834,7 +834,7 @@ bool CMapEntity::QueryMapObjMatrix(C44Matrix* matrix, C44Matrix* invMatrix) {
     for (CMapBaseObjLink* link = this->m_parentLinkList.Head(); link; link = this->m_parentLinkList.Next(link)) {
         CMapBaseObj* ref = link->m_ref;
 
-        if (ref->m_type & 0x4) {
+        if (ref->m_type & CMapBaseObj::Type_Chunk) {
             return false;
         }
 

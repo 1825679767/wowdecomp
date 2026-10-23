@@ -59,6 +59,7 @@
 #include "Engine/Source/Gxu/Gxu.h"
 #include "Engine/Source/Gx/CGxMatrixStack.h"
 #include "Engine/Source/Event/CMouseEvent.h"
+#include "Engine/Source/ShaderEffect/Types.h"
 
 // STATIC: 0x00ACEBAC
 int32_t CGMinimapFrame::s_scaleChanged = 1;
@@ -1115,11 +1116,11 @@ void MINIMAPTILE::Render(uint32_t index, const CImVector* color) {
     }
 
     g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
-    GxRsSet(GxRs_ColorOp0, 0);
-    GxRsSet(GxRs_AlphaOp0, 0);
+    GxRsSet(GxRs_ColorOp0, GxTexOp_Mod);
+    GxRsSet(GxRs_AlphaOp0, GxTexOp_Mod);
     g_theGxDevicePtr->RsSet(GxRs_Texture1, TextureGetGxTex(s_maskTexture, 1, nullptr));
-    GxRsSet(GxRs_ColorOp1, 0);
-    GxRsSet(GxRs_AlphaOp1, 0);
+    GxRsSet(GxRs_ColorOp1, GxTexOp_Mod);
+    GxRsSet(GxRs_AlphaOp1, GxTexOp_Mod);
     C3Vector normal(0.0f, 0.0f, 1.0f);
     GxPrimLockVertexPtrs(4, this->m_vertices, sizeof(C3Vector), &normal, 0, color, 0, nullptr, 0, this->m_texCoords, sizeof(C2Vector), this->m_maskCoords, sizeof(C2Vector));
     GxDrawLockedElements(GxPrim_TriangleStrip, 4, s_quadIndices);
