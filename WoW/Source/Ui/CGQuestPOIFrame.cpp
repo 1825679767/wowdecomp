@@ -245,7 +245,7 @@ void CGQuestPOIFrame::UpdateMouseOverPOI(float x, float y) {
                 continue;
             }
 
-            if (!NTempest::Intersect(point, data->m_fillVerts.m_data, data->m_fillVerts.Count() - 1, C3Vector::AXIS_Z)) {
+            if (!NTempest::Intersect(point, data->m_fillVerts.m_data, data->m_fillVerts.Count() - 1, C3Vector::C3AXIS_Z)) {
                 continue;
             }
 
@@ -312,7 +312,7 @@ void CGQuestPOIFrame::MergeBlobs(uint32_t index) {
             uint32_t inside = 0;
 
             for (uint32_t k = 0; k < smaller->m_fillVerts.Count() - 1; k++) {
-                if (NTempest::Intersect(smaller->m_fillVerts.m_data[k], larger->m_fillVerts.m_data, larger->m_fillVerts.Count() - 1, C3Vector::AXIS_Z)) {
+                if (NTempest::Intersect(smaller->m_fillVerts.m_data[k], larger->m_fillVerts.m_data, larger->m_fillVerts.Count() - 1, C3Vector::C3AXIS_Z)) {
                     inside++;
                 }
             }

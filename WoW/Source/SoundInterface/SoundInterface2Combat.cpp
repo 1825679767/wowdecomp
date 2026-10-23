@@ -57,7 +57,7 @@ void SI2::PlayParrySound(const CGUnitVirtualItem* weapon, const CGUnitVirtualIte
     }
 
     int32_t subclass;
-    int32_t metal;
+    PARRYMATERIALS metal;
 
     if (weapon) {
         subclass = weapon->m_soundOverrideSubclassID;
@@ -66,9 +66,9 @@ void SI2::PlayParrySound(const CGUnitVirtualItem* weapon, const CGUnitVirtualIte
             subclass = weapon->m_subclassID;
         }
 
-        metal = CGItem_C::IsMetal(weapon->m_material);
+        metal = static_cast<PARRYMATERIALS>(CGItem_C::IsMetal(weapon->m_material));
     } else {
-        metal = 0;
+        metal = PARRYMATERIAL_WOOD;
         subclass = ClientDBGetUnarmedWeapon();
     }
 
@@ -108,7 +108,7 @@ void SI2::PlayHitSound(const CGUnitVirtualItem* weapon, int32_t impactType, int3
     }
 
     int32_t subclass;
-    int32_t metal;
+    PARRYMATERIALS metal;
 
     if (weapon) {
         subclass = weapon->m_soundOverrideSubclassID;
@@ -117,9 +117,9 @@ void SI2::PlayHitSound(const CGUnitVirtualItem* weapon, int32_t impactType, int3
             subclass = weapon->m_subclassID;
         }
 
-        metal = CGItem_C::IsMetal(weapon->m_material);
+        metal = static_cast<PARRYMATERIALS>(CGItem_C::IsMetal(weapon->m_material));
     } else {
-        metal = 0;
+        metal = PARRYMATERIAL_WOOD;
         subclass = ClientDBGetUnarmedWeapon();
     }
 
@@ -138,8 +138,8 @@ void SI2::PlayHitSound(const CGUnitVirtualItem* weapon, int32_t impactType, int3
 
 // VERIFY: 1275dcb8 manual
 // OFFSET: 0x004D0720
-int32_t SI2::PlayWeaponSwooshSound(int32_t type, int32_t crit, const C3Vector* position, int32_t quiet, int32_t self) {
-    if (type >= 3) {
+int32_t SI2::PlayWeaponSwooshSound(WEAPONSWING_SOUNDTYPES type, int32_t crit, const C3Vector* position, int32_t quiet, int32_t self) {
+    if (type >= NUM_WEAPONSWINGSOUNDTYPES) {
         return 0;
     }
 
