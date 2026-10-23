@@ -992,7 +992,17 @@ void CMapObj::UnifiedRender(CMapObjGroup* group, uint32_t index) {
         CMapObj::SetEmissiveColor(emissive);
 
         GxTexSetWrap(gxTex0, static_cast<EGxTexWrapMode>((material.m_flags & 0x40) == 0), static_cast<EGxTexWrapMode>((material.m_flags & 0x80) == 0));
-        CShaderEffect* effect = CMapObj::s_unifiedShaders[shader];
+
+        // Later-client WMOs use shader IDs 7-12 for the classic map object effects.
+        // Keep the lookup bounded because the shader ID comes from the material data.
+        CShaderEffect* effect = CMapObj::s_unifiedShaders[0];
+
+        if (shader < 7) {
+            effect = CMapObj::s_unifiedShaders[shader];
+        } else if (shader < 13) {
+            effect = CMapObj::s_classicShaders[shader - 7];
+        }
+
         g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex0);
         g_theGxDevicePtr->RsSet(GxRs_Texture1, gxTex1);
         effect->SetCurrent();
