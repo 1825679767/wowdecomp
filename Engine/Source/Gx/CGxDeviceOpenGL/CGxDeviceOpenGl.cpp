@@ -1710,7 +1710,7 @@ static HWND CreateGameWindow(CGxFormat& format, void* param) {
         height += CGxDevice::s_clientAdjust.y;
     }
 
-    return CreateWindowExA(WS_EX_APPWINDOW, "GxWindowClassOpenGl", CLIENT_NAME, style, format.m_pos.x, format.m_pos.y, width, height, nullptr, nullptr, instance, param);
+    return CreateWindowExA(WS_EX_APPWINDOW, "GxWindowClassOpenGl", GAME_WINDOW_TITLE, style, format.m_pos.x, format.m_pos.y, width, height, nullptr, nullptr, instance, param);
 }
 
 // VERIFY: 23cf22a4 auto

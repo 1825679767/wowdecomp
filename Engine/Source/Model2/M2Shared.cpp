@@ -1642,8 +1642,20 @@ int32_t CM2Shared::LoadSkinProfile(uint32_t profile) {
 
 // INLINED
 uint32_t CM2Shared::GetSkinProfileIndex(uint32_t maxBones) {
-    for (uint32_t i = 0; i < this->m_data->m_numSkinProfiles; i++) {
-        if (s_skinProfileBoneCounts[4 - this->m_data->m_numSkinProfiles + i] <= maxBones) {
+    const uint32_t skinProfileCount = this->m_data->m_numSkinProfiles;
+    const uint32_t supportedProfileCount = sizeof(s_skinProfileBoneCounts) / sizeof(s_skinProfileBoneCounts[0]);
+
+    // The lookup below indexes the table from the end.  M2 files with more
+    // profiles than the client knows about would otherwise underflow the
+    // unsigned index (for example, 4 - 6 == 0xFFFFFFFE) and crash while
+    // loading the model.
+    if (skinProfileCount == 0 || skinProfileCount > supportedProfileCount) {
+        DebugLog("Unsupported skin profile count %u: %s", skinProfileCount, this->m_fileName);
+        return 0xFFFFFFFF;
+    }
+
+    for (uint32_t i = 0; i < skinProfileCount; i++) {
+        if (s_skinProfileBoneCounts[supportedProfileCount - skinProfileCount + i] <= maxBones) {
             return i;
         }
     }
