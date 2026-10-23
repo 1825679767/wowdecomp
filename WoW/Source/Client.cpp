@@ -1758,7 +1758,11 @@ bool InitializeGlobal() {
 
     g_startup_StringsDB.Load(__FILE__, __LINE__);
 
-    ConsoleDeviceInitialize(CLIENT_NAME, 1, 1);
+    // Keep the native window title separate from the internal client/product name.
+    // ConsoleDeviceInitialize stores this value and reapplies it after graphics
+    // device resets, so passing CLIENT_NAME here would overwrite GAME_WINDOW_TITLE
+    // with "Waystone" every time the client initializes or restarts the device.
+    ConsoleDeviceInitialize(GAME_WINDOW_TITLE, 1, 1);
 
     OsIMEInitialize();
     g_rndSeed.SetSeed(OsGetAsyncTimeMs());
