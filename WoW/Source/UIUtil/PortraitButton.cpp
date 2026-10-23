@@ -30,6 +30,7 @@
 #include "WoW/Source/Ui/PartyFrame.h"
 #include <cstring>
 #include "Engine/Source/Base/Coordinate.h"
+#include "Engine/Source/ShaderEffect/Types.h"
 
 // STATIC: 0x00C5CDF0
 static CTexture* s_portraitMaskTexture;
@@ -558,8 +559,8 @@ void RenderPortraitTexture(CSimpleTexture* texture, CGUnit_C* unit) {
     CCamera* createdCamera = nullptr;
     CCamera* camera;
 
-    if (model->HasCamera(0)) {
-        camera = model->GetCameraById(0);
+    if (model->HasCamera(CAMERA_PORTRAIT)) {
+        camera = model->GetCameraById(CAMERA_PORTRAIT);
     } else {
         camera = CameraCreate();
         createdCamera = camera;
@@ -747,8 +748,8 @@ void RenderPortraitTexture(CSimpleTexture* texture, CGUnit_C* unit) {
         GxXformSetProjection(ortho);
         g_theGxDevicePtr->RsPush();
         GxRsSet(GxRs_Texture0, s_portraitMaskGxTex);
-        GxRsSet(GxRs_ColorOp0, 0);
-        GxRsSet(GxRs_AlphaOp0, 0);
+        GxRsSet(GxRs_ColorOp0, GxTexOp_Mod);
+        GxRsSet(GxRs_AlphaOp0, GxTexOp_Mod);
         GxRsSet(GxRs_ColorWrite, 8);
         GxRsSet(GxRs_BlendingMode, 0);
         GxRsSet(GxRs_Lighting, 0);

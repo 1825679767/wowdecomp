@@ -32,6 +32,7 @@
 #include "WoW/Source/WorldClient/WorldParam.h"
 #include "Engine/Source/Gxu/Gxu.h"
 #include "WoW/Source/Ui/WorldFrame.h"
+#include "Engine/Source/ShaderEffect/Types.h"
 
 static const float SUNRISE = 0.22916667f;
 static const float NOON = 0.5f;
@@ -3039,8 +3040,8 @@ void DayNight::DNGlare::Render() {
     GxRsSet(GxRs_Culling, 0);
     GxRsSet(GxRs_DepthTest, 0);
     g_theGxDevicePtr->RsSet(GxRs_Texture0, gxTex);
-    GxRsSet(GxRs_ColorOp0, 0);
-    GxRsSet(GxRs_AlphaOp0, 0);
+    GxRsSet(GxRs_ColorOp0, GxTexOp_Mod);
+    GxRsSet(GxRs_AlphaOp0, GxTexOp_Mod);
     GxPrimVertexPtr(4, s_glareVertices, sizeof(C3Vector), nullptr, 0, &this->m_color, 0, s_glareTexCoords, sizeof(C2Vector), nullptr, 0);
     GxPrimIndexPtr(4, s_glareIndices);
     CGxBatch batch;
