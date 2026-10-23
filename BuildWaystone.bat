@@ -30,14 +30,14 @@ if errorlevel 1 goto :fail
 cmake --build "%BUILD%" --target Wow XvidDecoder
 if errorlevel 1 goto :fail
 
-if not exist "%BIN%\Win\Wow64.exe" goto :missing
-if not exist "%BIN%\Win\Wow64.map" goto :missing
+if not exist "%BIN%\Win\wow.exe" goto :missing
+if not exist "%BIN%\Win\wow.map" goto :missing
 if not exist "%BIN%\Win\XvidDecoder.dll" goto :missing
 
 if exist "%STAGE%" rmdir /s /q "%STAGE%"
 mkdir "%STAGE%"
-copy /y "%BIN%\Win\Wow64.exe" "%STAGE%\Waystone.exe" >nul
-copy /y "%BIN%\Win\Wow64.map" "%STAGE%\Waystone.map" >nul
+copy /y "%BIN%\Win\wow.exe" "%STAGE%\Waystone.exe" >nul
+copy /y "%BIN%\Win\wow.map" "%STAGE%\Waystone.map" >nul
 copy /y "%BIN%\Win\XvidDecoder.dll" "%STAGE%\XvidDecoder.dll" >nul
 
 set "ZIP=%BIN%\Waystone-%HASH%.zip"
